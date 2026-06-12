@@ -11,6 +11,7 @@ import { JOBS, getJob } from "../data/jobs.js";
 import { advanceClock, minutesLeft, fmtClock } from "../core/time.js";
 import { applyCondition, applySkills, passiveDrift } from "./condition.js";
 import { addLedger, pushLog } from "./activities.js";
+import { bumpRep } from "./reputation.js";
 import { clamp } from "../core/state.js";
 
 // ── Mastery curve ──────────────────────────────────────────────────────────
@@ -245,13 +246,17 @@ export function resolveShift(game, jobId, quality, { auto = false } = {}) {
     else unlock = `Mastery ${afterMastery.level} — you work cleaner and faster.`;
   }
 
+  // Reputation: clean work builds the district's trust in you; a sloppy shift or
+  // an injury dents it. This feeds the Opportunity Web's reputation gates.
+  const repDelta = bumpRep(state, job.district, injury ? -2 : quality >= 0.6 ? 2 : quality < 0.4 ? -1 : 1);
+
   // Stats + narrative.
   state.stats.shiftsWorked++;
   if (!injury) pushLog(state, shiftLine(job, quality, auto));
   state.rng.state = rng.getState();
 
   const result = {
-    job, quality, pay, auto, injury,
+    job, quality, pay, auto, injury, repDelta,
     level: afterMastery.level, leveledUp, masteryUnlock: unlock, xpGain,
     skillGrant, before, after: { ...state.condition },
     forcedSleep: roll.rolledOver,

@@ -22,15 +22,19 @@ This is a web adaptation of the *City of Small Chances* game design book — a s
 - **Multiple valid lives** — security, freedom, connection, respect or wealth.
 - **Mastery without grind** — manual work compresses once you've proven competence.
 
-## Current build — v0.0.6 · *The people you meet*
+## Current build — v0.0.7 · *The web of small chances*
 
-The city is now **inhabited**. Six major characters keep their own **daily schedules**, so who you'll find in a district depends on the hour — and a **"People here"** panel shows whoever's around right now. Step up to anyone for a conversation:
+The game's central promise is now playable: **chances are never luck**. Open the **Opportunity Web** and every prospect in the city is laid out with the exact things it would take — and *why* it's where it is.
 
-- **A relationship that's more than a meter** — every person tracks **trust**, **respect**, **affection**, the **debt** between you (which way it runs), and unresolved **conflict**. Those combine into a **bond** that climbs a ladder from *stranger* to *close*, and the city **remembers**: a "Between you" log records the meals you shared and the times you showed up, and a standing favour quietly shades how they greet you.
-- **Five ways to spend time together** — **catch up** (the first chat of the day means the most), **share a meal**, **lend a hand** (tiring, but it earns respect and puts *them* in your debt), **ask a favour**, or **give a gift** to settle what you owe. Each shows its honest time/money cost and effect before you commit.
-- **Favours with teeth** — once you've earned it, people give you something real and traceable: Rafiq the yard lead lends you **steel-toed boots**, Clara the clinic admin slips you a **care voucher**, Mei feeds you on the house, Jun the dispatcher pays a **tip-off** and bumps you up tomorrow's routes. NPCs are economic actors, not quest boards — and a favour leaves you owing one back.
+- **Six requirement components, all legible** — each chance is gated on some mix of a **Skill**, a **Relationship**, a district **Reputation**, a **Possession**, the **Timing** (weather + hour), and your own **History**. Every requirement shows a tick or a gap, a progress bar, and a plain hint on how to close it — the recommended skill path, who you'd need to befriend, how to get the gear (buy or rent), the window it opens in.
+- **A chance's whole life, visible** — opportunities move through honest states: **Hidden** → **Rumoured** (you've caught wind, but not the specifics) → **Known** (you see what it takes, but you're short) → **Available** → **Yours now**. A chance, once glimpsed, never un-discovers itself.
+- **The debugging rule, kept** — the book insists nothing here is opaque, so every card carries a one-line reason: *"Available because you've got Logistics 24, a bicycle, Jun's trust (bond 42) and 3 shifts worked."* Lock one and it tells you exactly what's still missing.
+- **Reputation you build by showing up** — clean shifts and lending a hand quietly raise your name in a district; sloppy work and injuries dent it. It's tracked per-district and feeds the Web's reputation gates — and the day log always says why it moved.
+- **Real chances to take** — a standing courier route from Jun, a regular's spot on the dockside gang, an apprenticeship with Tomo, a seat at the tenants' table, a foot in the clinic door — and a **repeatable storm-surge run** that opens only when the rain comes down after dark. Taking one applies a tangible reward and becomes part of your life.
 
-Built on the v0.0.5 **work-mastery framework** — a district **work board** and an in-world **work-rhythm shift scene** whose quality drives pay, skill growth and a mastery curve (pattern-preview → auto-resolve).
+Built on the v0.0.6 **relationship system** — six scheduled characters with trust/respect/affection/debt/conflict, a "People here" panel, conversations and favours with material payoffs.
+
+…the v0.0.5 **work-mastery framework** — a district **work board** and an in-world **work-rhythm shift scene** whose quality drives pay, skill growth and a mastery curve (pattern-preview → auto-resolve).
 
 …the v0.0.4 **city of districts** — a node-graph **map** with **walk / cycle / tram** travel (real time & fare, weather-scaled), five seeded 3D places, and district-gated activities.
 
@@ -74,10 +78,10 @@ src/
   main.js             bootstrap
   game.js             Game orchestrator (day cycle, actions)
   core/               rng · store · time · state · save
-  systems/            weather · condition · activities · travel · jobs · relationships
+  systems/            weather · condition · activities · travel · jobs · relationships · reputation · opportunities
   render/             WebGL2 3D — mat · gl · textures · scene · renderer · avatar · sprites
-  ui/                 dom helpers · hud · cityview · map · jobboard · shift · people · talk · screens
-  data/               authored content tables (content · districts · jobs · npcs)
+  ui/                 dom helpers · hud · cityview · map · jobboard · shift · people · talk · opportunities · screens
+  data/               authored content tables (content · districts · jobs · npcs · opportunities)
 assets/               sprites · textures · audio (generated per-milestone)
 ```
 
@@ -95,6 +99,9 @@ rhythm game, `:auto` to see the result screen). Job ids: `market_haul`, `harbour
 `:bonded` to pre-warm the relationship, `:act` to auto-play the first social action);
 `#debug-people:<district>:<minute>` shows the city with the "People here" panel for a
 given place and time. NPC ids: `mei`, `jun`, `rafiq`, `tomo`, `clara`, `ava`.
+`#debug-web:<preset>` opens the Opportunity Web — `mid` (a believable mid-game, several
+chances Available), `storm` (also opens the weather-gated surge run), or `fresh` (the
+near-empty web showing a first Rumoured chance).
 
 ## Roadmap
 
@@ -106,7 +113,7 @@ Each milestone is a tagged release (`v0.0.x`).
 - **v0.0.4** — Map & districts: five seeded 3D locations, a node-graph city map, and walk/cycle/tram travel with real time & fare. ✓
 - **v0.0.5** — Jobs & work mastery: five jobs, an in-world work-rhythm shift scene, quality-based pay, and a mastery curve (pattern preview → auto-resolve). ✓
 - **v0.0.6** — NPCs, relationships & social memory: six scheduled characters, trust/respect/affection/debt/conflict, a "People here" panel, conversations, and favours with traceable, material payoffs. ✓
-- v0.0.7 — Opportunity Web (traceable chances).
+- **v0.0.7** — Opportunity Web: chances gated on six legible components (skill, relationship, reputation, possession, timing, history), a Hidden→Rumoured→Known→Available state machine, per-district reputation, and a plain-language reason on every chance. ✓
 - v0.0.8 — Economy: rent ladder, bills, debt.
 - v0.0.9 — Events & crises with recovery paths.
 - v0.1.0 — Phone UI, audio, accessibility; first vertical-slice polish.

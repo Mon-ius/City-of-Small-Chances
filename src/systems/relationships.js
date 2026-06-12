@@ -13,6 +13,7 @@ import { NPCS, getNpc, STAGES } from "../data/npcs.js";
 import { advanceClock, minutesLeft } from "../core/time.js";
 import { applyCondition, applySkills, passiveDrift } from "./condition.js";
 import { addLedger, pushLog } from "./activities.js";
+import { bumpRep, repLine } from "./reputation.js";
 import { clamp } from "../core/state.js";
 
 // ── Relationship variables ───────────────────────────────────────────────────
@@ -268,6 +269,17 @@ export function doSocial(game, npcId, actionId) {
   if (res.favourApply) res.favourApply(state);
   if (res.favour) { rel.lastFavourDay = state.day; state.stats.favoursAsked = (state.stats.favoursAsked || 0) + 1; }
 
+  // Reputation: showing up for people in their district quietly builds the
+  // place's trust in you (book §11 — every change must be explainable, so we
+  // only move it on actions that visibly "show up": a hand lent, a meal shared,
+  // a debt repaid). This feeds the Opportunity Web's reputation gates.
+  let repDelta = 0;
+  if (npc.anchor) {
+    const repaid = res.memory && res.memory.kind === "repay";
+    const repAmt = action.id === "help" ? 2 : action.id === "meal" ? 1 : repaid ? 1 : 0;
+    if (repAmt) repDelta = bumpRep(state, npc.anchor, repAmt);
+  }
+
   // Condition + skills.
   if (res.condition) applyCondition(state, res.condition);
   if (res.skills) applySkills(state, res.skills);
@@ -291,6 +303,7 @@ export function doSocial(game, npcId, actionId) {
 
   // Narrative.
   pushLog(state, `${npc.short}: ${res.line}`);
+  if (repDelta > 0) { const l = repLine(state, npc.anchor, repDelta); if (l) pushLog(state, l); }
   state.rng.state = rng.getState();
 
   const bondAfter = bondScore(rel);
@@ -301,6 +314,7 @@ export function doSocial(game, npcId, actionId) {
     money: res.money || 0, cost,
     relDelta: res.rel || {},
     bondBefore, bondAfter, stageUp: stageAfter > stageBefore ? stageFor(rel) : null,
+    repDelta, repDistrict: repDelta ? npc.anchor : null,
     metNow: !wasMet,
     before, after: { ...state.condition },
     forcedSleep: roll.rolledOver,

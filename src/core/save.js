@@ -2,7 +2,7 @@
 // sleep, integrity validation, and versioned migration. We implement a small,
 // honest version of that for the web build.
 
-import { SAVE_VERSION } from "./state.js";
+import { SAVE_VERSION, blankReputation } from "./state.js";
 import { HOME_DISTRICT } from "../data/districts.js";
 
 const KEY = "cosc.save.v1";
@@ -96,6 +96,14 @@ function migrate(state, fromVersion) {
       if (typeof s.stats.peopleMet !== "number") s.stats.peopleMet = 0;
       if (typeof s.stats.favoursAsked !== "number") s.stats.favoursAsked = 0;
     }
+  }
+  // v5 — Opportunity Web: older saves had no reputation or opportunity tracking.
+  if (fromVersion < 5) {
+    if (!s.reputation || typeof s.reputation !== "object") s.reputation = blankReputation();
+    else { const base = blankReputation(); for (const k of Object.keys(base)) if (typeof s.reputation[k] !== "number") s.reputation[k] = 0; }
+    if (!s.opportunities || typeof s.opportunities !== "object") s.opportunities = { seen: {}, claimed: {} };
+    if (!s.opportunities.seen) s.opportunities.seen = {};
+    if (!s.opportunities.claimed) s.opportunities.claimed = {};
   }
   s.version = SAVE_VERSION;
   return s;

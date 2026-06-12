@@ -4,9 +4,14 @@
 
 import { DAY_START_MIN } from "./time.js";
 import { hashSeed } from "./rng.js";
-import { HOME_DISTRICT } from "../data/districts.js";
+import { HOME_DISTRICT, DISTRICTS } from "../data/districts.js";
 
-export const SAVE_VERSION = 4;
+// Every district starts at zero reliability (book §11 reputation).
+export function blankReputation() {
+  return Object.fromEntries(DISTRICTS.map((d) => [d.id, 0]));
+}
+
+export const SAVE_VERSION = 5;
 
 // Condition meters, per the book's "Survival, Health and Personal Condition".
 export const CONDITION_KEYS = ["energy", "hunger", "stress", "health", "hope"];
@@ -89,6 +94,18 @@ export function newGameState(profile) {
     // a capped social-memory log. Keyed by npc id from data/npcs.js.
     social: {
       rel: {}, // { [npcId]: { trust, respect, affection, debt, conflict, met, firstDay, lastTalk, lastFavourDay, memory:[] } }
+    },
+
+    // Reputation — per-district reliability (book §11). Built by clean work and
+    // showing up for people; dented by injuries and sloppy shifts. Feeds the
+    // Opportunity Web's reputation gates.
+    reputation: blankReputation(),
+
+    // Opportunity Web (book §11). `seen` remembers what you've discovered (so a
+    // chance never un-discovers); `claimed` records the chances you've taken.
+    opportunities: {
+      seen: {}, // { [oppId]: true }
+      claimed: {}, // { [oppId]: dayClaimed }
     },
 
     // Per-day bookkeeping, reset each morning, surfaced in the report.

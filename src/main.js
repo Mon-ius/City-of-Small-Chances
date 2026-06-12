@@ -95,6 +95,28 @@ function boot() {
     game.store.state.location = parts[1] || "market_row";
     if (parts[2]) game.store.state.clock = parseInt(parts[2], 10) || game.store.state.clock;
     sm.show("city");
+  } else if (hash.startsWith("#debug-web")) {
+    // #debug-web[:<preset>] — the Opportunity Web. preset ∈ fresh | mid | storm.
+    // "mid" seeds a believable mid-game so several chances read as Available;
+    // "storm" also opens the weather-gated surge run; "fresh" shows the empty web.
+    game.startNew({ name: "Tester", pronouns: "they/them", background: "debt", trait: "persistent", skill: "logistics" });
+    const preset = hash.split(":")[1] || "mid";
+    const s = game.store.state;
+    s.clock = 12 * 60;
+    if (preset !== "fresh") {
+      s.location = "market_row";
+      s.inventory.bicycle = true; s.inventory.safetyShoes = true;
+      Object.assign(s.skills, { logistics: 24, maintenance: 26, communication: 22, focus: 22 });
+      Object.assign(s.reputation, { market_row: 14, dockside: 22, tenements: 16, uptown: 12, old_harbour: 10 });
+      Object.assign(s.stats, { shiftsWorked: 5, daysSurvived: 6, mealsEaten: 4, peopleMet: 5 });
+      const rel = (trust, affection, respect = 30) => ({ trust, respect, affection, conflict: 0, debt: 0, met: true, firstDay: 1, lastTalk: null, lastFavourDay: 0, memory: [] });
+      s.social.rel = {
+        jun: rel(50, 45), mei: rel(45, 45), tomo: rel(75, 65, 45),
+        ava: rel(48, 45), clara: rel(48, 45), rafiq: rel(40, 35),
+      };
+    }
+    if (preset === "storm") { s.weather = "storm"; s.clock = 18 * 60; }
+    sm.show("opportunities");
   } else if (hash === "#debug-report") {
     game.startNew({ name: "Tester", pronouns: "they/them", background: "debt", trait: "persistent", skill: "logistics" });
     game.performActivity("day_labour");
