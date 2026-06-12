@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+._*
+
+# Editor / tooling
+.vscode/
+.idea/
+*.swp
+
+# Logs / temp
+*.log
+node_modules/
+
+# Local-only design source (kept out of the public game repo)
+City_of_Small_Chances_Game_Design_Book.md
