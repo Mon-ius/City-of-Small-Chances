@@ -22,15 +22,17 @@ This is a web adaptation of the *City of Small Chances* game design book — a s
 - **Multiple valid lives** — security, freedom, connection, respect or wealth.
 - **Mastery without grind** — manual work compresses once you've proven competence.
 
-## Current build — v0.0.5 · *Work the shift*
+## Current build — v0.0.6 · *The people you meet*
 
-Work is now something you **do**, not a button you press. Each district posts a **work board**, and taking a shift drops you into an in-world **work-rhythm** scene:
+The city is now **inhabited**. Six major characters keep their own **daily schedules**, so who you'll find in a district depends on the hour — and a **"People here"** panel shows whoever's around right now. Step up to anyone for a conversation:
 
-- **Five jobs across the families** — market haulage and harbour day labour, heavy dockside container loading, a bike courier run (needs your own bicycle), and a civic records desk (needs proven focus). Each has real **hours**, **entry requirements**, a distance-/skill-scaled **pay range**, and weather that bites: storms slow physical work and its pay, but *spike* courier demand.
-- **The shift scene** — a cursor sweeps a track each beat; act (SPACE / tap) when it crosses the lit zone. The closer to the bright core, the higher your **quality** — and quality drives pay and skill growth. Combos, perfect hits and sparks reward a clean rhythm; tired, sloppy physical shifts risk a **strain**.
-- **Mastery without grind** — every shift earns mastery XP. Reach the thresholds and you can **read the pattern a beat ahead**, then **auto-resolve** the shift entirely from a transparent skill/energy/weather formula. Skill, mastery and energy also widen the zone and slow the sweep, so getting better genuinely *feels* better.
+- **A relationship that's more than a meter** — every person tracks **trust**, **respect**, **affection**, the **debt** between you (which way it runs), and unresolved **conflict**. Those combine into a **bond** that climbs a ladder from *stranger* to *close*, and the city **remembers**: a "Between you" log records the meals you shared and the times you showed up, and a standing favour quietly shades how they greet you.
+- **Five ways to spend time together** — **catch up** (the first chat of the day means the most), **share a meal**, **lend a hand** (tiring, but it earns respect and puts *them* in your debt), **ask a favour**, or **give a gift** to settle what you owe. Each shows its honest time/money cost and effect before you commit.
+- **Favours with teeth** — once you've earned it, people give you something real and traceable: Rafiq the yard lead lends you **steel-toed boots**, Clara the clinic admin slips you a **care voucher**, Mei feeds you on the house, Jun the dispatcher pays a **tip-off** and bumps you up tomorrow's routes. NPCs are economic actors, not quest boards — and a favour leaves you owing one back.
 
-Built on the v0.0.4 **city of districts** — a node-graph **map** with **walk / cycle / tram** travel (real time & fare, weather-scaled), five seeded 3D places, and district-gated activities.
+Built on the v0.0.5 **work-mastery framework** — a district **work board** and an in-world **work-rhythm shift scene** whose quality drives pay, skill growth and a mastery curve (pattern-preview → auto-resolve).
+
+…the v0.0.4 **city of districts** — a node-graph **map** with **walk / cycle / tram** travel (real time & fare, weather-scaled), five seeded 3D places, and district-gated activities.
 
 …the v0.0.3 **inhabited 3D world** in raw **WebGL2** (no Three.js, no libraries):
 
@@ -72,10 +74,10 @@ src/
   main.js             bootstrap
   game.js             Game orchestrator (day cycle, actions)
   core/               rng · store · time · state · save
-  systems/            weather · condition · activities · travel · jobs
+  systems/            weather · condition · activities · travel · jobs · relationships
   render/             WebGL2 3D — mat · gl · textures · scene · renderer · avatar · sprites
-  ui/                 dom helpers · hud · cityview · map · jobboard · shift · screens
-  data/               authored content tables (content · districts · jobs)
+  ui/                 dom helpers · hud · cityview · map · jobboard · shift · people · talk · screens
+  data/               authored content tables (content · districts · jobs · npcs)
 assets/               sprites · textures · audio (generated per-milestone)
 ```
 
@@ -89,6 +91,10 @@ District ids: `tenements`, `market_row`, `old_harbour`, `dockside`, `uptown`.
 `#debug-shift:<jobId>` jumps straight into a shift scene (append `:play` to start the
 rhythm game, `:auto` to see the result screen). Job ids: `market_haul`, `harbour_labour`,
 `dock_load`, `courier_run`, `civic_filing`.
+`#debug-talk:<npcId>` opens a conversation where/when that person is around (append
+`:bonded` to pre-warm the relationship, `:act` to auto-play the first social action);
+`#debug-people:<district>:<minute>` shows the city with the "People here" panel for a
+given place and time. NPC ids: `mei`, `jun`, `rafiq`, `tomo`, `clara`, `ava`.
 
 ## Roadmap
 
@@ -99,7 +105,7 @@ Each milestone is a tagged release (`v0.0.x`).
 - **v0.0.3** — A walkable box avatar + third-person follow camera; sprite-billboard crowd. ✓
 - **v0.0.4** — Map & districts: five seeded 3D locations, a node-graph city map, and walk/cycle/tram travel with real time & fare. ✓
 - **v0.0.5** — Jobs & work mastery: five jobs, an in-world work-rhythm shift scene, quality-based pay, and a mastery curve (pattern preview → auto-resolve). ✓
-- v0.0.6 — NPCs, relationships & social memory.
+- **v0.0.6** — NPCs, relationships & social memory: six scheduled characters, trust/respect/affection/debt/conflict, a "People here" panel, conversations, and favours with traceable, material payoffs. ✓
 - v0.0.7 — Opportunity Web (traceable chances).
 - v0.0.8 — Economy: rent ladder, bills, debt.
 - v0.0.9 — Events & crises with recovery paths.

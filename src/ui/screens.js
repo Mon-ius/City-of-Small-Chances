@@ -11,6 +11,8 @@ import { travel } from "../systems/travel.js";
 import { renderMap } from "./map.js";
 import { renderJobBoard } from "./jobboard.js";
 import { shiftScreen } from "./shift.js";
+import { renderPeople } from "./people.js";
+import { talkScreen } from "./talk.js";
 import { conditionWarnings } from "../systems/condition.js";
 import { hasSave, deleteSave, saveMeta } from "../core/save.js";
 import { weatherMeta } from "../systems/weather.js";
@@ -80,7 +82,7 @@ function titleScreen(root, game, sm) {
               }, ["Erase save"])
             : null,
         ]),
-        el("p.title__foot", { text: "v0.0.5 · Work the shift · find the rhythm, earn your mastery" }),
+        el("p.title__foot", { text: "v0.0.6 · The people you meet · trust, favours and a city that remembers" }),
       ]),
     ])
   );
@@ -179,6 +181,9 @@ function cityScreen(root, game, sm) {
   // Open the in-world shift scene for a job on the local work board.
   const onStartShift = (jobId) => sm.show("shift", { jobId });
 
+  // Step into a conversation with someone present in this district.
+  const onTalk = (npcId) => sm.show("talk", { npcId });
+
   const actionList = el("div.actions", {}, acts.map(({ def, enabled, reason }) =>
     el("button.action" + (enabled ? "" : ".action--off"), {
       disabled: enabled ? null : true,
@@ -246,6 +251,7 @@ function cityScreen(root, game, sm) {
           renderJobBoard(state, onStartShift),
         ]),
         el("div.city__col.city__col--side", {}, [
+          renderPeople(state, onTalk),
           renderMap(state, onTravel),
           el("div.panel.panel--log", {}, [
             el("div.panel__head", {}, [el("h3", { text: "Today" })]),
@@ -353,4 +359,5 @@ export const SCREENS = {
   city: cityScreen,
   report: reportScreen,
   shift: shiftScreen,
+  talk: talkScreen,
 };

@@ -3,6 +3,8 @@
 import { Game } from "./game.js";
 import { ScreenManager } from "./ui/screens.js";
 import { loadSettings } from "./core/save.js";
+import { getNpc } from "./data/npcs.js";
+import { DAY_START_MIN } from "./core/time.js";
 
 function boot() {
   const root = document.getElementById("app");
@@ -68,6 +70,31 @@ function boot() {
     // #debug-shift:<job>:play starts the rhythm game; :auto resolves instantly.
     if (parts[2] === "play") setTimeout(() => document.querySelector(".shift__controls .btn--primary")?.click(), 60);
     if (parts[2] === "auto") setTimeout(() => document.querySelector(".shift__controls .btn:not(.btn--primary):not(.btn--ghost)")?.click(), 60);
+  } else if (hash.startsWith("#debug-talk")) {
+    // #debug-talk[:<npcId>[:bonded][:act]] — drop in on an NPC where/when present.
+    game.startNew({ name: "Tester", pronouns: "they/them", background: "debt", trait: "persistent", skill: "logistics" });
+    const parts = hash.split(":");
+    const flags = parts.slice(2);
+    const npc = getNpc(parts[1]) || getNpc("mei");
+    // Find a moment the NPC stands in their anchor district, and put the player there.
+    let prev = DAY_START_MIN, clock = 600;
+    for (const seg of npc.schedule) { if (seg.district === npc.anchor) { clock = Math.floor((Math.max(prev, DAY_START_MIN) + seg.to) / 2); break; } prev = seg.to; }
+    game.store.state.location = npc.anchor;
+    game.store.state.clock = clock;
+    // :bonded pre-seeds a warm relationship so favours + memory are visible.
+    if (flags.includes("bonded")) {
+      game.store.state.social.rel[npc.id] = { trust: 60, respect: 50, affection: 62, conflict: 0, debt: 0, met: true, firstDay: 1, lastTalk: null, lastFavourDay: 0, memory: [{ day: 1, kind: "meal", text: "You shared a meal." }, { day: 1, kind: "help", text: "You helped them out when it counted." }] };
+    }
+    sm.show("talk", { npcId: npc.id });
+    // :act clicks the first available social action so the result inset shows.
+    if (flags.includes("act")) setTimeout(() => document.querySelector(".socialact:not(.socialact--off)")?.click(), 60);
+  } else if (hash.startsWith("#debug-people")) {
+    // #debug-people[:<district>[:<minute>]] — see the "people here" panel for a place/time.
+    game.startNew({ name: "Tester", pronouns: "they/them", background: "debt", trait: "persistent", skill: "logistics" });
+    const parts = hash.split(":");
+    game.store.state.location = parts[1] || "market_row";
+    if (parts[2]) game.store.state.clock = parseInt(parts[2], 10) || game.store.state.clock;
+    sm.show("city");
   } else if (hash === "#debug-report") {
     game.startNew({ name: "Tester", pronouns: "they/them", background: "debt", trait: "persistent", skill: "logistics" });
     game.performActivity("day_labour");

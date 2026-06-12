@@ -88,6 +88,15 @@ function migrate(state, fromVersion) {
     if (!s.jobs.mastery) s.jobs.mastery = {};
     if (s.stats && typeof s.stats.injuries !== "number") s.stats.injuries = 0;
   }
+  // v4 — NPCs & relationships: older saves had no social graph.
+  if (fromVersion < 4) {
+    if (!s.social || typeof s.social !== "object") s.social = { rel: {} };
+    if (!s.social.rel) s.social.rel = {};
+    if (s.stats) {
+      if (typeof s.stats.peopleMet !== "number") s.stats.peopleMet = 0;
+      if (typeof s.stats.favoursAsked !== "number") s.stats.favoursAsked = 0;
+    }
+  }
   s.version = SAVE_VERSION;
   return s;
 }

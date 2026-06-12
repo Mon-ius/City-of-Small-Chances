@@ -6,7 +6,7 @@ import { DAY_START_MIN } from "./time.js";
 import { hashSeed } from "./rng.js";
 import { HOME_DISTRICT } from "../data/districts.js";
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 // Condition meters, per the book's "Survival, Health and Personal Condition".
 export const CONDITION_KEYS = ["energy", "hunger", "stress", "health", "hope"];
@@ -85,6 +85,12 @@ export function newGameState(profile) {
       mastery: {}, // { [jobId]: { xp, shifts, best } }
     },
 
+    // People & relationships (book §12/§13). Per-NPC relationship variables and
+    // a capped social-memory log. Keyed by npc id from data/npcs.js.
+    social: {
+      rel: {}, // { [npcId]: { trust, respect, affection, debt, conflict, met, firstDay, lastTalk, lastFavourDay, memory:[] } }
+    },
+
     // Per-day bookkeeping, reset each morning, surfaced in the report.
     ledger: blankLedger(),
 
@@ -97,6 +103,8 @@ export function newGameState(profile) {
       mealsEaten: 0,
       tripsMade: 0,
       injuries: 0,
+      peopleMet: 0,
+      favoursAsked: 0,
     },
 
     // RNG state (so saves are deterministic across reloads).
