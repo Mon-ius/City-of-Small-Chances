@@ -3,6 +3,7 @@
 
 import { el, clear, mount, toast } from "./dom.js";
 import { renderHud } from "./hud.js";
+import { CityView } from "./cityview.js";
 import { BACKGROUNDS, TRAITS, START_SKILLS, getBackground } from "../data/content.js";
 import { listActivities } from "../systems/activities.js";
 import { conditionWarnings } from "../systems/condition.js";
@@ -16,14 +17,21 @@ export class ScreenManager {
     this.root = root;
     this.game = game;
     this.current = null;
+    this.cityView = null; // lazily created persistent 3D viewport
     // Re-render the active screen whenever state changes.
     game.store.subscribe(() => this._refresh());
+  }
+  ensureCityView() {
+    if (!this.cityView) this.cityView = new CityView();
+    return this.cityView;
   }
   show(name, ctx) {
     this.current = { name, ctx };
     this._render();
   }
   _render() {
+    // Pause the 3D loop whenever we leave the city.
+    if (this.current.name !== "city" && this.cityView) this.cityView.stop();
     clear(this.root);
     const fn = SCREENS[this.current.name];
     fn(this.root, this.game, this, this.current.ctx || {});
@@ -67,7 +75,7 @@ function titleScreen(root, game, sm) {
               }, ["Erase save"])
             : null,
         ]),
-        el("p.title__foot", { text: "v0.0.1 · Old Harbour arrival arc · keyboard & mouse" }),
+        el("p.title__foot", { text: "v0.0.2 · Old Harbour in 3D · drag to look, scroll to zoom" }),
       ]),
     ])
   );
@@ -176,11 +184,16 @@ function cityScreen(root, game, sm) {
   ));
 
   const lastLog = state.log.slice(-5).reverse();
+  const view = el("div.city3d#city3d-host", {}, [
+    el("div.city3d__hint", { text: "drag to look · scroll to zoom" }),
+    el("div.city3d__place", { text: "Old Harbour" }),
+  ]);
 
   mount(
     root,
     el("section.screen.city", {}, [
       hud,
+      view,
       el("div.city__main", {}, [
         el("div.city__col", {}, [
           el("div.panel", {}, [
@@ -216,6 +229,8 @@ function cityScreen(root, game, sm) {
     ])
   );
   renderHud(hud, state);
+  // Mount/refresh the persistent 3D harbour viewport and sync its lighting.
+  sm.ensureCityView().attach(view, state);
 }
 
 // ── End-of-day report ──────────────────────────────────────────────────────

@@ -22,16 +22,22 @@ This is a web adaptation of the *City of Small Chances* game design book — a s
 - **Multiple valid lives** — security, freedom, connection, respect or wealth.
 - **Mastery without grind** — manual work compresses once you've proven competence.
 
-## Current build — v0.0.1 · *Foundation & First Light*
+## Current build — v0.0.2 · *Old Harbour in 3D*
 
-The Old Harbour arrival arc:
+A real-time **3D harbour** rendered in raw **WebGL2** (no Three.js, no libraries) sits above the day loop, lit live by the simulation:
+
+- **3D city viewport** — a street of modular buildings on a quay, water on both sides, props and roofs. Drag to look, scroll to zoom.
+- **Time-of-day lighting** — a sun that arcs from dawn to dusk; windows glow warm at night.
+- **Weather in the world** — rain and storms thicken the fog and dim the light; the harbour fades into mist.
+- Original, **procedurally-generated textures** (asphalt, weathered facades, lit windows, water with a moving specular) baked on a canvas — no binary assets.
+
+Plus everything from v0.0.1:
 
 - Title screen, character creation (background obligation, trait, starting skill).
-- A living **day loop**: a clock, daily weather, and time-costed activities (rest, cook, eat out, walk the harbour, day labour, ask around for work).
-- **Condition system** — energy, hunger, stress, health and hope, with fair, readable drift.
+- A living **day loop**: clock, daily weather, time-costed activities (rest, cook, eat out, walk, day labour, ask around).
+- **Condition system** — energy, hunger, stress, health, hope, with fair, readable drift.
 - **Economy seed** — starting money and a campaign obligation/deadline.
-- **End-of-day report** — money in/out, condition changes and tomorrow's warnings.
-- **Save/load** to `localStorage` with autosave, plus settings.
+- **End-of-day report** and **save/load** with autosave.
 
 See the [roadmap](#roadmap) for what each tagged release adds.
 
@@ -55,24 +61,32 @@ src/
   game.js             Game orchestrator (day cycle, actions)
   core/               rng · store · time · state · save
   systems/            weather · condition · activities
-  ui/                 dom helpers · hud · screens
+  render/             WebGL2 3D — mat · gl · textures · scene · renderer
+  ui/                 dom helpers · hud · cityview · screens
   data/               authored content tables
 assets/               sprites · textures · audio (generated per-milestone)
 ```
+
+### Debug views
+
+Append a hash to the URL: `#debug-city`, `#debug-city:<minute>:<weather>`
+(e.g. `#debug-city:1290:rain` for a rainy 21:30), or `#debug-report`.
 
 ## Roadmap
 
 Each milestone is a tagged release (`v0.0.x`).
 
 - **v0.0.1** — Foundation: engine, day loop, condition, report, save. ✓
-- v0.0.2 — Map & districts, travel time/cost.
-- v0.0.3 — Jobs & work mastery framework.
-- v0.0.4 — NPCs, relationships & social memory.
-- v0.0.5 — Opportunity Web (traceable chances).
-- v0.0.6 — Economy: rent ladder, bills, debt.
-- v0.0.7 — Events & crises with recovery paths.
-- v0.0.8 — Phone UI (calendar, messages, map, wallet, skills, contacts).
-- v0.0.9 — Art pass (generated sprites & textures), audio & accessibility.
+- **v0.0.2** — 3D Old Harbour in raw WebGL2: time-of-day sun, weather fog, lit windows, procedural textures. ✓
+- v0.0.3 — A walkable avatar + ground-level camera; sprite billboards (people, signage).
+- v0.0.4 — Map & districts, travel time/cost between locations.
+- v0.0.5 — Jobs & work mastery framework (in-world shift scenes).
+- v0.0.6 — NPCs, relationships & social memory.
+- v0.0.7 — Opportunity Web (traceable chances).
+- v0.0.8 — Economy: rent ladder, bills, debt.
+- v0.0.9 — Events & crises with recovery paths.
+- v0.1.0 — Phone UI, audio, accessibility; first vertical-slice polish.
+- … iterating toward **v1.0.0** (full 3D, AAA-quality presentation).
 
 ## Credits
 

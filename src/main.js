@@ -20,8 +20,12 @@ function boot() {
   // Debug hooks (used by smoke tests / manual inspection): #debug-city spins up
   // a quick game and drops you into the city; #debug-report shows a day report.
   const hash = location.hash;
-  if (hash === "#debug-city") {
+  if (hash.startsWith("#debug-city")) {
+    // #debug-city  or  #debug-city:<minute>:<weather>  for lighting checks
     game.startNew({ name: "Tester", pronouns: "they/them", background: "debt", trait: "persistent", skill: "logistics" });
+    const parts = hash.split(":");
+    if (parts[1]) game.store.state.clock = parseInt(parts[1], 10) || game.store.state.clock;
+    if (parts[2]) game.store.state.weather = parts[2];
     sm.show("city");
   } else if (hash === "#debug-report") {
     game.startNew({ name: "Tester", pronouns: "they/them", background: "debt", trait: "persistent", skill: "logistics" });
