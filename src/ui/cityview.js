@@ -32,4 +32,15 @@ export class CityView {
   stop() {
     this.renderer?.stop();
   }
+
+  // Camera-mode passthrough (orbit establishing shot ↔ follow walk). Safe no-ops
+  // when the renderer is unavailable (fallback mode).
+  get mode() { return this.renderer?.mode || "orbit"; }
+  setMode(m) { return this.renderer ? this.renderer.setMode(m) : "orbit"; }
+  toggleMode() { return this.renderer ? this.renderer.toggleMode() : "orbit"; }
+  set onModeChange(cb) {
+    this._modeCb = cb;
+    if (this.renderer) this.renderer._onModeChange = cb;
+  }
+  get onModeChange() { return this._modeCb; }
 }

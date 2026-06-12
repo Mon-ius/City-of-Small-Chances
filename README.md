@@ -22,11 +22,17 @@ This is a web adaptation of the *City of Small Chances* game design book — a s
 - **Multiple valid lives** — security, freedom, connection, respect or wealth.
 - **Mastery without grind** — manual work compresses once you've proven competence.
 
-## Current build — v0.0.2 · *Old Harbour in 3D*
+## Current build — v0.0.3 · *An inhabited harbour*
 
-A real-time **3D harbour** rendered in raw **WebGL2** (no Three.js, no libraries) sits above the day loop, lit live by the simulation:
+The 3D harbour now has **people in it** — and you can step down into the street:
 
-- **3D city viewport** — a street of modular buildings on a quay, water on both sides, props and roofs. Drag to look, scroll to zoom.
+- **Walkable avatar** — a low-poly box figure, built from a single cube drawn with per-part transforms, whose arms and legs swing from a walk phase. Press **C** (or the on-screen button) to drop from the establishing orbit shot into a third-person **follow camera** and walk the quay with **WASD / arrow keys**.
+- **A living crowd** — camera-facing **sprite billboards** of citizens (workers, vendors, couriers, elders, youths) line both kerbs, procedurally drawn on a canvas, lit and fogged to sit in the world, with a gentle idle sway.
+- Two cameras, one viewport — the orbit *establishing shot* (drag to look, scroll to zoom) and the *follow walk*, toggled live.
+
+Built on the v0.0.2 **3D harbour** in raw **WebGL2** (no Three.js, no libraries), lit live by the simulation:
+
+- **3D city viewport** — a street of modular buildings on a quay, water on both sides, props and roofs.
 - **Time-of-day lighting** — a sun that arcs from dawn to dusk; windows glow warm at night.
 - **Weather in the world** — rain and storms thicken the fog and dim the light; the harbour fades into mist.
 - Original, **procedurally-generated textures** (asphalt, weathered facades, lit windows, water with a moving specular) baked on a canvas — no binary assets.
@@ -61,7 +67,7 @@ src/
   game.js             Game orchestrator (day cycle, actions)
   core/               rng · store · time · state · save
   systems/            weather · condition · activities
-  render/             WebGL2 3D — mat · gl · textures · scene · renderer
+  render/             WebGL2 3D — mat · gl · textures · scene · renderer · avatar · sprites
   ui/                 dom helpers · hud · cityview · screens
   data/               authored content tables
 assets/               sprites · textures · audio (generated per-milestone)
@@ -70,7 +76,8 @@ assets/               sprites · textures · audio (generated per-milestone)
 ### Debug views
 
 Append a hash to the URL: `#debug-city`, `#debug-city:<minute>:<weather>`
-(e.g. `#debug-city:1290:rain` for a rainy 21:30), or `#debug-report`.
+(e.g. `#debug-city:1290:rain` for a rainy 21:30), `#debug-walk` (follow camera on a
+mid-stride avatar), `#debug-figure` (a close orbit on the avatar and crowd), or `#debug-report`.
 
 ## Roadmap
 
@@ -78,7 +85,7 @@ Each milestone is a tagged release (`v0.0.x`).
 
 - **v0.0.1** — Foundation: engine, day loop, condition, report, save. ✓
 - **v0.0.2** — 3D Old Harbour in raw WebGL2: time-of-day sun, weather fog, lit windows, procedural textures. ✓
-- v0.0.3 — A walkable avatar + ground-level camera; sprite billboards (people, signage).
+- **v0.0.3** — A walkable box avatar + third-person follow camera; sprite-billboard crowd. ✓
 - v0.0.4 — Map & districts, travel time/cost between locations.
 - v0.0.5 — Jobs & work mastery framework (in-world shift scenes).
 - v0.0.6 — NPCs, relationships & social memory.

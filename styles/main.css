@@ -211,6 +211,15 @@ body.ready #boot { opacity: 0; pointer-events: none; }
   font-size: 0.8rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
   color: var(--gold); text-shadow: 0 2px 12px rgba(0,0,0,0.8); pointer-events: none;
 }
+.city3d__cam {
+  position: absolute; right: 1.4rem; top: 0.6rem; z-index: 3;
+  font: inherit; font-size: 0.74rem; font-weight: 600; color: var(--ink);
+  background: rgba(8,11,16,0.6); border: 1px solid var(--line); border-radius: 99px;
+  padding: 0.3rem 0.7rem; cursor: pointer; backdrop-filter: blur(4px);
+  transition: border-color 0.18s, background 0.18s, transform 0.08s;
+}
+.city3d__cam:hover { border-color: var(--gold); background: rgba(8,11,16,0.78); }
+.city3d__cam:active { transform: translateY(1px); }
 /* Fallback when WebGL2 is unavailable: an atmospheric CSS panel. */
 .city3d--fallback {
   border-radius: var(--radius); border: 1px solid var(--line); box-shadow: var(--shadow);

@@ -75,7 +75,7 @@ function titleScreen(root, game, sm) {
               }, ["Erase save"])
             : null,
         ]),
-        el("p.title__foot", { text: "v0.0.2 · Old Harbour in 3D · drag to look, scroll to zoom" }),
+        el("p.title__foot", { text: "v0.0.3 · An inhabited harbour · walk the quay, meet the crowd" }),
       ]),
     ])
   );
@@ -184,9 +184,21 @@ function cityScreen(root, game, sm) {
   ));
 
   const lastLog = state.log.slice(-5).reverse();
+  const hintEl = el("div.city3d__hint", {});
+  const camBtn = el("button.city3d__cam", {
+    type: "button",
+    onClick: () => applyCamMode(sm.ensureCityView().toggleMode()),
+  }, []);
+  const applyCamMode = (m) => {
+    camBtn.textContent = m === "follow" ? "◎ Overview" : "🚶 Walk";
+    hintEl.textContent = m === "follow"
+      ? "WASD / arrows to walk · C for overview"
+      : "drag to look · scroll to zoom · C to walk in";
+  };
   const view = el("div.city3d#city3d-host", {}, [
-    el("div.city3d__hint", { text: "drag to look · scroll to zoom" }),
+    hintEl,
     el("div.city3d__place", { text: "Old Harbour" }),
+    camBtn,
   ]);
 
   mount(
@@ -230,7 +242,10 @@ function cityScreen(root, game, sm) {
   );
   renderHud(hud, state);
   // Mount/refresh the persistent 3D harbour viewport and sync its lighting.
-  sm.ensureCityView().attach(view, state);
+  const cv = sm.ensureCityView();
+  cv.attach(view, state);
+  cv.onModeChange = applyCamMode; // keep the button in sync with keyboard toggles
+  applyCamMode(cv.mode);
 }
 
 // ── End-of-day report ──────────────────────────────────────────────────────
