@@ -51,6 +51,23 @@ function boot() {
       r.player.pos = [0, 0]; r.player.facing = 0; r.player.walkPhase = 1.2; r.player.amp = 0.7;
       r.cam.autoSpin = 0; r.cam.target = [0, 3, 0]; r.cam.dist = 16; r.cam.elevation = 0.14; r.cam.azimuth = 0.05;
     }
+  } else if (hash.startsWith("#debug-shift")) {
+    // #debug-shift[:<jobId>] — jump straight into a shift scene for a job.
+    game.startNew({ name: "Tester", pronouns: "they/them", background: "debt", trait: "persistent", skill: "logistics" });
+    const parts = hash.split(":");
+    const jobId = parts[1] || "market_haul";
+    // Place the player where/when the job is open so it resolves as available.
+    const where = { market_haul: ["market_row", 600], harbour_labour: ["old_harbour", 540], dock_load: ["dockside", 540], courier_run: ["market_row", 720], civic_filing: ["uptown", 600] }[jobId] || ["market_row", 600];
+    game.store.state.location = where[0];
+    game.store.state.clock = where[1];
+    if (jobId === "courier_run") game.store.state.inventory.bicycle = true;
+    if (jobId === "civic_filing") game.store.state.skills.focus = 14;
+    // :auto pre-masters the job so the auto-resolve button (and result screen) show.
+    if (parts[2] === "auto") game.store.state.jobs.mastery[jobId] = { xp: 200, shifts: 12, best: 88 };
+    sm.show("shift", { jobId });
+    // #debug-shift:<job>:play starts the rhythm game; :auto resolves instantly.
+    if (parts[2] === "play") setTimeout(() => document.querySelector(".shift__controls .btn--primary")?.click(), 60);
+    if (parts[2] === "auto") setTimeout(() => document.querySelector(".shift__controls .btn:not(.btn--primary):not(.btn--ghost)")?.click(), 60);
   } else if (hash === "#debug-report") {
     game.startNew({ name: "Tester", pronouns: "they/them", background: "debt", trait: "persistent", skill: "logistics" });
     game.performActivity("day_labour");

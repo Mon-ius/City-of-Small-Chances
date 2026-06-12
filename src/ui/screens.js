@@ -9,6 +9,8 @@ import { getDistrict } from "../data/districts.js";
 import { listLocalActivities } from "../systems/activities.js";
 import { travel } from "../systems/travel.js";
 import { renderMap } from "./map.js";
+import { renderJobBoard } from "./jobboard.js";
+import { shiftScreen } from "./shift.js";
 import { conditionWarnings } from "../systems/condition.js";
 import { hasSave, deleteSave, saveMeta } from "../core/save.js";
 import { weatherMeta } from "../systems/weather.js";
@@ -78,7 +80,7 @@ function titleScreen(root, game, sm) {
               }, ["Erase save"])
             : null,
         ]),
-        el("p.title__foot", { text: "v0.0.4 · A city of districts · ride the tram, learn the streets" }),
+        el("p.title__foot", { text: "v0.0.5 · Work the shift · find the rhythm, earn your mastery" }),
       ]),
     ])
   );
@@ -174,6 +176,9 @@ function cityScreen(root, game, sm) {
     toast(`${res.icon} ${res.to.short} — ${res.minutes} min`, "good");
   };
 
+  // Open the in-world shift scene for a job on the local work board.
+  const onStartShift = (jobId) => sm.show("shift", { jobId });
+
   const actionList = el("div.actions", {}, acts.map(({ def, enabled, reason }) =>
     el("button.action" + (enabled ? "" : ".action--off"), {
       disabled: enabled ? null : true,
@@ -238,6 +243,7 @@ function cityScreen(root, game, sm) {
             el("h3.city__here", { text: "Here you can" }),
             actionList,
           ]),
+          renderJobBoard(state, onStartShift),
         ]),
         el("div.city__col.city__col--side", {}, [
           renderMap(state, onTravel),
@@ -346,4 +352,5 @@ export const SCREENS = {
   create: createScreen,
   city: cityScreen,
   report: reportScreen,
+  shift: shiftScreen,
 };

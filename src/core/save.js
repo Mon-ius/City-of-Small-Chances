@@ -82,6 +82,12 @@ function migrate(state, fromVersion) {
     if (!s.location) s.location = HOME_DISTRICT;
     if (s.stats && typeof s.stats.tripsMade !== "number") s.stats.tripsMade = 0;
   }
+  // v3 — jobs & work mastery: older saves had no per-job mastery store.
+  if (fromVersion < 3) {
+    if (!s.jobs || typeof s.jobs !== "object") s.jobs = { mastery: {} };
+    if (!s.jobs.mastery) s.jobs.mastery = {};
+    if (s.stats && typeof s.stats.injuries !== "number") s.stats.injuries = 0;
+  }
   s.version = SAVE_VERSION;
   return s;
 }

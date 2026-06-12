@@ -22,15 +22,17 @@ This is a web adaptation of the *City of Small Chances* game design book — a s
 - **Multiple valid lives** — security, freedom, connection, respect or wealth.
 - **Mastery without grind** — manual work compresses once you've proven competence.
 
-## Current build — v0.0.4 · *A city of districts*
+## Current build — v0.0.5 · *Work the shift*
 
-Haiyun City is now a **map** of five districts you travel between — and each one is its own 3D place:
+Work is now something you **do**, not a button you press. Each district posts a **work board**, and taking a shift drops you into an in-world **work-rhythm** scene:
 
-- **Five districts** — the Tenements (home), Market Row, the Old Harbour, the Dockside Yards, and the Civic Quarter. Each has its own seed, its own 3D scene (waterfront quays vs. inland street canyons), and its own set of local activities.
-- **A real travel choice** — a stylised **node-graph map** marks where you are; every other district lists its **time and fare per mode**: **walk** (free, slow), **cycle** (free and quick, once you own a bike), or **tram** (fast, costs a fare scaled by distance). Weather slows every trip on foot; storms most of all.
-- **Travel costs the day** — a trip advances the clock, spends a fare, and drifts your condition; run out of time and the journey forces you to sleep where you land. Where you stand decides what you can *do* — only the local district's activities are offered.
+- **Five jobs across the families** — market haulage and harbour day labour, heavy dockside container loading, a bike courier run (needs your own bicycle), and a civic records desk (needs proven focus). Each has real **hours**, **entry requirements**, a distance-/skill-scaled **pay range**, and weather that bites: storms slow physical work and its pay, but *spike* courier demand.
+- **The shift scene** — a cursor sweeps a track each beat; act (SPACE / tap) when it crosses the lit zone. The closer to the bright core, the higher your **quality** — and quality drives pay and skill growth. Combos, perfect hits and sparks reward a clean rhythm; tired, sloppy physical shifts risk a **strain**.
+- **Mastery without grind** — every shift earns mastery XP. Reach the thresholds and you can **read the pattern a beat ahead**, then **auto-resolve** the shift entirely from a transparent skill/energy/weather formula. Skill, mastery and energy also widen the zone and slow the sweep, so getting better genuinely *feels* better.
 
-Built on the v0.0.3 **inhabited 3D world** in raw **WebGL2** (no Three.js, no libraries):
+Built on the v0.0.4 **city of districts** — a node-graph **map** with **walk / cycle / tram** travel (real time & fare, weather-scaled), five seeded 3D places, and district-gated activities.
+
+…the v0.0.3 **inhabited 3D world** in raw **WebGL2** (no Three.js, no libraries):
 
 - **Walkable box avatar** + third-person **follow camera** (press **C**), and a **sprite-billboard crowd** of citizens lining the streets.
 
@@ -70,10 +72,10 @@ src/
   main.js             bootstrap
   game.js             Game orchestrator (day cycle, actions)
   core/               rng · store · time · state · save
-  systems/            weather · condition · activities · travel
+  systems/            weather · condition · activities · travel · jobs
   render/             WebGL2 3D — mat · gl · textures · scene · renderer · avatar · sprites
-  ui/                 dom helpers · hud · cityview · map · screens
-  data/               authored content tables (incl. districts)
+  ui/                 dom helpers · hud · cityview · map · jobboard · shift · screens
+  data/               authored content tables (content · districts · jobs)
 assets/               sprites · textures · audio (generated per-milestone)
 ```
 
@@ -84,6 +86,9 @@ Append a hash to the URL: `#debug-city`, `#debug-city:<minute>:<weather>:<distri
 `#debug-city:540::tenements` for a 09:00 inland scene), `#debug-walk` (follow camera on a
 mid-stride avatar), `#debug-figure` (a close orbit on the avatar and crowd), or `#debug-report`.
 District ids: `tenements`, `market_row`, `old_harbour`, `dockside`, `uptown`.
+`#debug-shift:<jobId>` jumps straight into a shift scene (append `:play` to start the
+rhythm game, `:auto` to see the result screen). Job ids: `market_haul`, `harbour_labour`,
+`dock_load`, `courier_run`, `civic_filing`.
 
 ## Roadmap
 
@@ -93,7 +98,7 @@ Each milestone is a tagged release (`v0.0.x`).
 - **v0.0.2** — 3D Old Harbour in raw WebGL2: time-of-day sun, weather fog, lit windows, procedural textures. ✓
 - **v0.0.3** — A walkable box avatar + third-person follow camera; sprite-billboard crowd. ✓
 - **v0.0.4** — Map & districts: five seeded 3D locations, a node-graph city map, and walk/cycle/tram travel with real time & fare. ✓
-- v0.0.5 — Jobs & work mastery framework (in-world shift scenes).
+- **v0.0.5** — Jobs & work mastery: five jobs, an in-world work-rhythm shift scene, quality-based pay, and a mastery curve (pattern preview → auto-resolve). ✓
 - v0.0.6 — NPCs, relationships & social memory.
 - v0.0.7 — Opportunity Web (traceable chances).
 - v0.0.8 — Economy: rent ladder, bills, debt.

@@ -32,7 +32,7 @@ export const DISTRICTS = [
     icon: "⚓",
     blurb: "Quay and cranes, gulls and diesel. The working edge of the city.",
     x: 64, y: 34, water: true, seed: 0xC05C,
-    activities: ["walk_harbour", "day_labour"],
+    activities: ["walk_harbour", "eat_out"],
   },
   {
     id: "dockside",
@@ -41,7 +41,7 @@ export const DISTRICTS = [
     icon: "📦",
     blurb: "Container stacks and forklifts. Heavy pay for a heavy back.",
     x: 82, y: 20, water: true, seed: 0xD0C5,
-    activities: ["warehouse_shift", "day_labour"],
+    activities: ["ask_around"],
   },
   {
     id: "uptown",
@@ -50,7 +50,7 @@ export const DISTRICTS = [
     icon: "🏛️",
     blurb: "Glass, lanyards and polished floors. Money lives differently up here.",
     x: 30, y: 16, water: false, seed: 0x11C7,
-    activities: ["temp_office", "study_library"],
+    activities: ["study_library"],
   },
 ];
 

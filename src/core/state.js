@@ -6,7 +6,7 @@ import { DAY_START_MIN } from "./time.js";
 import { hashSeed } from "./rng.js";
 import { HOME_DISTRICT } from "../data/districts.js";
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 // Condition meters, per the book's "Survival, Health and Personal Condition".
 export const CONDITION_KEYS = ["energy", "hunger", "stress", "health", "hope"];
@@ -79,6 +79,12 @@ export function newGameState(profile) {
       umbrella: false,
     },
 
+    // Work & mastery (book §9). Per-job XP unlocks pattern preview, then
+    // auto-resolve. Keyed by job id from data/jobs.js.
+    jobs: {
+      mastery: {}, // { [jobId]: { xp, shifts, best } }
+    },
+
     // Per-day bookkeeping, reset each morning, surfaced in the report.
     ledger: blankLedger(),
 
@@ -90,6 +96,7 @@ export function newGameState(profile) {
       shiftsWorked: 0,
       mealsEaten: 0,
       tripsMade: 0,
+      injuries: 0,
     },
 
     // RNG state (so saves are deterministic across reloads).
