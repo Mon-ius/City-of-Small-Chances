@@ -26,6 +26,7 @@ function boot() {
     const parts = hash.split(":");
     if (parts[1]) game.store.state.clock = parseInt(parts[1], 10) || game.store.state.clock;
     if (parts[2]) game.store.state.weather = parts[2];
+    game.store.state.location = parts[3] || "old_harbour";
     sm.show("city");
   } else if (hash.startsWith("#debug-walk")) {
     // #debug-walk[:<minute>[:<weather>]] — follow camera + mid-stride avatar
@@ -33,6 +34,7 @@ function boot() {
     const parts = hash.split(":");
     if (parts[1]) game.store.state.clock = parseInt(parts[1], 10) || game.store.state.clock;
     if (parts[2]) game.store.state.weather = parts[2];
+    game.store.state.location = parts[3] || "old_harbour";
     sm.show("city");
     const r = sm.cityView?.renderer;
     if (r) { r.setMode("follow"); r.player.pos = [3, 2]; r.player.facing = 0.7; r.player.walkPhase = 1.2; r.player.amp = 0.7; }
@@ -42,6 +44,7 @@ function boot() {
     const parts = hash.split(":");
     if (parts[1]) game.store.state.clock = parseInt(parts[1], 10) || game.store.state.clock;
     if (parts[2]) game.store.state.weather = parts[2];
+    game.store.state.location = parts[3] || "old_harbour";
     sm.show("city");
     const r = sm.cityView?.renderer;
     if (r) {

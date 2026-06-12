@@ -48,16 +48,24 @@ export function planeGeometry(w, d, tileWorld = 8) {
 }
 
 // Build the whole scene. Returns { items:[{mesh, material, model}], picks }.
-export function buildHarbourScene(gl, attribs, mats, rng) {
+// opts.water (default true) — harbour/dock districts sit on water; inland
+// districts replace the basin with paved ground so the street reads differently.
+export function buildHarbourScene(gl, attribs, mats, rng, opts = {}) {
+  const water = opts.water !== false;
   const items = [];
   const add = (geo, material, model) => items.push({ mesh: createMesh(gl, attribs, geo.vertices, geo.indices), material, model });
 
   // Road down the middle (Z axis), quay on each far side, water beyond.
   add(planeGeometry(18, 160, 6), mats.road, M.translation([0, 0.02, 0]));
   add(planeGeometry(40, 160, 5), mats.quay, M.translation([0, 0, 0]));
-  // Water sheets to the far +X and -X (the harbour basin)
-  add(planeGeometry(120, 200, 12), mats.water, M.translation([95, -0.4, 0]));
-  add(planeGeometry(120, 200, 12), mats.water, M.translation([-95, -0.4, 0]));
+  // Far flanks: open water at the harbour, paved ground inland.
+  if (water) {
+    add(planeGeometry(120, 200, 12), mats.water, M.translation([95, -0.4, 0]));
+    add(planeGeometry(120, 200, 12), mats.water, M.translation([-95, -0.4, 0]));
+  } else {
+    add(planeGeometry(120, 200, 9), mats.quay, M.translation([95, -0.05, 0]));
+    add(planeGeometry(120, 200, 9), mats.quay, M.translation([-95, -0.05, 0]));
+  }
 
   // Two rows of buildings flanking the road.
   const tints = [mats.facadeA, mats.facadeB, mats.facadeC];

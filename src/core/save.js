@@ -3,6 +3,7 @@
 // honest version of that for the web build.
 
 import { SAVE_VERSION } from "./state.js";
+import { HOME_DISTRICT } from "../data/districts.js";
 
 const KEY = "cosc.save.v1";
 const SETTINGS_KEY = "cosc.settings.v1";
@@ -75,7 +76,12 @@ export function saveSettings(settings) {
 // adds a step here.
 function migrate(state, fromVersion) {
   let s = state;
-  // if (fromVersion < 2) { ...transform... }
+  // v2 — the map & districts milestone: pre-map saves had no location; they all
+  // began in the Old Harbour arc, so land them at home with a clean trip count.
+  if (fromVersion < 2) {
+    if (!s.location) s.location = HOME_DISTRICT;
+    if (s.stats && typeof s.stats.tripsMade !== "number") s.stats.tripsMade = 0;
+  }
   s.version = SAVE_VERSION;
   return s;
 }

@@ -4,8 +4,9 @@
 
 import { DAY_START_MIN } from "./time.js";
 import { hashSeed } from "./rng.js";
+import { HOME_DISTRICT } from "../data/districts.js";
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 // Condition meters, per the book's "Survival, Health and Personal Condition".
 export const CONDITION_KEYS = ["energy", "hunger", "stress", "health", "hope"];
@@ -37,6 +38,9 @@ export function newGameState(profile) {
     day: 1,
     clock: DAY_START_MIN,
     weather: "clear", // set by weather system each morning
+
+    // Where you are on the map (book §6). Drives which activities are reachable.
+    location: HOME_DISTRICT,
 
     // Money. The obligation/debt deadline is the campaign clock.
     money: 0,
@@ -85,6 +89,7 @@ export function newGameState(profile) {
       spent: 0,
       shiftsWorked: 0,
       mealsEaten: 0,
+      tripsMade: 0,
     },
 
     // RNG state (so saves are deterministic across reloads).

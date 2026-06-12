@@ -5,7 +5,10 @@ import { el, clear, mount, toast } from "./dom.js";
 import { renderHud } from "./hud.js";
 import { CityView } from "./cityview.js";
 import { BACKGROUNDS, TRAITS, START_SKILLS, getBackground } from "../data/content.js";
-import { listActivities } from "../systems/activities.js";
+import { getDistrict } from "../data/districts.js";
+import { listLocalActivities } from "../systems/activities.js";
+import { travel } from "../systems/travel.js";
+import { renderMap } from "./map.js";
 import { conditionWarnings } from "../systems/condition.js";
 import { hasSave, deleteSave, saveMeta } from "../core/save.js";
 import { weatherMeta } from "../systems/weather.js";
@@ -75,7 +78,7 @@ function titleScreen(root, game, sm) {
               }, ["Erase save"])
             : null,
         ]),
-        el("p.title__foot", { text: "v0.0.3 · An inhabited harbour · walk the quay, meet the crowd" }),
+        el("p.title__foot", { text: "v0.0.4 · A city of districts · ride the tram, learn the streets" }),
       ]),
     ])
   );
@@ -151,11 +154,25 @@ function createScreen(root, game, sm) {
 // ── City (main play loop) ──────────────────────────────────────────────────
 function cityScreen(root, game, sm) {
   const state = game.store.state;
+  const district = getDistrict(state.location);
   const hud = el("div#hud-host");
-  const acts = listActivities(state);
+  const acts = listLocalActivities(state);
   const warnings = conditionWarnings(state);
   const wx = weatherMeta(state.weather);
   const noTime = minutesLeft(state) < 30;
+
+  // Travel between districts. travel() emits, which re-renders this screen and
+  // rebuilds the 3D world for the new place; we only handle the edge cases.
+  const onTravel = (toId, mode) => {
+    const res = travel(game, toId, mode);
+    if (!res) { toast("You can't make that trip right now.", "warn"); return; }
+    if (res.forcedSleep) {
+      toast("Midnight overtakes you on the way home.", "warn");
+      openReport(sm, game, game.sleep(true));
+      return;
+    }
+    toast(`${res.icon} ${res.to.short} — ${res.minutes} min`, "good");
+  };
 
   const actionList = el("div.actions", {}, acts.map(({ def, enabled, reason }) =>
     el("button.action" + (enabled ? "" : ".action--off"), {
@@ -197,7 +214,7 @@ function cityScreen(root, game, sm) {
   };
   const view = el("div.city3d#city3d-host", {}, [
     hintEl,
-    el("div.city3d__place", { text: "Old Harbour" }),
+    el("div.city3d__place", { text: `${district.icon} ${district.name}` }),
     camBtn,
   ]);
 
@@ -210,17 +227,20 @@ function cityScreen(root, game, sm) {
         el("div.city__col", {}, [
           el("div.panel", {}, [
             el("div.panel__head", {}, [
-              el("h2", { text: "Old Harbour" }),
+              el("h2", { text: `${district.icon} ${district.name}` }),
               el("span.panel__hint", { text: wx.blurb }),
             ]),
-            el("p.city__lede", { text: cityLede(state) }),
+            el("p.city__lede", { text: district.blurb }),
+            el("p.city__lede.city__lede--soft", { text: cityLede(state) }),
             warnings.length
               ? el("div.warnbox", {}, warnings.map((w) => el("div.warnbox__line", { text: "⚠ " + w })))
               : null,
+            el("h3.city__here", { text: "Here you can" }),
             actionList,
           ]),
         ]),
         el("div.city__col.city__col--side", {}, [
+          renderMap(state, onTravel),
           el("div.panel.panel--log", {}, [
             el("div.panel__head", {}, [el("h3", { text: "Today" })]),
             el("div.loglist", {}, lastLog.length
@@ -244,6 +264,7 @@ function cityScreen(root, game, sm) {
   // Mount/refresh the persistent 3D harbour viewport and sync its lighting.
   const cv = sm.ensureCityView();
   cv.attach(view, state);
+  cv.syncDistrict(district); // rebuild the 3D world when the district changes
   cv.onModeChange = applyCamMode; // keep the button in sync with keyboard toggles
   applyCamMode(cv.mode);
 }

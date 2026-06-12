@@ -33,6 +33,15 @@ export class CityView {
     this.renderer?.stop();
   }
 
+  // Rebuild the 3D world when the player changes district. No-ops if unchanged,
+  // so it's safe to call on every city-screen emit.
+  syncDistrict(district) {
+    if (!this.available || !district) return;
+    if (this._districtId === district.id) return;
+    this._districtId = district.id;
+    this.renderer.setScene(district.seed, { water: district.water });
+  }
+
   // Camera-mode passthrough (orbit establishing shot ↔ follow walk). Safe no-ops
   // when the renderer is unavailable (fallback mode).
   get mode() { return this.renderer?.mode || "orbit"; }

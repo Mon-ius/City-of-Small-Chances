@@ -1,10 +1,19 @@
 // Minimal DOM helpers. No framework — just terse element creation and a couple
 // of shared widgets (meter bars, toasts) used across screens.
 
-// el("div.card#id", { onClick }, [children]) — tiny hyperscript.
+// el("div.card#id", { onClick }, [children]) — tiny hyperscript. The id may sit
+// on the tag ("div#id.card") or trail a class ("div.card#id"); both parse the same.
 export function el(spec, props = {}, children = []) {
-  const [tagAndId, ...classes] = spec.split(".");
-  const [tag, id] = tagAndId.split("#");
+  let id = null;
+  const classes = [];
+  spec.split(".").forEach((token, i) => {
+    const hash = token.indexOf("#");
+    const cls = hash >= 0 ? token.slice(0, hash) : token;
+    if (hash >= 0) id = token.slice(hash + 1);
+    if (i === 0) return; // first token is the tag (handled below)
+    if (cls) classes.push(cls);
+  });
+  const tag = spec.split(".")[0].split("#")[0];
   const node = document.createElement(tag || "div");
   if (id) node.id = id;
   if (classes.length) node.className = classes.join(" ");

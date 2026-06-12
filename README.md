@@ -22,15 +22,19 @@ This is a web adaptation of the *City of Small Chances* game design book — a s
 - **Multiple valid lives** — security, freedom, connection, respect or wealth.
 - **Mastery without grind** — manual work compresses once you've proven competence.
 
-## Current build — v0.0.3 · *An inhabited harbour*
+## Current build — v0.0.4 · *A city of districts*
 
-The 3D harbour now has **people in it** — and you can step down into the street:
+Haiyun City is now a **map** of five districts you travel between — and each one is its own 3D place:
 
-- **Walkable avatar** — a low-poly box figure, built from a single cube drawn with per-part transforms, whose arms and legs swing from a walk phase. Press **C** (or the on-screen button) to drop from the establishing orbit shot into a third-person **follow camera** and walk the quay with **WASD / arrow keys**.
-- **A living crowd** — camera-facing **sprite billboards** of citizens (workers, vendors, couriers, elders, youths) line both kerbs, procedurally drawn on a canvas, lit and fogged to sit in the world, with a gentle idle sway.
-- Two cameras, one viewport — the orbit *establishing shot* (drag to look, scroll to zoom) and the *follow walk*, toggled live.
+- **Five districts** — the Tenements (home), Market Row, the Old Harbour, the Dockside Yards, and the Civic Quarter. Each has its own seed, its own 3D scene (waterfront quays vs. inland street canyons), and its own set of local activities.
+- **A real travel choice** — a stylised **node-graph map** marks where you are; every other district lists its **time and fare per mode**: **walk** (free, slow), **cycle** (free and quick, once you own a bike), or **tram** (fast, costs a fare scaled by distance). Weather slows every trip on foot; storms most of all.
+- **Travel costs the day** — a trip advances the clock, spends a fare, and drifts your condition; run out of time and the journey forces you to sleep where you land. Where you stand decides what you can *do* — only the local district's activities are offered.
 
-Built on the v0.0.2 **3D harbour** in raw **WebGL2** (no Three.js, no libraries), lit live by the simulation:
+Built on the v0.0.3 **inhabited 3D world** in raw **WebGL2** (no Three.js, no libraries):
+
+- **Walkable box avatar** + third-person **follow camera** (press **C**), and a **sprite-billboard crowd** of citizens lining the streets.
+
+…and the v0.0.2 **3D harbour**, lit live by the simulation:
 
 - **3D city viewport** — a street of modular buildings on a quay, water on both sides, props and roofs.
 - **Time-of-day lighting** — a sun that arcs from dawn to dusk; windows glow warm at night.
@@ -66,18 +70,20 @@ src/
   main.js             bootstrap
   game.js             Game orchestrator (day cycle, actions)
   core/               rng · store · time · state · save
-  systems/            weather · condition · activities
+  systems/            weather · condition · activities · travel
   render/             WebGL2 3D — mat · gl · textures · scene · renderer · avatar · sprites
-  ui/                 dom helpers · hud · cityview · screens
-  data/               authored content tables
+  ui/                 dom helpers · hud · cityview · map · screens
+  data/               authored content tables (incl. districts)
 assets/               sprites · textures · audio (generated per-milestone)
 ```
 
 ### Debug views
 
-Append a hash to the URL: `#debug-city`, `#debug-city:<minute>:<weather>`
-(e.g. `#debug-city:1290:rain` for a rainy 21:30), `#debug-walk` (follow camera on a
+Append a hash to the URL: `#debug-city`, `#debug-city:<minute>:<weather>:<district>`
+(e.g. `#debug-city:1290:rain:old_harbour` for a rainy 21:30 on the quay, or
+`#debug-city:540::tenements` for a 09:00 inland scene), `#debug-walk` (follow camera on a
 mid-stride avatar), `#debug-figure` (a close orbit on the avatar and crowd), or `#debug-report`.
+District ids: `tenements`, `market_row`, `old_harbour`, `dockside`, `uptown`.
 
 ## Roadmap
 
@@ -86,7 +92,7 @@ Each milestone is a tagged release (`v0.0.x`).
 - **v0.0.1** — Foundation: engine, day loop, condition, report, save. ✓
 - **v0.0.2** — 3D Old Harbour in raw WebGL2: time-of-day sun, weather fog, lit windows, procedural textures. ✓
 - **v0.0.3** — A walkable box avatar + third-person follow camera; sprite-billboard crowd. ✓
-- v0.0.4 — Map & districts, travel time/cost between locations.
+- **v0.0.4** — Map & districts: five seeded 3D locations, a node-graph city map, and walk/cycle/tram travel with real time & fare. ✓
 - v0.0.5 — Jobs & work mastery framework (in-world shift scenes).
 - v0.0.6 — NPCs, relationships & social memory.
 - v0.0.7 — Opportunity Web (traceable chances).

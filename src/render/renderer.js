@@ -177,22 +177,25 @@ export class HarbourRenderer {
 
     this.blackTex = black;
 
-    const rng = makeRng(0xC05C); // fixed seed → stable skyline
-    this.scene = buildHarbourScene(gl, this.program.attribs, this.mats, rng);
-
     // The player avatar (box figure) lit by the main program.
     this.avatar = buildAvatar(gl, this.program.attribs);
     this.player = { pos: [0, 8], facing: Math.PI, walkPhase: 0, amp: 0, moving: false }; // pos = [x, z]
 
-    // Camera-facing citizen billboards: one sprite texture per role, plus a
-    // crowd of placements laid down the quay with a deterministic seed.
+    // Camera-facing citizen billboards: one sprite texture per role.
     this.billProgram = createProgram(gl, BILL_VERT, BILL_FRAG);
     this.billQuad = this._makeBillQuad();
     this.citizens = ROLES.map((role, i) => {
       const cnv = citizenSprite(11 + i * 7, role);
       return { tex: createTexture(gl, cnv, { repeat: false, flipY: true }), aspect: cnv.width / cnv.height };
     });
-    this.people = this._placePeople(rng);
+
+    // The scene + crowd are built per-district (seed + water flag). Default to
+    // the Old Harbour so the establishing view matches the home arc.
+    this.sceneSeed = 0xC05C;
+    this.sceneOpts = { water: true };
+    this.scene = null;
+    this.people = [];
+    this.setScene(this.sceneSeed, this.sceneOpts);
 
     // camera state (orbit) — an establishing 3/4 shot looking down the street
     this.cam = { azimuth: 0.42, elevation: 0.46, dist: 88, target: [0, 8, 0], autoSpin: 0.012 };
@@ -238,6 +241,24 @@ export class HarbourRenderer {
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
     gl.bindVertexArray(null);
     return { vao, count: idx.length };
+  }
+
+  // Rebuild the world for a district: a fresh skyline from `seed`, water on/off,
+  // and a re-scattered crowd. Disposes the previous scene's VAOs. Cheap enough
+  // to call on each arrival; the player resets to the street centre.
+  setScene(seed, opts = {}) {
+    if (!this.ok) return;
+    const gl = this.gl;
+    if (this.scene) for (const it of this.scene.items) gl.deleteVertexArray(it.mesh.vao);
+    this.sceneSeed = seed >>> 0;
+    this.sceneOpts = { water: opts.water !== false };
+    const rng = makeRng(this.sceneSeed);
+    this.scene = buildHarbourScene(gl, this.program.attribs, this.mats, rng, this.sceneOpts);
+    this.people = this._placePeople(rng);
+    this.player.pos = [0, 8];
+    this.player.facing = Math.PI;
+    this.player.amp = 0;
+    this.player.walkPhase = 0;
   }
 
   // Scatter citizens along both kerbs of the road, each a random role/seed with

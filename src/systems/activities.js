@@ -3,11 +3,16 @@
 // record everything in the day ledger and narrative log.
 
 import { ACTIVITIES } from "../data/content.js";
+import { getDistrict } from "../data/districts.js";
 import { advanceClock, minutesLeft } from "../core/time.js";
 import { applyCondition, applySkills, passiveDrift } from "./condition.js";
 
-export function listActivities(state) {
-  return ACTIVITIES.map((a) => {
+// List activities from a pool (default: all). `pool` is an array of activity ids.
+export function listActivities(state, pool = null) {
+  const defs = pool
+    ? pool.map((id) => ACTIVITIES.find((a) => a.id === id)).filter(Boolean)
+    : ACTIVITIES;
+  return defs.map((a) => {
     const enoughTime = minutesLeft(state) >= a.minutes;
     const enoughMoney = state.money >= (a.cost || 0);
     const reqOk = a.requires ? a.requires(state) : true;
@@ -17,6 +22,11 @@ export function listActivities(state) {
     else if (!reqOk) reason = a.requiresNote || "You can't do this right now.";
     return { def: a, enabled: enoughTime && enoughMoney && reqOk, reason };
   });
+}
+
+// Activities you can do where you currently stand (book §6 — places gate work).
+export function listLocalActivities(state) {
+  return listActivities(state, getDistrict(state.location).activities);
 }
 
 // Perform an activity by id. Returns a result summary for the UI, or null if it

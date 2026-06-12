@@ -145,6 +145,76 @@ export const ACTIVITIES = [
     note: "Most shrug. One or two remember your face. That's how it starts.",
     discovers: true,
   },
+  // ── Market Row ──
+  {
+    id: "run_errand",
+    name: "Run a stall errand",
+    icon: "🧾",
+    desc: "Carry a parcel or message across the market for a vendor. Small, steady pay.",
+    minutes: 75,
+    cost: 0,
+    requires: (s) => s.condition.energy >= 12,
+    requiresNote: "Too tired to be useful on your feet right now.",
+    apply: (c, s, rng) => {
+      const pay = 16 + Math.round(s.skills.communication / 8) + rng.int(-2, 6);
+      return { money: +pay, energy: -10, hunger: -6, stress: +2, hope: +2, _pay: pay };
+    },
+    skill: { communication: 1, logistics: 1 },
+    note: "A name, an address, a nod. Do it right and they remember you.",
+    isWork: true,
+  },
+  // ── Dockside Yards ──
+  {
+    id: "warehouse_shift",
+    name: "Take a warehouse shift",
+    icon: "🏗️",
+    desc: "Load containers at the yards. The best pay on the waterfront — and the hardest.",
+    minutes: 210,
+    cost: 0,
+    requires: (s) => s.condition.energy >= 30,
+    requiresNote: "A yard shift needs at least 30 energy — they won't take you exhausted.",
+    apply: (c, s, rng) => {
+      const base = 64;
+      const skillBonus = Math.round((s.skills.logistics + s.skills.maintenance) / 4);
+      const pay = base + skillBonus + rng.int(-6, 12);
+      return {
+        money: +Math.max(40, pay), energy: -34, hunger: -16, stress: +9,
+        health: s.condition.energy < 35 ? -8 : -3, hope: +3, _pay: Math.max(40, pay),
+      };
+    },
+    skill: { logistics: 2, maintenance: 2 },
+    note: "The forklifts never stop. Your hands are raw, your pocket heavier.",
+    isWork: true,
+  },
+  // ── Civic Quarter ──
+  {
+    id: "temp_office",
+    name: "Temp at a civic office",
+    icon: "🗂️",
+    desc: "Data entry and filing on a day contract. Clean work — if they'll have you.",
+    minutes: 180,
+    cost: 0,
+    requires: (s) => s.skills.focus >= 10,
+    requiresNote: "They want proven focus (10+) before a desk contract.",
+    apply: (c, s, rng) => {
+      const pay = 50 + Math.round((s.skills.focus + s.skills.communication) / 3) + rng.int(-4, 10);
+      return { money: +pay, energy: -14, hunger: -8, stress: +7, hope: +3, _pay: pay };
+    },
+    skill: { focus: 2, communication: 1 },
+    note: "Fluorescent calm. The pay clears without an argument.",
+    isWork: true,
+  },
+  {
+    id: "study_library",
+    name: "Study at the library",
+    icon: "📚",
+    desc: "Read, practise, plan. No pay today — but skills compound.",
+    minutes: 120,
+    cost: 0,
+    apply: (c) => ({ energy: -6, stress: -4, hope: +4 }),
+    skill: { focus: 2, communication: 1 },
+    note: "Quiet desks, free heat, a door that opens to anyone. You sharpen yourself.",
+  },
 ];
 
 export function getBackground(id) {
