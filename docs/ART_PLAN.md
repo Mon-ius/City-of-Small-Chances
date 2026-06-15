@@ -94,8 +94,10 @@ Read this before generating or integrating any asset.
       wayfinding icons — 5 job emblems, 5 district map-pins, 6 Opportunity-Web component icons, 7
       skill icons. The 5 job emblems are **live** on the notice board (replacing the emoji); the
       markers, web-component and skill icons ship ready for the planner/web/skills screens.
-- [ ] **Batch 5 — District kits**: tenements, market_row, dockside, uptown/civic — palette +
-      facade/ground/prop variants per district, into `assets/textures/<district>/`.
+- [x] **Batch 5 — District kits**: tenements, market_row, dockside, uptown/civic — ground + facade
+      tileable PBR surfaces (albedo/normal/orm) per district, into `assets/textures/<district>/`.
+      8 surfaces (24 maps), seam-checked. **Ship ready** — the walkable build is still Old Harbour
+      only, so these wire in when the other districts become walkable (Batch 7+).
 - [ ] **Batch 6 — Sky & FX**: dusk/day/night sky panoramas + clouds (replace the procedural dome),
       rain/fog/heat FX cards, day-transition + condition screen overlays, signage & decals.
 - [ ] **Batch 7 — Interiors, workplaces & business premises**: rent-ladder housing interiors,
@@ -123,3 +125,5 @@ voice, localization fonts (EN/SC/TC), controller glyphs, and Steam achievement a
 - 2026-06-15: Batch 4 part B wired in — painted Money + Energy icons replace the 💴/⚡ emoji in the live corner HUD (`ui.js` + `.hud-stat__img` CSS); the 5 condition-meter + 5 weather icons ship ready for the report/weather widgets.
 - 2026-06-16: Batch 4 part C generated with built-in GPT-Image-2 and chroma-key post-processing; 23 systems & wayfinding icons in four coherent sub-families (5 job emblems, 5 district map-pins, 6 Opportunity-Web components, 7 skill icons), 128×128, clean alpha checked on grey/white + a programmatic chroma-fringe scan (0 residue), total payload 252,065 bytes.
 - 2026-06-16: Batch 4 part C wired in — the 5 painted job emblems now lead each row of the live notice board (replacing the emoji): `interactions.js` supplies an `iconImg` per job, `ui.js#renderItem` renders an optional `<img class="panel__item-icon">` on both open and locked rows, with `.panel__item-icon` + a `.panel__row-text` column in `game.css`. The district markers, Opportunity-Web and skill icons ship ready for the planner/web/skills screens. Batch 4 complete.
+- 2026-06-16: Batch 5 generated with built-in GPT-Image-2 and ImageMagick/Python post-processing; 8 district-kit surfaces for tenements, market_row, dockside, and uptown, 24 PNGs, tile-checked, total payload 2,720,091 bytes.
+- 2026-06-16: Batch 5 verified — all 8 albedos tile seamlessly (wrap-seam ≪ interior detail after PNG8 quantization), normals clean (no banding at ~190 colours), each kit reads as its district beside the harbour set. No live wiring this batch: the walkable world is Old Harbour only, so the kits ship ready for when the other districts become walkable. Batch 5 complete.
