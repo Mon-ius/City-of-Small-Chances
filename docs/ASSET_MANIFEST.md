@@ -174,7 +174,7 @@ No audio exists today (empty assets/audio/, no Web Audio code, the live build is
 
 ## Known gaps (deferred / beyond the current slice)
 
-Critic verdict: The manifest gives strong, well-reasoned coverage of every milestone for the IMPLEMENTED 5-district slice and all functional audio, but it does NOT cover all milestones as written in the book: the four canonically-named districts (East Station/Riverside Works/Glass Mile/South Terrace) and the other 6 of 12 EA major NPCs have no assets, real music + voice are deferred rather than delivered, and Steam achievements, controller glyphs, localization fonts and loading/tutorial UI are entirely absent.
+Critic verdict: The manifest gives strong, well-reasoned coverage of every milestone for the IMPLEMENTED 5-district slice and all functional audio. **Closed since:** the four canonically-named districts (East Station/Riverside Works/Glass Mile/South Terrace) now have tileable PBR surface kits — **Batch 10**, ship-ready (8 surfaces / 24 maps), so every district the book *names* has art. Still open: the "other 6 of 12 EA major NPCs" gap is moot for art — the book *names* only 6 majors (Mei/Jun/Rafiq/Clara/Tomo/Ava), and all 6 already have portraits (Batch 4A ×3 tiers) + citizen sprites (Batch 3); the remaining 6 are unnamed with no book spec to draw. Real music + voice remain deferred rather than delivered, and Steam achievements, controller glyphs, localization fonts and loading/tutorial UI are entirely absent.
 
 **Modalities not yet addressed:**
 

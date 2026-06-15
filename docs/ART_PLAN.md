@@ -133,10 +133,25 @@ Read this before generating or integrating any asset.
       key-art scenes **ship ready** for the act-transition / life-path-ending screens (the
       narrative screen system is later gameplay work). Save/load UI + Steam marketing set remain
       deferred (see *Deferred beyond this plan* — not image-gen-shaped / out of the live game).
+- [x] **Batch 10 — the book's four canonical districts** (closing a *Known gaps* item): tileable PBR
+      surface kits for the design book's four *additional* canonical districts (§4 "District
+      overview") so the whole 5-district world the book promises has art — **East Station** (transit
+      hub: grey concourse w/ painted wayfinding lines + ribbed concrete/steel facade), **Riverside
+      Works** (industry: hazard-marked concrete yard + corrugated steel-over-brick siding), **Glass
+      Mile** (wealth: pristine pale granite plaza + cool mullioned glass curtain-wall), **South
+      Terrace** (community: warm herringbone brick street + brick/render/timber shopfront). 8
+      surfaces / 24 maps (albedo/normal/orm), seam-checked (RMS 1.1–3.1) with ORM channels matching
+      the per-surface tuning. Class/opportunity reads through material (World rule 2): utilitarian
+      grey for transit/industry, pristine cool for the rich district, warm brick for the homely one.
+      **Ship ready** — like Batch 5/7 these wire in when the districts become walkable (the live
+      build is still Old Harbour). Into `assets/textures/{east_station,riverside_works,glass_mile,
+      south_terrace}/`.
 
-**Deferred beyond this plan** (tracked in the manifest's *Known gaps*): the book's four
-*additional* canonical districts, the full 12-NPC EA cast, production-grade recorded music &
-voice, localization fonts (EN/SC/TC), controller glyphs, and Steam achievement art.
+**Deferred beyond this plan** (tracked in the manifest's *Known gaps*): the full 12-NPC EA cast
+(the book names only 6 majors — all 6 already have portraits + sprites; the other 6 are unnamed,
+so there's no book spec to draw), production-grade recorded music & voice, localization fonts
+(EN/SC/TC), controller glyphs, and Steam achievement art. *(The book's four additional canonical
+districts — previously deferred here — are now covered by Batch 10 above.)*
 
 ## Progress log
 
@@ -163,3 +178,5 @@ voice, localization fonts (EN/SC/TC), controller glyphs, and Steam achievement a
 - 2026-06-16: Batch 9 generated with built-in GPT-Image-2 (smoke-tested `SIGN_HarbourGate` first) + the chroma-key cutout / opaque-scene post-process (`postprocess_batch9.sh`); 11 PNGs — 7 signage cutouts (4 hanging signs 256², 2 posters 256×320, 1 graffiti 256²) + 4 opaque key-art scenes (640×360), total payload ≈ 1,208,372 bytes. Verified: all 7 cutouts clean alpha (transparent corners 0.000, no fringe); key-art opaque with moods reading by luma (dawn 40.4 → dusk 29.2 → storm 21.1 → settled 15.5); the 4 scenes are the *same* harbour across moods (consistent lighthouse/lamp/buildings).
 - 2026-06-16: Batch 9 wired in — the 7 painted signs dress the live harbour via a `harbourSigns` table in `world.js#buildWorld` (reusing the Batch 6 `cutoutPlane` helper): 4 hanging shop signs stand proud of the building façades (anchor-crest harbour gate by spawn, tavern by the stall, chandlery by the board, ferry-stop down-quay; all face −x toward the street), 2 weathered posters paste near-flush to the walls, and a faint tag sits low on the quay wall. Verified headless with the camera turned to a façade (HarbourGate crest + Civic poster both read; clean alpha, no z-fighting), temp camera edits reverted (main.js diff empty). The 4 key-art scenes ship ready for the act-transition / ending screens. Batch 9 complete — the ART_PLAN art batches (1–9 + audio core) are done.
 - 2026-06-16: Batch A audio EXPANSION shipped — `src/three/audio.js` gains a procedural **music bed** (a slow open A-chord pad: 5 detuned voices — A2/E3/A3/B3/E4 — each with its own tremolo + cents-of-detune drift, summed through a lowpass that breathes on a ~40s LFO; `setTimeOfDay` opens it bright by day, swells it at the golden hour, folds it dark & sparse at night, reading the same clock as the light) and **per-work-family shift textures** (`workShift(family)` built from a new `noiseHit` helper + `blip`: labour = 5 rhythmic low heaves with grit; delivery = a wheel-whir into a two-partial bicycle bell; admin = paper riffle + two stamp thunks; service = a sizzle with light clinks — each culminating in the coin payout via a refactored `payAt`). Wired into the success path: `interactions.boardAct` now returns the job `family`, and `main.performAct` calls `audio.workShift(res.family)` instead of the bare `pay()`. Verified headless — isolated audio probe (full API surface, all 4 families + day/evening/night reshape ran with **0 errors**) and a full `index.html` boot driving a real labour shift (`{ok:true, pay:38, family:"labour"}`, no runtime errors, splash dropped). **0 binary audio bytes.** Batch A complete — every ART_PLAN batch (1–9 + audio core & expansion) is now done.
+- 2026-06-16: Batch 10 generated with built-in GPT-Image-2 (smoke-tested `ENV_RiversideWorks_Yard` first) + the Batch-5-derived seamless PBR pipeline; 8 canonical-district surfaces for East Station, Riverside Works, Glass Mile, and South Terrace → 24 opaque PNGs (albedo/normal/orm), tile-checked, total payload 2,671,160 bytes.
+- 2026-06-16: Batch 10 verified — all 24 maps 512², all 8 albedos tile seamlessly (edge RMS 1.1–3.1, the 3.1 being the riveted steel siding; confirmed visually with 2×2 self-tiles), normals valid (OpenGL Y+, B-up 245–254), and the ORM channels match the brief's per-surface tuning exactly (roughness G 170/200/200/150/60/30/200/210, metalness B 10/40/0/180/30/210/0/0 — the 0.8 KB GlassMile_Plaza ORM is a valid near-uniform flat map). Contact sheet read: each kit reads as its **book district** with class telling through material — utilitarian grey concourse/concrete (East Station), hazard-marked yard + rusted siding (Riverside Works), pristine pale granite + cool mullioned glass (Glass Mile), warm herringbone brick + timber shopfront (South Terrace). No live wiring this batch (like Batch 5/7): the walkable world is still Old Harbour, so the four book districts ship ready for when they become walkable. Batch 10 complete — the book's full 5-district surface set now exists; every district the book names has art.
