@@ -118,10 +118,18 @@ export function createStatsHUD() {
   wrap.className = "hud-stats";
   wrap.innerHTML =
     `<div class="hud-stat hud-stat--money"><span class="hud-stat__icon">💴</span><span class="hud-stat__money">$0</span></div>
-     <div class="hud-stat hud-stat--energy"><span class="hud-stat__icon">⚡</span><span class="hud-stat__bar"><span class="hud-stat__fill"></span></span></div>`;
+     <div class="hud-stat hud-stat--energy"><span class="hud-stat__icon">⚡</span><span class="hud-stat__bar"><span class="hud-stat__fill"></span></span></div>
+     <button class="hud-stat hud-stat--mute" type="button" aria-label="Toggle sound" title="Sound (M)"><span class="hud-stat__icon hud-stat__mute-icon">🔊</span></button>`;
   document.body.appendChild(wrap);
   const moneyEl = wrap.querySelector(".hud-stat__money");
   const fillEl = wrap.querySelector(".hud-stat__fill");
+  const muteBtn = wrap.querySelector(".hud-stat--mute");
+  const muteIcon = wrap.querySelector(".hud-stat__mute-icon");
+  // The mute button must catch clicks even though the HUD layer ignores them.
+  Object.assign(muteBtn.style, {
+    pointerEvents: "auto", cursor: "pointer", border: "0", background: "inherit",
+    color: "inherit", font: "inherit",
+  });
   return {
     set(money, energy) {
       moneyEl.textContent = `$${Math.round(money)}`;
@@ -129,6 +137,8 @@ export function createStatsHUD() {
       fillEl.style.width = `${e}%`;
       fillEl.style.background = `hsl(${Math.round((e / 100) * 120)} 70% 48%)`; // green→red as it drains
     },
+    setMuted(m) { muteIcon.textContent = m ? "🔇" : "🔊"; },
+    onMuteToggle(cb) { muteBtn.addEventListener("click", cb); },
     moneyText() { return moneyEl.textContent; },
     energyPct() { return parseFloat(fillEl.style.width) || 0; },
   };

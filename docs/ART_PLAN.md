@@ -72,20 +72,44 @@ Read this before generating or integrating any asset.
 
 ## Batch roadmap (aligned to the book's milestones)
 
+> The **full** asset gap — every material, sprite, audio cue, UI element and FX the
+> book's milestones imply, with what exists and how it's made — lives in
+> [`ASSET_MANIFEST.md`](./ASSET_MANIFEST.md) (98 entries across 10 batches, mapped
+> by a multi-agent scan of the design book + codebase). This roadmap is the
+> execution order; the manifest is the source of truth for scope.
+
 - [x] **Batch 1 — Old Harbour core surfaces**: cobblestone quay, weathered
       plank wood, aged plaster facade, harbour water, + window atlas (albedo + emissive).
 - [x] **Batch 2 — Harbour props**: crates, barrels, mooring bollards, street lamp, stall fabric
-      (awning), painted metal, rope, sailcloth.
-- [ ] **Batch 3 — Characters**: citizen billboards/sprite sheets (variants; chroma-key cutouts),
-      player skin/clothing texture for the low-poly figure.
-- [ ] **Batch 4 — UI & 2D**: NPC portraits (mei, jun, rafiq, tomo, clara, ava), weather icons
-      (clear/cloud/rain/storm/heat), money/energy icons, status/condition icons.
+      (awning), painted metal, rope, sailcloth. *(+ barrel/roof surfaces still optional.)*
+- [~] **Batch A — Audio (procedural Web Audio, NO files)**: a single `src/three/audio.js`
+      ES-module synthesising the soundscape at runtime — sea-wash + gull + lamp-hum ambient bed,
+      footsteps, coins-on-pay, panel open/close, confirm/deny/select, mute toggle (M). **Core
+      shipped**; weather beds, work-family textures, music & voice are deferred (see manifest).
+- [ ] **Batch 3 — Characters & sprites**: player skin/clothing texture, citizen billboard
+      sprite-sheets (chroma-key cutouts), major-NPC clothing textures, job-task + story props.
+- [ ] **Batch 4 — UI & 2D icons + portraits**: NPC portraits (mei, jun, rafiq, tomo, clara, ava ×3
+      tiers), weather icons (clear/cloud/rain/storm/heat), money/energy + condition/status icons,
+      the six Opportunity-Web component icons, skill icons, district map markers.
 - [ ] **Batch 5 — District kits**: tenements, market_row, dockside, uptown/civic — palette +
-      facade/ground/prop variants per district.
-- [ ] **Batch 6 — Sky & FX**: dusk/day/night sky panoramas + clouds, rain/fog FX cards, signage
-      & decals.
+      facade/ground/prop variants per district, into `assets/textures/<district>/`.
+- [ ] **Batch 6 — Sky & FX**: dusk/day/night sky panoramas + clouds (replace the procedural dome),
+      rain/fog/heat FX cards, day-transition + condition screen overlays, signage & decals.
+- [ ] **Batch 7 — Interiors, workplaces & business premises**: rent-ladder housing interiors,
+      per-family workplace/activity environments, business-route premises.
+- [ ] **Batch 8 — Screen & menu UI systems**: phone + apps, planner/calendar, end-of-day report,
+      morning review, Opportunity-Web screen, relationship/wallet/skills/character-creation UIs.
+- [ ] **Batch 9 — Signage, narrative & store art**: bespoke brand/signage, event/crisis screens,
+      ending key-arts + chapter cards, save/load UI, Steam marketing set.
+
+**Deferred beyond this plan** (tracked in the manifest's *Known gaps*): the book's four
+*additional* canonical districts, the full 12-NPC EA cast, production-grade recorded music &
+voice, localization fonts (EN/SC/TC), controller glyphs, and Steam achievement art.
 
 ## Progress log
 
 - 2026-06-15: Batch 1 generated with built-in GPT-Image-2 and ImageMagick/Python post-processing; 14 harbour PNGs, tile-checked, total payload 4,442,460 bytes.
 - 2026-06-15: Batch 2 generated with built-in GPT-Image-2 and ImageMagick/Python post-processing; painted metal, awning stripe, sailcloth, and rope prop maps; 12 harbour PNGs, tile-checked, total payload 1,118,287 bytes.
+- 2026-06-15: Batch 2 wired into `world.js` (lamps, bollards, awning, boat sail, rope coils, barrels).
+- 2026-06-15: Full asset gap mapped by the `asset-gap-scope` multi-agent workflow → `ASSET_MANIFEST.md` (98 entries, 10 batches). Roadmap extended (Batches 7–9 + Audio batch A).
+- 2026-06-15: Batch A audio CORE shipped — `src/three/audio.js`, a procedural Web Audio module (sea/gull/lamp ambient bed + footsteps/coins/panel/confirm/deny + mute), wired into the frame loop; **0 binary audio bytes**.

@@ -12,6 +12,7 @@ import { createInteractionUI, createStatsHUD } from "./ui.js";
 import { createPlayerState } from "./playerstate.js";
 import { createFigure } from "./player.js";
 import { Input } from "./input.js";
+import { createAudio } from "./audio.js";
 
 const MOVE_SPEED = 4.2;            // metres / second
 const CAM = { yaw: 0, pitch: 0.34, dist: 9, height: 1.4 };
@@ -64,6 +65,15 @@ function start() {
   const hud = createStatsHUD();
   hud.set(pstate.money, pstate.energy);
 
+  // The harbour's procedural soundscape (resumes on first gesture; see audio.js).
+  const audio = createAudio();
+  audio.setTimeOfDay(day.minutes);
+  hud.setMuted(audio.isMuted());
+  hud.onMuteToggle(() => hud.setMuted(audio.toggleMute()));
+  window.addEventListener("keydown", (e) => {
+    if ((e.key === "m" || e.key === "M") && !e.repeat) hud.setMuted(audio.toggleMute());
+  });
+
   // In-world interaction: proximity points + a prompt/panel overlay.
   const interactions = createInteractions(player);
   const ui = createInteractionUI();
@@ -71,7 +81,7 @@ function start() {
   let activePoint = null;
   let renderActive = () => {};
   let lastBoardMin = -1; // in-game minute the live board last rendered at
-  ui.onClose(() => { interacting = false; activePoint = null; });
+  ui.onClose(() => { interacting = false; activePoint = null; audio.panelClose(); });
 
   // Open an interactable: render its panel (live, if it builds from world state)
   // and wire up acting on it. Re-renders in place after each action.
@@ -86,14 +96,16 @@ function start() {
     renderActive();
     interacting = true;
     ui.hidePrompt();
+    audio.panelOpen();
   }
 
   // Perform action #i on the open interactable (a click or a number key), then
   // refresh the panel and the stats HUD so the result shows immediately.
   function performAct(i) {
     if (!activePoint || !activePoint.act) return;
-    activePoint.act(i, { nowMin: day.minutes, pstate, day });
+    const res = activePoint.act(i, { nowMin: day.minutes, pstate, day });
     hud.set(pstate.money, pstate.energy);
+    if (res && res.ok) audio.pay(); else audio.deny();
     renderActive();
   }
 
@@ -163,6 +175,7 @@ function start() {
     }
 
     player.update(dt, speed);
+    audio.update(dt, speed);
 
     for (const c of world.citizens) c.update(dt);
 
@@ -177,7 +190,11 @@ function start() {
     // Advance the harbour clock and relight the world; refresh the HUD readout.
     day.update(dt);
     const label = day.label();
-    if (clockEl && label !== lastClock) { clockEl.textContent = label; lastClock = label; }
+    if (label !== lastClock) {
+      if (clockEl) clockEl.textContent = label;
+      lastClock = label;
+      audio.setTimeOfDay(day.minutes); // shift gulls/lamp-hum with the hour
+    }
 
     // Keep a live panel (the notice board) honest with the moving clock: as the
     // minute ticks over, re-score the shifts so a window can open or close, a
@@ -201,7 +218,7 @@ function start() {
   window.addEventListener("resize", onResize);
 
   // Debug / test hook: lets the headless smoke read state and drive the world.
-  window.__game = { THREE, scene, camera, renderer, player, world, input, CAM, day, interactions, ui, pstate, hud };
+  window.__game = { THREE, scene, camera, renderer, player, world, input, CAM, day, interactions, ui, pstate, hud, audio };
 
   requestAnimationFrame(tick);
 
