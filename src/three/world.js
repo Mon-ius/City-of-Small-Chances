@@ -21,6 +21,72 @@ const COLORS = {
   lampOn: 0xffd27d,
 };
 
+// ── Baked art (Batch 1): painterly textures generated with GPT-Image-2 and
+// post-processed into albedo + normal + packed ORM (R=AO, G=roughness, B=metal)
+// per the glTF convention Three.js samples (roughness←G, metalness←B). Relative
+// path keeps it working under the GitHub Pages project sub-path.
+const TEX_DIR = "./assets/textures/harbour/";
+const _texLoader = new THREE.TextureLoader();
+
+function surfaceTex(name, { srgb = false, repeat = [1, 1] } = {}) {
+  const t = _texLoader.load(TEX_DIR + name);
+  t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(repeat[0], repeat[1]);
+  t.anisotropy = 8;
+  return t;
+}
+
+// A tiled PBR surface. roughness/metalness ride on the ORM map's G/B channels,
+// so the scalar multipliers stay at 1 unless an override says otherwise.
+function surfaceMaterial(object, repeat, extra = {}) {
+  const orm = surfaceTex(`ENV_Harbour_${object}_orm.png`, { repeat });
+  return new THREE.MeshStandardMaterial({
+    map: surfaceTex(`ENV_Harbour_${object}_albedo.png`, { srgb: true, repeat }),
+    normalMap: surfaceTex(`ENV_Harbour_${object}_normal.png`, { repeat }),
+    roughnessMap: orm,
+    metalnessMap: orm,
+    roughness: 1,
+    metalness: 1,
+    ...extra,
+  });
+}
+
+// One shared material for the 4×4 window atlas; a cell is chosen per window by
+// remapping that plane's UVs (so it's a single texture upload, not 16). The
+// emissive map glows the lit panes warm at dusk.
+function windowAtlasMaterial() {
+  const albedo = _texLoader.load(TEX_DIR + "ENV_Harbour_WindowAtlas_albedo.png");
+  albedo.colorSpace = THREE.SRGBColorSpace;
+  albedo.anisotropy = 8;
+  const emissive = _texLoader.load(TEX_DIR + "ENV_Harbour_WindowAtlas_emissive.png");
+  emissive.colorSpace = THREE.SRGBColorSpace;
+  return new THREE.MeshStandardMaterial({
+    map: albedo,
+    emissive: 0xffffff,
+    emissiveMap: emissive,
+    emissiveIntensity: 1.15,
+    roughness: 0.55,
+    metalness: 0.0,
+  });
+}
+
+// A window quad facing the street (−x), with its UVs pinned to atlas cell `cell`
+// (0..15, row-major from the top-left). winW runs along z, winH along y.
+function windowPlane(winW, winH, cell, material) {
+  const geo = new THREE.PlaneGeometry(winW, winH);
+  const cx = cell % 4, cy = Math.floor(cell / 4);
+  const uv = geo.attributes.uv;
+  for (let i = 0; i < uv.count; i++) {
+    const u = uv.getX(i), v = uv.getY(i);
+    uv.setXY(i, cx * 0.25 + u * 0.25, (3 - cy) * 0.25 + v * 0.25);
+  }
+  uv.needsUpdate = true;
+  const m = new THREE.Mesh(geo, material);
+  m.rotation.y = -Math.PI / 2;
+  return m;
+}
+
 function box(w, h, d, color, opts = {}) {
   const mat = new THREE.MeshStandardMaterial({
     color,
@@ -37,11 +103,13 @@ function box(w, h, d, color, opts = {}) {
 
 // A building: a coloured block, a darker roof, and a grid of warm windows on the
 // street-facing (west, −x) wall so it reads as inhabited.
-function makeBuilding(x, z, w, h, d, color) {
+function makeBuilding(x, z, w, h, d, bodyMat, windowMat) {
   const g = new THREE.Group();
   g.position.set(x, 0, z);
 
-  const body = box(w, h, d, color);
+  const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), bodyMat);
+  body.castShadow = true;
+  body.receiveShadow = true;
   body.position.y = h / 2;
   g.add(body);
 
@@ -49,19 +117,15 @@ function makeBuilding(x, z, w, h, d, color) {
   roof.position.y = h + 0.15;
   g.add(roof);
 
-  // Windows on the −x face.
+  // Windows on the −x face, each pinned to one cell of the painted window atlas.
   const cols = Math.max(2, Math.floor(d / 1.6));
   const rows = Math.max(2, Math.floor(h / 1.7));
   const winW = 0.5, winH = 0.7;
-  const faceX = -w / 2 - 0.03;
+  const faceX = -w / 2 - 0.05;
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      const lit = (r * 7 + c * 3 + Math.floor(x + z)) % 3 === 0;
-      const win = box(0.06, winH, winW, lit ? 0xffe6b0 : 0x10151b, {
-        emissive: lit ? 0xffcaa0 : 0x000000,
-        emissiveIntensity: lit ? 0.35 : 0,
-        cast: false,
-      });
+      const cell = (r * 4 + c * 3 + Math.floor(Math.abs(x) + Math.abs(z))) % 16;
+      const win = windowPlane(winW, winH, cell, windowMat);
       const zz = (c - (cols - 1) / 2) * (d / cols);
       const yy = 1.2 + r * ((h - 1.6) / Math.max(1, rows - 1 || 1));
       win.position.set(faceX, Math.min(yy, h - 0.8), zz);
@@ -141,19 +205,24 @@ export function buildWorld(scene) {
   scene.add(sun);
   scene.add(sun.target);
 
+  // ── Shared baked materials for the harbour surfaces (Batch 1 art).
+  const plasterMat = surfaceMaterial("Plaster", [2, 2]);
+  const windowMat = windowAtlasMaterial();
+  const woodMat = surfaceMaterial("PlankWood", [1, 1]);
+
   // ── Ground + water.
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(120, 120),
-    new THREE.MeshStandardMaterial({ color: COLORS.cobble, roughness: 1 }),
+    surfaceMaterial("Cobblestone", [40, 40]),
   );
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
   scene.add(ground);
 
-  // The street: a lighter strip the player walks along (runs N–S, along z).
+  // The street: a plank boardwalk the player walks along (runs N–S, along z).
   const street = new THREE.Mesh(
     new THREE.PlaneGeometry(15, 80),
-    new THREE.MeshStandardMaterial({ color: COLORS.street, roughness: 1 }),
+    surfaceMaterial("PlankWood", [3, 16]),
   );
   street.rotation.x = -Math.PI / 2;
   street.position.set(-3, 0.01, 0);
@@ -162,7 +231,11 @@ export function buildWorld(scene) {
 
   const water = new THREE.Mesh(
     new THREE.PlaneGeometry(70, 120),
-    new THREE.MeshStandardMaterial({ color: COLORS.water, roughness: 0.25, metalness: 0.5 }),
+    surfaceMaterial("Water", [10, 16], {
+      metalness: 0.3,
+      metalnessMap: null,
+      normalScale: new THREE.Vector2(0.5, 0.5),
+    }),
   );
   water.rotation.x = -Math.PI / 2;
   water.position.set(-46, -0.05, 0);
@@ -184,17 +257,19 @@ export function buildWorld(scene) {
   }
 
   // ── A row of harbour buildings on the east side (fronts facing the water).
+  // All share the one painted plaster body + window-atlas material; per-building
+  // variety comes from size and from the window-cell hashing inside makeBuilding.
   const facades = [
-    { w: 7, h: 8.5, d: 7, c: 0x7a5d4a },
-    { w: 6, h: 6.5, d: 6.5, c: 0x5d6b73 },
-    { w: 8, h: 11, d: 8, c: 0x6a5247 },
-    { w: 6.5, h: 7.5, d: 7, c: 0x4f5a52 },
-    { w: 7, h: 9.5, d: 7.5, c: 0x73584a },
-    { w: 6, h: 6, d: 6.5, c: 0x586169 },
+    { w: 7, h: 8.5, d: 7 },
+    { w: 6, h: 6.5, d: 6.5 },
+    { w: 8, h: 11, d: 8 },
+    { w: 6.5, h: 7.5, d: 7 },
+    { w: 7, h: 9.5, d: 7.5 },
+    { w: 6, h: 6, d: 6.5 },
   ];
   let zCursor = -30;
   for (const f of facades) {
-    makeBuildingInto(scene, 9 + f.w / 2, zCursor + f.d / 2, f.w, f.h, f.d, f.c);
+    makeBuildingInto(scene, 9 + f.w / 2, zCursor + f.d / 2, f.w, f.h, f.d, plasterMat, windowMat);
     zCursor += f.d + 2.5;
   }
 
@@ -223,11 +298,12 @@ export function buildWorld(scene) {
   }
   scene.add(stall);
 
-  // ── Stacks of crates for texture near a wall.
-  const crateMat = [0x7d6444, 0x6b5538, 0x836a48];
+  // ── Stacks of crates near a wall, all in the painted plank-wood material.
   const crateSpots = [[-1, -8], [-0.2, -8], [-0.6, -8.7], [6, 14], [6.6, 14]];
   crateSpots.forEach(([x, z], i) => {
-    const c = box(0.9, 0.9, 0.9, crateMat[i % 3]);
+    const c = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.9, 0.9), woodMat);
+    c.castShadow = true;
+    c.receiveShadow = true;
     c.position.set(x, 0.45 + (i % 2 ? 0.9 : 0), z);
     scene.add(c);
   });
@@ -295,8 +371,8 @@ export function buildWorld(scene) {
 }
 
 // Wrapper so makeBuilding (which builds a Group) is added to the scene.
-function makeBuildingInto(scene, x, z, w, h, d, color) {
-  scene.add(makeBuilding(x, z, w, h, d, color));
+function makeBuildingInto(scene, x, z, w, h, d, bodyMat, windowMat) {
+  scene.add(makeBuilding(x, z, w, h, d, bodyMat, windowMat));
 }
 
 // A citizen that walks back and forth between two z values, facing its direction.
