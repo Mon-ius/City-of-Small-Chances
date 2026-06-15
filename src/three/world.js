@@ -451,6 +451,28 @@ export function buildWorld(scene) {
   const stallSign = cutoutPlane(`${SIGNAGE_DIR}SIGN_NoodleStall.png`, 1.15, 1.15, { emissive: 0.3 });
   stallSign.position.set(0, 1.32, 0.96);
   stall.add(stallSign);
+
+  // Mei's wares (Batch 17): painted market goods dressing the stall — two heaped
+  // produce baskets and a steaming noodle bowl up on the counter, a string of dried
+  // wares hung under the awning, and a sack stack + a restock crate on the ground
+  // beside it. Each is a flat alpha cutout sized to its PNG aspect and added to the
+  // stall group, so it inherits the stall's place and faces +z toward the customer
+  // (the way the player walks in) — the same fixed-cutout trick as the noodle sign
+  // and the parked courier bike. Lightly self-lit so the goods read after dark.
+  const stallGoods = [
+    // [file, w, h, [x, y, z], emissive]
+    ["PROP_Food_NoodleBowl", 0.62, 0.625, [0.55, 1.2, 0.42], 0.18],
+    ["PROP_Market_BasketFruit", 0.83, 0.58, [-0.6, 1.22, 0.42], 0.1],
+    ["PROP_Market_HangingWares", 0.68, 0.62, [0.95, 1.45, 0.55], 0.1],
+    ["PROP_Market_BasketVeg", 0.78, 0.5, [-1.95, 0.3, 1.2], 0.06],
+    ["PROP_Market_Sacks", 0.97, 0.48, [1.8, 0.29, 1.2], 0.05],
+    ["PROP_Market_Crate", 0.84, 0.54, [-2.3, 0.31, 0.4], 0.06],
+  ];
+  for (const [file, w, h, [x, y, z], emissive] of stallGoods) {
+    const good = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive });
+    good.position.set(x, y, z);
+    stall.add(good);
+  }
   scene.add(stall);
 
   // ── A few barrels by the stall: painted barrel-stave wrap (Batch 11) bound with
