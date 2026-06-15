@@ -88,9 +88,10 @@ Read this before generating or integrating any asset.
       shipped**; weather beds, work-family textures, music & voice are deferred (see manifest).
 - [x] **Batch 3 — Characters & sprites**: player skin/clothing texture, citizen billboard
       sprite-sheets (chroma-key cutouts), major-NPC clothing textures, job-task + story props.
-- [ ] **Batch 4 — UI & 2D icons + portraits**: NPC portraits (mei, jun, rafiq, tomo, clara, ava ×3
-      tiers), weather icons (clear/cloud/rain/storm/heat), money/energy + condition/status icons,
-      the six Opportunity-Web component icons, skill icons, district map markers.
+- [~] **Batch 4 — UI & 2D icons + portraits**: **part A done** — 18 NPC portraits (mei, jun, rafiq,
+      tomo, clara, ava ×3 closeness tiers) generated + wired into the interaction panel (Mei live,
+      stranger tier). Remaining: weather icons (clear/cloud/rain/storm/heat), money/energy +
+      condition/status icons, the six Opportunity-Web component icons, skill icons, district markers.
 - [ ] **Batch 5 — District kits**: tenements, market_row, dockside, uptown/civic — palette +
       facade/ground/prop variants per district, into `assets/textures/<district>/`.
 - [ ] **Batch 6 — Sky & FX**: dusk/day/night sky panoramas + clouds (replace the procedural dome),
@@ -114,3 +115,5 @@ voice, localization fonts (EN/SC/TC), controller glyphs, and Steam achievement a
 - 2026-06-15: Full asset gap mapped by the `asset-gap-scope` multi-agent workflow → `ASSET_MANIFEST.md` (98 entries, 10 batches). Roadmap extended (Batches 7–9 + Audio batch A).
 - 2026-06-15: Batch A audio CORE shipped — `src/three/audio.js`, a procedural Web Audio module (sea/gull/lamp ambient bed + footsteps/coins/panel/confirm/deny + mute), wired into the frame loop; **0 binary audio bytes**.
 - 2026-06-15: Batch 3 generated with built-in GPT-Image-2 and chroma-key post-processing; 6 citizen billboard cutouts, clean alpha checked on grey, total payload 1,610,379 bytes.
+- 2026-06-15: Batch 4 part A generated with built-in GPT-Image-2 and chroma-key post-processing; 18 NPC portrait cutouts, clean alpha checked on grey, total payload 847,992 bytes.
+- 2026-06-15: Batch 4 part A wired in — reusable `data.portrait` support added to the interaction panel (`ui.js` + `.panel__head`/`.panel__portrait` CSS); Mei's stall now shows her stranger-tier portrait beside her voice line. Other 5 NPCs' portraits ship ready for future walk-up/contacts screens.

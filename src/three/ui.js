@@ -20,8 +20,13 @@ export function createInteractionUI() {
     `<div class="panel__card" role="dialog" aria-modal="true" aria-labelledby="panel-title">
        <button class="panel__close" type="button" aria-label="Close">×</button>
        <div class="panel__scroll">
-         <h2 class="panel__title" id="panel-title"></h2>
-         <p class="panel__lead"></p>
+         <div class="panel__head">
+           <img class="panel__portrait" alt="" hidden>
+           <div class="panel__headtext">
+             <h2 class="panel__title" id="panel-title"></h2>
+             <p class="panel__lead"></p>
+           </div>
+         </div>
          <div class="panel__banner" hidden></div>
          <ul class="panel__list"></ul>
          <p class="panel__foot"></p>
@@ -30,6 +35,7 @@ export function createInteractionUI() {
   document.body.appendChild(overlay);
 
   const card = overlay.querySelector(".panel__card");
+  const portraitEl = overlay.querySelector(".panel__portrait");
   const titleEl = overlay.querySelector(".panel__title");
   const leadEl = overlay.querySelector(".panel__lead");
   const bannerEl = overlay.querySelector(".panel__banner");
@@ -84,6 +90,14 @@ export function createInteractionUI() {
     openPanel(data, onItem) {
       titleEl.textContent = data.title || "";
       card.style.setProperty("--accent", data.accent || "#6fa8ff");
+      if (data.portrait) {
+        portraitEl.src = data.portrait;
+        portraitEl.alt = data.portraitAlt || "";
+        portraitEl.hidden = false;
+      } else {
+        portraitEl.hidden = true;
+        portraitEl.removeAttribute("src");
+      }
       leadEl.textContent = data.lead || "";
       leadEl.hidden = !data.lead;
       bannerEl.textContent = data.banner || "";

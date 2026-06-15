@@ -26,12 +26,23 @@ const hours = (min) => {
   return Number.isInteger(h) ? `${h}h` : `${h.toFixed(1)}h`;
 };
 
+// Painted NPC portrait (Batch 4): assets/ui/portraits/CHAR_Portrait_<Name>_<tier>.
+// `tier` is the closeness stage; the thin slice has no relationship state yet, so
+// callers pass "stranger" to match the stranger voice line shown.
+const portraitFor = (npc, tier = "stranger") => {
+  const name = (npc.short || npc.id);
+  const Cap = name.charAt(0).toUpperCase() + name.slice(1);
+  return `./assets/ui/portraits/CHAR_Portrait_${Cap}_${tier}_albedo.png`;
+};
+
 // Mei's stall — a first taste of the relationship system, read from npcs.js.
 function vendorPanel() {
   const mei = NPCS.find((n) => n.id === "mei") || NPCS[0];
   return {
     title: `${mei.icon || ""} ${mei.name} · ${mei.role}`.trim(),
     accent: mei.color || "#e0833c",
+    portrait: portraitFor(mei, "stranger"),
+    portraitAlt: `${mei.name}, ${mei.role}`,
     lead: mei.blurb,
     lines: [
       mei.voice && mei.voice.stranger ? mei.voice.stranger : "",
