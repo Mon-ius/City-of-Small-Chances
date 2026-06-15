@@ -146,9 +146,10 @@ export function createStatsHUD() {
   const muteBtn = wrap.querySelector(".hud-stat--mute");
   const muteIcon = wrap.querySelector(".hud-stat__mute-icon");
   // The mute button must catch clicks even though the HUD layer ignores them.
+  // It keeps the shared .hud-stat painted-plate look (Batch 8); we only re-enable
+  // pointer events and inherit the HUD's text colour/font for the emoji glyph.
   Object.assign(muteBtn.style, {
-    pointerEvents: "auto", cursor: "pointer", border: "0", background: "inherit",
-    color: "inherit", font: "inherit",
+    pointerEvents: "auto", cursor: "pointer", color: "inherit", font: "inherit",
   });
   return {
     set(money, energy) {

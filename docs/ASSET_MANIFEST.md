@@ -108,14 +108,14 @@ from Three.js primitives.
 | ui-005 | Six Opportunity-Web component icons (skill, relationship, reputation, possession, timing, history) — legible colour-blind-safe set (opportunity-web) | no | gpt-image-2 | medium |
 | ui-006 | Seven skill icons + certificate/credential visuals, colour-blind-safe (skill-training-cert) | no | gpt-image-2 | medium |
 | ui-007 | District map markers replacing emoji placeholders (tenements/market_row/old_harbour/dockside/uptown) + job icons (districts-travel, jobs-mastery) | no | gpt-image-2 | medium |
-| ui-008 | Phone interface frame + six diegetic apps (calendar, messages, map, wallet, skills, contacts) — ui-ux milestone | no | gpt-image-2 | medium |
+| ui-008 | Phone interface frame + six diegetic apps (calendar, messages, map, wallet, skills, contacts) — ui-ux milestone | partial (Batch 8 art: bezel + 6 app-icon glyphs ship-ready; live interface later) | gpt-image-2 | medium |
 | ui-009 | Planner/calendar interface art: time-block timeline, pinned-opportunity cards, route comparison, cash-after-expenses, fatigue/stress forecast bars, impossibility warnings (time-calendar-planner) | no | gpt-image-2 | medium |
 | ui-010 | End-of-day report layout: categorised money/condition/relationship/opportunity deltas with 'why it happened' lines (core-loop-day, ui-ux) | no | gpt-image-2 | medium |
 | ui-011 | Morning-review/wake screen: money, condition, commitments, forecast at a glance (core-loop-day) | no | gpt-image-2 | low |
 | ui-012 | Opportunity-Web screen: chance cards with per-component requirement rows (tick/gap+progress+hint), state badges by shape+value, one-line reason (opportunity-web) | no | gpt-image-2 | medium |
 | ui-013 | Relationship/contacts UI: per-NPC card (trust/respect/affection/debt/conflict, closeness tier, promises, memories, schedule clues) + conversation panel with social-action choices (relationships-economy) | no | gpt-image-2 | medium |
 | ui-014 | Wallet/budget UI: cash, recurring bills, debt plan, spending categories, upcoming-obligation warnings (no invisible failure spiral) (economy-rent-debt) | no | gpt-image-2 | medium |
-| ui-015 | Shop/service interaction panels + notice-board panel art + shift-result banner + mastery/auto-resolve unlock UI (activities-shops-services, jobs-mastery) | no | gpt-image-2 | low |
+| ui-015 | Shop/service interaction panels + notice-board panel art + shift-result banner + mastery/auto-resolve unlock UI (activities-shops-services, jobs-mastery) | partial (Batch 8: painted dark panel surface wired live behind the interaction-panel card) | gpt-image-2 | low |
 | ui-016 | Skills screen + housing-choice/business-management UI (rent/deposit comparison, storage grid, cash-flow, demand forecast, staffing) (skill-training-cert, housing-business) | no | gpt-image-2 | low |
 | ui-017 | Character-creation screen art: appearance preview/turntable, background-obligation cards, trait & starting-skill panels (character-creation) | no | gpt-image-2 | low |
 | ui-018 | Settings/accessibility menu: control-remap, subtitle styling+background, text-size & colour-blind toggles, sensitivity/FOV/motion sliders, difficulty-slider panel; camera-mode visual language (controls-camera-access, difficulty-telemetry) | no | gpt-image-2 | low |

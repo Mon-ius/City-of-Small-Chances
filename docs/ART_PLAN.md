@@ -112,8 +112,13 @@ Read this before generating or integrating any asset.
       tiles, civic terrazzo). Seam-checked (edge_rms ≈ 1.0–1.5). **Ship ready** — the walkable
       world is still Old Harbour exterior, so these wire in when interiors/workplaces become
       walkable. (Business-route premises mat-012 deferred to the gameplay-side interiors work.)
-- [ ] **Batch 8 — Screen & menu UI systems**: phone + apps, planner/calendar, end-of-day report,
-      morning review, Opportunity-Web screen, relationship/wallet/skills/character-creation UIs.
+- [x] **Batch 8 — Screen & menu UI systems** (art slice): the painted *skin* of the menu/panel/
+      phone UI — 11 assets. 3 seamless surface textures (`UI_Panel_Dark`, `UI_HUD_Plate` — both
+      dark for light text; `UI_Panel_Paper` — light), an ornate hollow border `UI_Frame_Ornate`,
+      a `UI_Phone_Bezel`, and 6 phone app-icon glyphs (`UI_App_{Jobs,Map,Contacts,Wallet,Planner,
+      Web}`) in the Batch-4 icon family. The two dark surfaces are **wired live** (interaction
+      panel card + corner HUD/clock chips); the paper surface, frame, bezel and app icons **ship
+      ready** for the phone/report/planner screens (DOM/CSS layout is later gameplay work).
 - [ ] **Batch 9 — Signage, narrative & store art**: bespoke brand/signage, event/crisis screens,
       ending key-arts + chapter cards, save/load UI, Steam marketing set.
 
@@ -141,3 +146,5 @@ voice, localization fonts (EN/SC/TC), controller glyphs, and Steam achievement a
 - 2026-06-16: Batch 6 wired in — drifting cloud billboards added *over* the procedural sky dome (`world.js#buildClouds` + `tintClouds`, driven each minute by `daycycle.js`, drifted + camera-billboarded in `main.js`): bright near-white at noon, warm at dusk, sunk into the night sky after dark — the dynamic dome is untouched. Mei's painted noodle-stall sign now hangs on the live stall and the painted board-notes decal overlays the notice board (both via a new `cutoutPlane` helper). Verified headless at noon + dusk and with prop close-ups. The 4 weather cards + 3 other signs ship ready. Batch 6 complete.
 - 2026-06-16: Batch 7 generated with built-in GPT-Image-2 and the (Batch-5-derived) ImageMagick/Python PBR pipeline; 8 tileable interior/workplace surfaces → 24 PNGs (albedo/normal/orm), total payload 1,957,974 bytes.
 - 2026-06-16: Batch 7 verified — all 8 albedos tile seamlessly (wrap-seam edge_rms ≈ 1.0–1.5, no visible seam in a 2×2 tile), the rent ladder reads poorer→stabler (cold grey screed → tan lino → pale laminate → warm honey boards → dark polished live-work), and the 3 workplaces read their trades (warehouse / kitchen tiles / civic terrazzo). The near-uniform ORMs (studio/civic/shared ≈ 0.3–0.4 KB) are valid flat smooth-surface maps. No live wiring this batch: the walkable world is Old Harbour exterior, so the kits ship ready for when interiors/workplaces become walkable. Batch 7 complete.
+- 2026-06-16: Batch 8 generated with built-in GPT-Image-2 (smoke-tested `UI_Panel_Dark` first) + the seamless/chroma post-process (`postprocess_batch8.sh`); 11 UI-skin PNGs — 3 opaque seamless surfaces (512²) + an ornate frame (512²) + a phone bezel (384×512) + 6 app-icon glyphs (128²), total payload ≈ 493,954 bytes. Verified: dark surfaces mean-luma 16.7 / 20.2 (light text safe), paper 80.4; all 3 surfaces seamless (wrap-seam mean 0.6–1.3/255); frame hollow centre (α 0.000) with opaque border; all 8 cutouts clean alpha (transparent corners 0.000, no fringe); icons warm (R>G>B, mean-sat 0.27–0.45).
+- 2026-06-16: Batch 8 wired in — the two dark painted surfaces dress the live DOM UI (CSS only, no text-colour change): `UI_Panel_Dark` (oiled-wood grain under a near-opaque cool-dark wash) backs the interaction-panel card behind its accent border, and `UI_HUD_Plate` (patinated metal) backs the corner money/energy/mute chips + the top-right clock as solid HUD plates; the mute button now shares the plate (dropped its inline background override in `ui.js`). Verified headless on the QA harness and over the live harbour. Paper surface, ornate frame, phone bezel and 6 app icons ship ready for the phone/report/planner screens. Batch 8 complete.
