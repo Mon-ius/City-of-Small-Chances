@@ -576,6 +576,32 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
+  // posters on the building façades (which front the quay, facing −x), plus a
+  // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like
+  // the Batch 6 signs so they stay readable after dark. The art is original —
+  // pictorial marks only, no real-world brands or readable text.
+  const FACADE = -Math.PI / 2; // a plane facing −x, toward the player on the street
+  const QUAYWALL = Math.PI / 2; // facing +x, off the water-side wall toward the street
+  const harbourSigns = [
+    // Hanging shop signs standing proud of the x≈9 building fronts (bracket painted in).
+    { url: "SIGN_HarbourGate", w: 1.5, h: 1.5, x: 8.45, y: 3.7, z: 21.5, face: FACADE, emissive: 0.32 },
+    { url: "SIGN_Tavern", w: 1.4, h: 1.4, x: 8.45, y: 3.5, z: 2.25, face: FACADE, emissive: 0.32 },
+    { url: "SIGN_Chandlery", w: 1.4, h: 1.4, x: 8.45, y: 3.5, z: -7.5, face: FACADE, emissive: 0.3 },
+    { url: "SIGN_FerryStop", w: 1.3, h: 1.3, x: 8.45, y: 3.4, z: -17.25, face: FACADE, emissive: 0.3 },
+    // Weathered posters pasted near-flush to the wall (a touch proud of the windows).
+    { url: "POSTER_Harbour", w: 0.95, h: 1.18, x: 8.82, y: 1.85, z: -25.2, face: FACADE, emissive: 0.16 },
+    { url: "POSTER_Civic", w: 0.95, h: 1.18, x: 8.82, y: 1.85, z: 13.3, face: FACADE, emissive: 0.16 },
+    // A faint painted tag low on the quay wall.
+    { url: "DECAL_Graffiti", w: 1.1, h: 1.1, x: -10.75, y: 0.62, z: 10, face: QUAYWALL, emissive: 0.1 },
+  ];
+  for (const s of harbourSigns) {
+    const sign = cutoutPlane(`${SIGNAGE_DIR}${s.url}.png`, s.w, s.h, { emissive: s.emissive });
+    sign.position.set(s.x, s.y, s.z);
+    sign.rotation.y = s.face;
+    scene.add(sign);
+  }
+
   // ── Drifting clouds over the painted dome. tintClouds() lets the day cycle
   // multiply them with the horizon colour each minute (bright by day, warm at
   // dusk, sunk into the night sky after dark); main.js drifts + billboards them.

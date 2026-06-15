@@ -119,9 +119,9 @@ from Three.js primitives.
 | ui-016 | Skills screen + housing-choice/business-management UI (rent/deposit comparison, storage grid, cash-flow, demand forecast, staffing) (skill-training-cert, housing-business) | no | gpt-image-2 | low |
 | ui-017 | Character-creation screen art: appearance preview/turntable, background-obligation cards, trait & starting-skill panels (character-creation) | no | gpt-image-2 | low |
 | ui-018 | Settings/accessibility menu: control-remap, subtitle styling+background, text-size & colour-blind toggles, sensitivity/FOV/motion sliders, difficulty-slider panel; camera-mode visual language (controls-camera-access, difficulty-telemetry) | no | gpt-image-2 | low |
-| ui-019 | Original bespoke brand/signage system (shop signs, institutional logos, transit branding, posters, hoardings) — no real-world replicas, legal originality rule (world-bible-haiyun) | no | gpt-image-2 | medium |
+| ui-019 | Original bespoke brand/signage system (shop signs, institutional logos, transit branding, posters, hoardings) — no real-world replicas, legal originality rule (world-bible-haiyun) | partial (Batch 9: 7 pictorial signs/posters/tag wired LIVE on the harbour) | gpt-image-2 | medium |
 | ui-020 | Event/crisis presentation: warning notice, three-response choice panel, partial-success/consequence summary — no hidden irreversible states (events-crises) | no | gpt-image-2 | low |
-| ui-021 | Ending/epilogue screens for seven life-paths + act-transition chapter cards for the five acts (narrative-endings) | no | gpt-image-2 | low |
+| ui-021 | Ending/epilogue screens for seven life-paths + act-transition chapter cards for the five acts (narrative-endings) | partial (Batch 9: 4 key-art scenes — dawn/dusk/storm/settled — ship-ready for the chapter/ending screens) | gpt-image-2 | low |
 | ui-022 | Save/load UI (slots, autosave indicator, cloud-conflict, version/migration notices) (tech-data-tools) | no | gpt-image-2 | low |
 | ui-023 | Steam store/marketing art: capsule/header, library art, required screenshot set framing, EA FAQ/wishlist graphics (steam-release-demo) | no | gpt-image-2 | low |
 
