@@ -131,8 +131,8 @@ export function createStatsHUD() {
   wrap.id = "hud-stats";
   wrap.className = "hud-stats";
   wrap.innerHTML =
-    `<div class="hud-stat hud-stat--money"><span class="hud-stat__icon">💴</span><span class="hud-stat__money">$0</span></div>
-     <div class="hud-stat hud-stat--energy"><span class="hud-stat__icon">⚡</span><span class="hud-stat__bar"><span class="hud-stat__fill"></span></span></div>
+    `<div class="hud-stat hud-stat--money"><img class="hud-stat__icon hud-stat__img" src="./assets/ui/icons/UI_Icon_Money.png" alt="Money" draggable="false"><span class="hud-stat__money">$0</span></div>
+     <div class="hud-stat hud-stat--energy"><img class="hud-stat__icon hud-stat__img" src="./assets/ui/icons/UI_Icon_Energy.png" alt="Energy" draggable="false"><span class="hud-stat__bar"><span class="hud-stat__fill"></span></span></div>
      <button class="hud-stat hud-stat--mute" type="button" aria-label="Toggle sound" title="Sound (M)"><span class="hud-stat__icon hud-stat__mute-icon">🔊</span></button>`;
   document.body.appendChild(wrap);
   const moneyEl = wrap.querySelector(".hud-stat__money");
