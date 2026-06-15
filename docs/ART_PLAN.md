@@ -105,8 +105,13 @@ Read this before generating or integrating any asset.
       hour, Mei's noodle-stall sign hangs on the live stall, and the painted board-notes
       decal overlays the notice board. The 4 weather cards + 3 other signs (chandler,
       harbour-shop, civic) ship ready for the weather system & the other shops (Batch 7+).
-- [ ] **Batch 7 — Interiors, workplaces & business premises**: rent-ladder housing interiors,
-      per-family workplace/activity environments, business-route premises.
+- [x] **Batch 7 — Interiors & workplaces (tileable PBR surfaces)**: 8 seamless surface kits
+      (24 maps) — a 5-rung **rent ladder** of interior floors (shelter screed → shared lino →
+      studio laminate → apartment boards → live-work polish, reading visibly poorer→stabler) +
+      3 workplace surfaces tied to the live job families (warehouse concrete, kitchen subway
+      tiles, civic terrazzo). Seam-checked (edge_rms ≈ 1.0–1.5). **Ship ready** — the walkable
+      world is still Old Harbour exterior, so these wire in when interiors/workplaces become
+      walkable. (Business-route premises mat-012 deferred to the gameplay-side interiors work.)
 - [ ] **Batch 8 — Screen & menu UI systems**: phone + apps, planner/calendar, end-of-day report,
       morning review, Opportunity-Web screen, relationship/wallet/skills/character-creation UIs.
 - [ ] **Batch 9 — Signage, narrative & store art**: bespoke brand/signage, event/crisis screens,
@@ -134,3 +139,5 @@ voice, localization fonts (EN/SC/TC), controller glyphs, and Steam achievement a
 - 2026-06-16: Batch 5 verified — all 8 albedos tile seamlessly (wrap-seam ≪ interior detail after PNG8 quantization), normals clean (no banding at ~190 colours), each kit reads as its district beside the harbour set. No live wiring this batch: the walkable world is Old Harbour only, so the kits ship ready for when the other districts become walkable. Batch 5 complete.
 - 2026-06-16: Batch 6 generated with built-in GPT-Image-2 and chroma-key post-processing; 13 transparent cutouts (4 sky clouds, 4 weather FX cards, 5 pictorial signage/decals), clean alpha checked on grey/white + a programmatic chroma-fringe scan (0 residue), clouds confirmed neutral/light & tintable, total payload 1,342,076 bytes.
 - 2026-06-16: Batch 6 wired in — drifting cloud billboards added *over* the procedural sky dome (`world.js#buildClouds` + `tintClouds`, driven each minute by `daycycle.js`, drifted + camera-billboarded in `main.js`): bright near-white at noon, warm at dusk, sunk into the night sky after dark — the dynamic dome is untouched. Mei's painted noodle-stall sign now hangs on the live stall and the painted board-notes decal overlays the notice board (both via a new `cutoutPlane` helper). Verified headless at noon + dusk and with prop close-ups. The 4 weather cards + 3 other signs ship ready. Batch 6 complete.
+- 2026-06-16: Batch 7 generated with built-in GPT-Image-2 and the (Batch-5-derived) ImageMagick/Python PBR pipeline; 8 tileable interior/workplace surfaces → 24 PNGs (albedo/normal/orm), total payload 1,957,974 bytes.
+- 2026-06-16: Batch 7 verified — all 8 albedos tile seamlessly (wrap-seam edge_rms ≈ 1.0–1.5, no visible seam in a 2×2 tile), the rent ladder reads poorer→stabler (cold grey screed → tan lino → pale laminate → warm honey boards → dark polished live-work), and the 3 workplaces read their trades (warehouse / kitchen tiles / civic terrazzo). The near-uniform ORMs (studio/civic/shared ≈ 0.3–0.4 KB) are valid flat smooth-surface maps. No live wiring this batch: the walkable world is Old Harbour exterior, so the kits ship ready for when interiors/workplaces become walkable. Batch 7 complete.
