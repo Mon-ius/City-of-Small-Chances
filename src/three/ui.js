@@ -55,6 +55,10 @@ export function createInteractionUI() {
   // Render one actionable row: a button when the shift is open, a dimmed row when not.
   function renderItem(item, onItem) {
     const li = document.createElement("li");
+    // An optional painted emblem (e.g. a job icon) sits at the leading edge of the row.
+    const iconImg = item.iconImg
+      ? `<img class="panel__item-icon" src="${item.iconImg}" alt="" draggable="false">`
+      : "";
     if (item.state === "open" && onItem) {
       li.className = "panel__actrow";
       const btn = document.createElement("button");
@@ -62,6 +66,7 @@ export function createInteractionUI() {
       btn.className = "panel__act";
       btn.innerHTML =
         `<span class="panel__act-key"></span>
+         ${iconImg}
          <span class="panel__act-text"><span class="panel__act-label"></span><span class="panel__act-sub"></span></span>`;
       const keyEl = btn.querySelector(".panel__act-key");
       if (item.key != null) keyEl.textContent = item.key; else keyEl.hidden = true;
@@ -72,7 +77,8 @@ export function createInteractionUI() {
     } else {
       li.className = "panel__row is-locked";
       li.innerHTML =
-        `<span class="panel__row-label"></span><span class="panel__row-sub"></span><span class="panel__row-note"></span>`;
+        `${iconImg}
+         <span class="panel__row-text"><span class="panel__row-label"></span><span class="panel__row-sub"></span><span class="panel__row-note"></span></span>`;
       li.querySelector(".panel__row-label").textContent = item.label || "";
       li.querySelector(".panel__row-sub").textContent = item.sub || "";
       const noteEl = li.querySelector(".panel__row-note");

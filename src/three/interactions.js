@@ -60,11 +60,14 @@ function boardBuild(ctx) {
   const items = JOBS.map((job, i) => {
     const st = jobStatus(job, nowMin, pstate);
     const base = `${titleCase(job.district)} · ${fmtWindow(job.windows)} · ${hours(job.minutes)} · +$${job.pay.base}`;
+    // Painted job emblem (Batch 4C) replaces the emoji prefix on the board.
+    const iconImg = `./assets/ui/icons/UI_Icon_Job_${job.id}.png`;
     if (st.workable) {
       return {
         state: "open",
         key: i + 1, // press this number (or click) to work it
-        label: `${job.icon || "•"} ${job.name}`,
+        iconImg,
+        label: job.name,
         sub: `${base} · costs ${st.cost} energy`,
       };
     }
@@ -73,7 +76,7 @@ function boardBuild(ctx) {
     else if (st.reason === "requires") note = st.note || "you don't meet what this work needs yet";
     else if (st.reason === "no-time") note = "not enough day left for this shift";
     else note = `opens ${fmtClock(job.windows[0][0])}`;
-    return { state: "locked", label: `${job.icon || "•"} ${job.name}`, sub: base, note };
+    return { state: "locked", iconImg, label: job.name, sub: base, note };
   });
   return {
     title: "📋 Harbour notice board",

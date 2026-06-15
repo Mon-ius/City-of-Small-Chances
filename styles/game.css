@@ -157,11 +157,17 @@ html, body {
 .panel__act-text { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
 .panel__act-label { font-weight: 700; font-size: 0.9rem; }
 .panel__act-sub { font-size: 0.78rem; color: #b9c6d6; }
+/* A painted emblem (job icon) at the leading edge of an open or locked row. */
+.panel__item-icon {
+  flex: 0 0 auto; width: 30px; height: 30px;
+  object-fit: contain; display: block; image-rendering: auto;
+}
 .panel__list li.panel__row.is-locked {
-  display: flex; flex-direction: column; gap: 0.12rem;
+  display: flex; flex-direction: row; align-items: flex-start; gap: 0.55rem;
   background: rgba(255, 255, 255, 0.03); border: 1px dashed rgba(255, 255, 255, 0.1);
   opacity: 0.72;
 }
+.panel__row-text { display: flex; flex-direction: column; gap: 0.12rem; min-width: 0; flex: 1 1 auto; }
 .panel__row-label { font-weight: 700; font-size: 0.88rem; color: #c4cedb; }
 .panel__row-sub { font-size: 0.78rem; color: #94a3b5; }
 .panel__row-note { font-size: 0.76rem; color: #d79a6a; font-style: italic; }

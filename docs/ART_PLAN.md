@@ -88,11 +88,12 @@ Read this before generating or integrating any asset.
       shipped**; weather beds, work-family textures, music & voice are deferred (see manifest).
 - [x] **Batch 3 — Characters & sprites**: player skin/clothing texture, citizen billboard
       sprite-sheets (chroma-key cutouts), major-NPC clothing textures, job-task + story props.
-- [~] **Batch 4 — UI & 2D icons + portraits**: **parts A+B done** — (A) 18 NPC portraits (×3
-      closeness tiers) wired into the interaction panel (Mei live). (B) 11 HUD/status/weather icons
-      (5 condition meters + money + 5 weather); money & energy now painted in the live HUD, the rest
-      ship ready. Remaining: the six Opportunity-Web component icons, 7 skill icons + certificate,
-      district map markers + job icons (a Batch 4C, the "systems" icon family).
+- [x] **Batch 4 — UI & 2D icons + portraits** (A+B+C): (A) 18 NPC portraits (×3 closeness tiers)
+      wired into the interaction panel (Mei live). (B) 11 HUD/status/weather icons (5 condition
+      meters + money + 5 weather); money & energy painted in the live HUD. (C) 23 systems &
+      wayfinding icons — 5 job emblems, 5 district map-pins, 6 Opportunity-Web component icons, 7
+      skill icons. The 5 job emblems are **live** on the notice board (replacing the emoji); the
+      markers, web-component and skill icons ship ready for the planner/web/skills screens.
 - [ ] **Batch 5 — District kits**: tenements, market_row, dockside, uptown/civic — palette +
       facade/ground/prop variants per district, into `assets/textures/<district>/`.
 - [ ] **Batch 6 — Sky & FX**: dusk/day/night sky panoramas + clouds (replace the procedural dome),
@@ -120,3 +121,5 @@ voice, localization fonts (EN/SC/TC), controller glyphs, and Steam achievement a
 - 2026-06-15: Batch 4 part A wired in — reusable `data.portrait` support added to the interaction panel (`ui.js` + `.panel__head`/`.panel__portrait` CSS); Mei's stall now shows her stranger-tier portrait beside her voice line. Other 5 NPCs' portraits ship ready for future walk-up/contacts screens.
 - 2026-06-15: Batch 4 part B generated with built-in GPT-Image-2 and chroma-key post-processing; 11 HUD/status/weather icon cutouts, clean alpha checked on grey/white, total payload 106,873 bytes.
 - 2026-06-15: Batch 4 part B wired in — painted Money + Energy icons replace the 💴/⚡ emoji in the live corner HUD (`ui.js` + `.hud-stat__img` CSS); the 5 condition-meter + 5 weather icons ship ready for the report/weather widgets.
+- 2026-06-16: Batch 4 part C generated with built-in GPT-Image-2 and chroma-key post-processing; 23 systems & wayfinding icons in four coherent sub-families (5 job emblems, 5 district map-pins, 6 Opportunity-Web components, 7 skill icons), 128×128, clean alpha checked on grey/white + a programmatic chroma-fringe scan (0 residue), total payload 252,065 bytes.
+- 2026-06-16: Batch 4 part C wired in — the 5 painted job emblems now lead each row of the live notice board (replacing the emoji): `interactions.js` supplies an `iconImg` per job, `ui.js#renderItem` renders an optional `<img class="panel__item-icon">` on both open and locked rows, with `.panel__item-icon` + a `.panel__row-text` column in `game.css`. The district markers, Opportunity-Web and skill icons ship ready for the planner/web/skills screens. Batch 4 complete.
