@@ -22,14 +22,15 @@ This is a web adaptation of the *City of Small Chances* game design book. The te
 - **Multiple valid lives** — security, freedom, connection, respect or wealth.
 - **Mastery without grind** — manual work compresses once you've proven competence.
 
-## Current build — v0.1.0 · *Step into the harbour*
+## Current build — v0.1.1 · *A day in the harbour*
 
-The experience is now a **game, not a dashboard**. The front door is a full-screen, walkable **Old Harbour** rendered in Three.js — no scrollbars, no UI panels between you and the world.
+The experience is a **game, not a dashboard**: a full-screen, walkable **Old Harbour** in Three.js — no scrollbars, no UI panels between you and the world — and now the day passes around you as you walk.
 
+- **Time flows as you walk** *(new in v0.1.1)* — a living clock, borrowed from the book's calendar (the 06:00–24:00 active day in named blocks), drives the world. The **sun arcs** from a low warm dawn through a high midday to an orange dusk; the **sky and fog recolour** with the hour; the **street lamps and windows warm up** as night falls; and the HUD clock ticks *Day · HH:MM · block*. This is the first wiring of the retained simulation into the 3D world.
 - **Walk the quay in 3D** — a third-person character you steer with **WASD / arrows**, behind an orbiting follow camera you aim by **dragging**. Movement is camera-relative and clamped to the playable street.
-- **A harbour that feels lived-in** — a cobbled quayside under a graded dawn sky and a warm low sun with soft shadows and distance fog: a row of inhabited buildings with lit windows, street lamps, a market stall, crates, mooring bollards, a boat out on the water, and **ambient citizens** patrolling the street with a real walk cycle.
+- **A harbour that feels lived-in** — a cobbled quayside with a row of inhabited buildings, street lamps, a market stall, crates, mooring bollards, a boat out on the water, and **ambient citizens** patrolling the street with a real walk cycle.
 - **Built to load instantly** — the whole scene is geometry + materials (no binary art over the network), Three.js is vendored same-origin, and there is no build step. It boots straight to the world behind a brief splash.
-- **The simulation is retained** — the v0.0.1–v0.0.7 engine (day loop, condition, jobs & mastery, NPCs & relationships, the Opportunity Web) is kept intact as a tested core and will be wired into the walkable world in the milestones ahead.
+- **The simulation is retained** — the v0.0.1–v0.0.7 engine (day loop, condition, jobs & mastery, NPCs & relationships, the Opportunity Web) is kept intact as a tested core; v0.1.1 begins folding it into the walkable world, starting with time.
 
 ### Earlier milestones — the simulation core
 
@@ -85,7 +86,7 @@ index.html                  full-screen game entry (canvas + importmap + HUD + b
 styles/game.css             game shell stylesheet — locks the viewport, no scrollbar ever
 assets/vendor/three/        vendored Three.js (single-file ESM, same-origin, no build)
 src/
-  three/                    the walkable game — main (frame loop) · world · player · input
+  three/                    the walkable game — main (frame loop) · world · daycycle · player · input
   core/                     rng · store · time · state · save           ┐
   systems/                  weather · condition · activities · travel ·  │ tested simulation
                             jobs · relationships · reputation · opportunities  ├ engine, retained
@@ -125,7 +126,7 @@ Each milestone is a tagged release (`v0.0.x`).
 - **v0.0.6** — NPCs, relationships & social memory: six scheduled characters, trust/respect/affection/debt/conflict, a "People here" panel, conversations, and favours with traceable, material payoffs. ✓
 - **v0.0.7** — Opportunity Web: chances gated on six legible components (skill, relationship, reputation, possession, timing, history), a Hidden→Rumoured→Known→Available state machine, per-district reputation, and a plain-language reason on every chance. ✓
 - **v0.1.0** — Step into the harbour: a full-screen, scrollbar-free, **walkable 3D** Old Harbour in Three.js — third-person character (WASD/arrows), drag-to-look follow camera, dawn lighting with shadows & fog, lit-window buildings, lamps, market stall, boat, and ambient citizens. The simulation engine is retained for wiring in. ✓
-- v0.1.1 — Wire the day loop & clock into the walkable world (real time-of-day sun, working HUD clock).
+- **v0.1.1** — A day in the harbour: a living clock (from the book's 06:00–24:00 calendar) drives a sun that arcs dawn→midday→dusk, a sky & fog that recolour with the hour, street lamps that warm up at night, and a ticking HUD clock — the first wiring of the retained engine into the 3D world. ✓
 - v0.1.2 — Interaction: approach NPCs and the job board *in world* to open shifts, talk, and the Opportunity Web.
 - v0.1.3 — Economy in the streets: rent, bills and debt surfaced as places you visit.
 - … iterating toward **v1.0.0** (full city, AAA-quality presentation).

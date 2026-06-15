@@ -6,6 +6,7 @@
 
 import * as THREE from "three";
 import { buildWorld } from "./world.js";
+import { createDayCycle } from "./daycycle.js";
 import { createFigure } from "./player.js";
 import { Input } from "./input.js";
 
@@ -43,6 +44,10 @@ function start() {
   const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 400);
 
   const world = buildWorld(scene);
+  const day = createDayCycle(world, scene, { startMin: 480 }); // open at 08:00
+
+  const clockEl = document.getElementById("clock");
+  let lastClock = "";
 
   const player = createFigure("player");
   player.root.position.set(-3, 0, 16);
@@ -101,6 +106,11 @@ function start() {
 
     for (const c of world.citizens) c.update(dt);
 
+    // Advance the harbour clock and relight the world; refresh the HUD readout.
+    day.update(dt);
+    const label = day.label();
+    if (clockEl && label !== lastClock) { clockEl.textContent = label; lastClock = label; }
+
     placeCamera();
     renderer.render(scene, camera);
     requestAnimationFrame(tick);
@@ -115,7 +125,7 @@ function start() {
   window.addEventListener("resize", onResize);
 
   // Debug / test hook: lets the headless smoke read state and drive the world.
-  window.__game = { THREE, scene, camera, renderer, player, world, input, CAM };
+  window.__game = { THREE, scene, camera, renderer, player, world, input, CAM, day };
 
   requestAnimationFrame(tick);
 

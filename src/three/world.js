@@ -92,18 +92,26 @@ function makeLamp(x, z) {
 
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
+  // paintSky() lets the day cycle recolour it as the hours pass.
   const sky = document.createElement("canvas");
   sky.width = 2; sky.height = 256;
   const sctx = sky.getContext("2d");
-  const grad = sctx.createLinearGradient(0, 0, 0, 256);
-  grad.addColorStop(0.0, "#1a2f4d");
-  grad.addColorStop(0.45, "#41597a");
-  grad.addColorStop(0.72, "#b98a6b");
-  grad.addColorStop(1.0, "#d8b48c");
-  sctx.fillStyle = grad;
-  sctx.fillRect(0, 0, 2, 256);
   const skyTex = new THREE.CanvasTexture(sky);
   skyTex.colorSpace = THREE.SRGBColorSpace;
+  const _mid = new THREE.Color();
+  function paintSky(topC, botC) {
+    const top = "#" + topC.getHexString();
+    const mid = "#" + _mid.copy(topC).lerp(botC, 0.55).getHexString();
+    const bot = "#" + botC.getHexString();
+    const g = sctx.createLinearGradient(0, 0, 0, 256);
+    g.addColorStop(0.0, top);
+    g.addColorStop(0.6, mid);
+    g.addColorStop(1.0, bot);
+    sctx.fillStyle = g;
+    sctx.fillRect(0, 0, 2, 256);
+    skyTex.needsUpdate = true;
+  }
+  paintSky(new THREE.Color(0x24344f), new THREE.Color(0xc98a64)); // a sensible dawn default
   const skyDome = new THREE.Mesh(
     new THREE.SphereGeometry(220, 24, 16),
     new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide, fog: false }),
@@ -111,10 +119,13 @@ export function buildWorld(scene) {
   scene.add(skyDome);
   scene.fog = new THREE.Fog(0x9a8a7a, 35, 150);
 
-  // ── Lighting: cool sky fill + warm low dawn sun with soft shadows.
-  // Hemisphere ground colour is lifted so the foreground street isn't a black void.
-  scene.add(new THREE.HemisphereLight(0x9fb4cc, 0x4a4036, 0.9));
-  scene.add(new THREE.AmbientLight(0x6a7486, 0.18));
+  // ── Lighting: cool sky fill + warm sun with soft shadows. The day cycle drives
+  // these intensities/colours over the day; hemisphere ground colour is lifted so
+  // the foreground street isn't a black void.
+  const hemi = new THREE.HemisphereLight(0x9fb4cc, 0x4a4036, 0.9);
+  scene.add(hemi);
+  const ambient = new THREE.AmbientLight(0x6a7486, 0.18);
+  scene.add(ambient);
   const sun = new THREE.DirectionalLight(0xffe6c2, 2.0);
   sun.position.set(18, 22, 12);
   sun.castShadow = true;
@@ -250,7 +261,7 @@ export function buildWorld(scene) {
   });
 
   const bounds = { minX: -10.5, maxX: 6.5, minZ: -34, maxZ: 34 };
-  return { bounds, citizens, lampHeads, sun, skyDome };
+  return { bounds, citizens, lampHeads, sun, hemi, ambient, skyDome, paintSky };
 }
 
 // Wrapper so makeBuilding (which builds a Group) is added to the scene.
