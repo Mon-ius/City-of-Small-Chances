@@ -145,6 +145,35 @@ export function createStatsHUD() {
   const fillEl = wrap.querySelector(".hud-stat__fill");
   const muteBtn = wrap.querySelector(".hud-stat--mute");
   const muteIcon = wrap.querySelector(".hud-stat__mute-icon");
+
+  // Screen-state condition FX (Batch 14, fx-006): full-screen vignette cards that
+  // fade in over the world as the body fails — a wordless, colour-redundant channel
+  // paired with the energy meter (the accessibility rule: never colour alone). The
+  // PNGs carry their own capped alpha (clear centre → tinted edge); we only animate
+  // each layer's opacity. LowEnergy + Burnout are driven live from energy here;
+  // ColdWet is dormant until a weather/wet state lands in the three slice (setColdWet).
+  const fx = document.createElement("div");
+  fx.id = "hud-condition";
+  fx.className = "hud-condition";
+  fx.setAttribute("aria-hidden", "true");
+  fx.innerHTML =
+    `<div class="cond-layer cond-layer--lowenergy"></div>
+     <div class="cond-layer cond-layer--burnout"></div>
+     <div class="cond-layer cond-layer--coldwet"></div>`;
+  document.body.appendChild(fx);
+  const lowEl = fx.querySelector(".cond-layer--lowenergy");
+  const burnEl = fx.querySelector(".cond-layer--burnout");
+  const coldEl = fx.querySelector(".cond-layer--coldwet");
+  // v at/above `lo` → 0, at/below `hi` → 1, linear between (hi < lo).
+  const ramp = (v, lo, hi) => Math.max(0, Math.min(1, (lo - v) / (lo - hi)));
+  let lowOp = 0, burnOp = 0, coldOp = 0;
+  const paintCondition = (energy) => {
+    const e = Math.max(0, Math.min(100, energy));
+    lowOp = ramp(e, 45, 12);   // fatigue creeps in below 45, full by 12
+    burnOp = ramp(e, 22, 0);   // burnout compounds below 22, full at empty
+    lowEl.style.opacity = lowOp.toFixed(3);
+    burnEl.style.opacity = burnOp.toFixed(3);
+  };
   // The mute button must catch clicks even though the HUD layer ignores them.
   // It keeps the shared .hud-stat painted-plate look (Batch 8); we only re-enable
   // pointer events and inherit the HUD's text colour/font for the emoji glyph.
@@ -157,10 +186,14 @@ export function createStatsHUD() {
       const e = Math.max(0, Math.min(100, energy));
       fillEl.style.width = `${e}%`;
       fillEl.style.background = `hsl(${Math.round((e / 100) * 120)} 70% 48%)`; // green→red as it drains
+      paintCondition(e); // deepen the condition vignette in step with the meter
     },
+    // Cold/wet exposure overlay (0..1) — ready for the weather hook; dormant today.
+    setColdWet(t) { coldOp = Math.max(0, Math.min(1, t || 0)); coldEl.style.opacity = coldOp.toFixed(3); },
     setMuted(m) { muteIcon.textContent = m ? "🔇" : "🔊"; },
     onMuteToggle(cb) { muteBtn.addEventListener("click", cb); },
     moneyText() { return moneyEl.textContent; },
     energyPct() { return parseFloat(fillEl.style.width) || 0; },
+    conditionFx() { return { low: lowOp, burnout: burnOp, coldwet: coldOp }; },
   };
 }

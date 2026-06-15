@@ -218,6 +218,23 @@ html, body {
   transition: width 0.25s ease, background 0.25s ease;
 }
 
+/* ── Condition-state FX (Batch 14, fx-006) ────────────────────────────────
+   Full-screen vignette cards that fade in over the world as the body fails.
+   Sits above the canvas but below every HUD readout (z 8 < hud-stats 12) so the
+   energy meter that explains the vignette stays crisp. Click-through. Each card
+   carries its own capped alpha (clear centre → tinted edge); ui.js animates the
+   opacity from energy. background-size 100% 100% stretches the square card so
+   the vignette hugs all four viewport edges at any aspect. */
+#hud-condition { position: fixed; inset: 0; z-index: 8; pointer-events: none; }
+.cond-layer {
+  position: absolute; inset: 0; opacity: 0;
+  background-position: center; background-repeat: no-repeat; background-size: 100% 100%;
+  transition: opacity 0.8s ease; will-change: opacity;
+}
+.cond-layer--lowenergy { background-image: url("../assets/sprites/fx/FX_Cond_LowEnergy.png"); }
+.cond-layer--burnout   { background-image: url("../assets/sprites/fx/FX_Cond_Burnout.png"); }
+.cond-layer--coldwet   { background-image: url("../assets/sprites/fx/FX_Cond_ColdWet.png"); }
+
 /* ── Boot splash ──────────────────────────────────────────────────────────*/
 #boot {
   position: fixed; inset: 0; z-index: 20;
@@ -230,4 +247,6 @@ html, body {
 
 @media (prefers-reduced-motion: reduce) {
   #boot { transition-duration: 0.001ms; }
+  /* The condition vignettes still appear, but snap rather than fade. */
+  .cond-layer { transition: none; }
 }
