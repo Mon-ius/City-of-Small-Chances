@@ -98,7 +98,8 @@ function boardAct(i, ctx) {
   if (day && typeof day.setMinutes === "function") day.setMinutes(nowMin + res.minutes);
   const endMin = day && typeof day.minutes === "number" ? Math.floor(day.minutes) : nowMin + res.minutes;
   pstate.lastWork = `✓ ${job.name}: earned $${res.pay}, −${res.energySpent} energy. It's now ${fmtClock(endMin)}.`;
-  return res;
+  // Carry the family up so the caller can voice the right shift texture.
+  return { ...res, family: job.family };
 }
 
 // Anchored to real world positions; world.js places matching props/markers here.

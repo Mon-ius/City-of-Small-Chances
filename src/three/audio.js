@@ -46,6 +46,9 @@ export function createAudio() {
   let ambientStarted = false;
   let lampHumGain = null;
   let seaSwellLFO = null;
+  let musicGain = null;    // the music bed's level (shaped by time of day)
+  let musicFilter = null;  // its tone — opens bright by day, folds dark at night
+  let todMin = 480;        // last time-of-day applied, so startAmbient matches the hour
   let gullTimer = 4.0;     // seconds until the next gull
   let gullRate = 14;       // average seconds between gulls (lower by day)
   let strideAccum = 0;     // metres walked since the last footstep
@@ -109,9 +112,64 @@ export function createAudio() {
       o.start();
     }
 
+    // Music bed: a slow, evolving harbour pad — a quiet open chord (root, fifth,
+    // octave, a wistful 9th and a high shimmer) drifting through a lowpass that
+    // breathes. setTimeOfDay() opens it bright by day and folds it dark and sparse
+    // at night, so the score reads the very same clock as the light.
+    musicGain = ctx.createGain();
+    musicGain.gain.value = 0.0001;
+    musicGain.connect(ambientBus);
+    musicFilter = ctx.createBiquadFilter();
+    musicFilter.type = "lowpass";
+    musicFilter.frequency.value = 700;
+    musicFilter.Q.value = 0.4;
+    musicFilter.connect(musicGain);
+
+    // A slow filter breath (~40s) gives the pad movement without any sequencing.
+    const musicLFO = ctx.createOscillator();
+    musicLFO.type = "sine";
+    musicLFO.frequency.value = 0.025;
+    const musicLFODepth = ctx.createGain();
+    musicLFODepth.gain.value = 120;
+    musicLFO.connect(musicLFODepth).connect(musicFilter.frequency);
+    musicLFO.start();
+
+    // One pad voice: a tuned oscillator with a slow tremolo and a few cents of
+    // detune drift, so stacked voices shimmer and beat gently against each other.
+    const padVoice = (freq, type, level, tremRate, tremDepth, driftRate, driftCents) => {
+      const o = ctx.createOscillator();
+      o.type = type;
+      o.frequency.value = freq;
+      const g = ctx.createGain();
+      g.gain.value = level;
+      const trem = ctx.createOscillator();
+      trem.type = "sine";
+      trem.frequency.value = tremRate;
+      const tremGain = ctx.createGain();
+      tremGain.gain.value = tremDepth;
+      trem.connect(tremGain).connect(g.gain);
+      const drift = ctx.createOscillator();
+      drift.type = "sine";
+      drift.frequency.value = driftRate;
+      const driftGain = ctx.createGain();
+      driftGain.gain.value = driftCents;
+      drift.connect(driftGain).connect(o.detune);
+      o.connect(g).connect(musicFilter);
+      o.start(); trem.start(); drift.start();
+    };
+    //        freq     wave        level  trem   depth  drift  cents
+    padVoice(110.00, "sine",     0.14, 0.041, 0.045, 0.053, 4); // A2  root
+    padVoice(164.81, "sine",     0.12, 0.033, 0.040, 0.061, 5); // E3  fifth
+    padVoice(220.00, "triangle", 0.10, 0.057, 0.038, 0.047, 6); // A3  octave
+    padVoice(246.94, "sine",     0.06, 0.071, 0.030, 0.067, 7); // B3  wistful 9th
+    padVoice(329.63, "triangle", 0.05, 0.083, 0.026, 0.073, 9); // E4  high shimmer
+
     // Fade the whole bed up gently so it never pops in.
     ambientBus.gain.setValueAtTime(0.0001, ctx.currentTime);
     ambientBus.gain.exponentialRampToValueAtTime(0.6, ctx.currentTime + 2.5);
+
+    // Match the freshly-built bed to the current hour (music tone + lamp hum).
+    setTimeOfDay(todMin);
   }
 
   // ── Resume on the first gesture (autoplay policy), then start the bed.
@@ -151,6 +209,7 @@ export function createAudio() {
   // ── Time of day shapes the bed: gulls call often by day and rarely at night;
   // the lamp hum rises after dusk. min is the in-game minute (0..1440).
   function setTimeOfDay(min) {
+    todMin = min;
     const hour = (min / 60) % 24;
     const day = hour >= 7 && hour <= 18;
     const night = hour >= 20 || hour <= 5;
@@ -158,6 +217,14 @@ export function createAudio() {
     if (lampHumGain) {
       const target = night ? 0.04 : hour >= 18 || hour <= 6 ? 0.02 : 0.0;
       lampHumGain.gain.setTargetAtTime(target, ctx.currentTime, 4.0);
+    }
+    if (musicFilter && musicGain) {
+      // Bright and present through the day, swelling a touch at the golden hour,
+      // then darker and sparser once night falls.
+      const cut = night ? 380 : day ? 1150 : 680;
+      const lvl = night ? 0.30 : day ? 0.42 : 0.55;
+      musicFilter.frequency.setTargetAtTime(cut, ctx.currentTime, 6.0);
+      musicGain.gain.setTargetAtTime(lvl, ctx.currentTime, 6.0);
     }
   }
 
@@ -182,11 +249,74 @@ export function createAudio() {
     leftFoot = !leftFoot;
   }
 
+  // A bright little cascade of coins, scheduled from an absolute start time.
+  function payAt(start) {
+    const notes = [1180, 1560, 1980, 2360];
+    notes.forEach((f, i) => blip(f, start + i * 0.06, 0.12, "triangle", 0.16));
+  }
+
   // A bright little cascade of coins — played when a shift pays out.
   function pay() {
-    const base = ctx.currentTime + 0.01;
-    const notes = [1180, 1560, 1980, 2360];
-    notes.forEach((f, i) => blip(f, base + i * 0.06, 0.12, "triangle", 0.16));
+    payAt(ctx.currentTime + 0.01);
+  }
+
+  // A short enveloped burst of filtered noise — the building block for the
+  // tactile shift textures (a thud, a scrape, a rustle, a sizzle).
+  function noiseHit(t, dur, filterType, freq, q, peak) {
+    const src = ctx.createBufferSource();
+    src.buffer = noiseBuf;
+    src.loop = true;
+    const f = ctx.createBiquadFilter();
+    f.type = filterType;
+    f.frequency.value = freq;
+    f.Q.value = q;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + Math.min(0.02, dur * 0.3));
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f).connect(g).connect(sfxBus);
+    src.start(t);
+    src.stop(t + dur + 0.02);
+  }
+
+  // The sound of the shift itself — a brief, characterful montage of the work
+  // you just did, by job family, culminating in the coin payout. Called when a
+  // shift resolves on the board (interactions.boardAct → main.performAct).
+  function workShift(family) {
+    const t0 = ctx.currentTime + 0.02;
+    let end = t0 + 0.2;
+    if (family === "labour") {
+      // Heavy, rhythmic heaves — low thuds with a little grit on each lift.
+      const beats = 5, step = 0.26;
+      for (let i = 0; i < beats; i++) {
+        const t = t0 + i * step;
+        noiseHit(t, 0.18, "lowpass", 160 - i * 4, 0.7, 0.26);   // the thud of the load
+        noiseHit(t + 0.02, 0.08, "bandpass", 1900, 1.2, 0.05);  // rope/crate scrape
+      }
+      end = t0 + beats * step;
+    } else if (family === "delivery") {
+      // A quick wheel whir, then a bright bell at the drop-off.
+      for (let i = 0; i < 8; i++) noiseHit(t0 + i * 0.09, 0.07, "bandpass", 900 + i * 60, 1.5, 0.06);
+      const tb = t0 + 0.82;
+      blip(2090, tb, 0.5, "triangle", 0.12); // bicycle bell — two partials ring
+      blip(2640, tb, 0.42, "sine", 0.07);
+      end = tb + 0.5;
+    } else if (family === "admin") {
+      // Paper riffling, then two firm stamps on the forms.
+      for (let i = 0; i < 6; i++) noiseHit(t0 + i * 0.11, 0.09, "highpass", 2600, 0.7, 0.05);
+      for (const ts of [t0 + 0.35, t0 + 0.85]) {
+        noiseHit(ts, 0.12, "lowpass", 220, 0.8, 0.22); // the stamp's body
+        blip(320, ts, 0.06, "square", 0.06);           // its click
+      }
+      end = t0 + 1.1;
+    } else if (family === "service") {
+      // A steady sizzle off the stall with a few light clinks of crockery.
+      noiseHit(t0, 0.9, "bandpass", 3200, 0.6, 0.06);
+      for (const tc of [t0 + 0.25, t0 + 0.55, t0 + 0.8]) blip(2300 + Math.random() * 400, tc, 0.12, "triangle", 0.07);
+      end = t0 + 0.95;
+    }
+    // The shift pays out as the work settles — coins ring at the tail.
+    payAt(end + 0.06);
   }
 
   // A short rising two-note when a panel opens.
@@ -282,7 +412,7 @@ export function createAudio() {
 
   return {
     resume, update, setTimeOfDay,
-    footstep, pay, panelOpen, panelClose, select, confirm, deny, gull,
+    footstep, pay, workShift, panelOpen, panelClose, select, confirm, deny, gull,
     setMuted, toggleMute, isMuted,
   };
 }
@@ -310,7 +440,7 @@ function stub() {
   const noop = () => {};
   return {
     resume: noop, update: noop, setTimeOfDay: noop,
-    footstep: noop, pay: noop, panelOpen: noop, panelClose: noop,
+    footstep: noop, pay: noop, workShift: noop, panelOpen: noop, panelClose: noop,
     select: noop, confirm: noop, deny: noop, gull: noop,
     setMuted: noop, toggleMute: () => false, isMuted: () => false,
   };
