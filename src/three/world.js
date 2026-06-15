@@ -38,18 +38,24 @@ function surfaceTex(name, { srgb = false, repeat = [1, 1] } = {}) {
 }
 
 // A tiled PBR surface. roughness/metalness ride on the ORM map's G/B channels,
-// so the scalar multipliers stay at 1 unless an override says otherwise.
-function surfaceMaterial(object, repeat, extra = {}) {
-  const orm = surfaceTex(`ENV_Harbour_${object}_orm.png`, { repeat });
+// so the scalar multipliers stay at 1 unless an override says otherwise. `prefix`
+// selects the asset family — ENV_Harbour for environment, PROP_Harbour for props.
+function surfaceMaterial(object, repeat, extra = {}, prefix = "ENV_Harbour") {
+  const orm = surfaceTex(`${prefix}_${object}_orm.png`, { repeat });
   return new THREE.MeshStandardMaterial({
-    map: surfaceTex(`ENV_Harbour_${object}_albedo.png`, { srgb: true, repeat }),
-    normalMap: surfaceTex(`ENV_Harbour_${object}_normal.png`, { repeat }),
+    map: surfaceTex(`${prefix}_${object}_albedo.png`, { srgb: true, repeat }),
+    normalMap: surfaceTex(`${prefix}_${object}_normal.png`, { repeat }),
     roughnessMap: orm,
     metalnessMap: orm,
     roughness: 1,
     metalness: 1,
     ...extra,
   });
+}
+
+// Convenience: a Batch-2 prop material (PROP_Harbour_<object>_*).
+function propMaterial(object, repeat = [1, 1], extra = {}) {
+  return surfaceMaterial(object, repeat, extra, "PROP_Harbour");
 }
 
 // One shared material for the 4×4 window atlas; a cell is chosen per window by
@@ -135,13 +141,15 @@ function makeBuilding(x, z, w, h, d, bodyMat, windowMat) {
   return g;
 }
 
-function makeLamp(x, z) {
+function makeLamp(x, z, metalMat) {
   const g = new THREE.Group();
   g.position.set(x, 0, z);
-  const pole = box(0.12, 3.0, 0.12, 0x1c1f24);
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 3.0, 10), metalMat);
+  pole.castShadow = true;
   pole.position.y = 1.5;
   g.add(pole);
-  const arm = box(0.5, 0.1, 0.1, 0x1c1f24);
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.1), metalMat);
+  arm.castShadow = true;
   arm.position.set(0.22, 3.0, 0);
   g.add(arm);
   const head = box(0.26, 0.2, 0.26, 0x2a2d33, {
@@ -210,6 +218,14 @@ export function buildWorld(scene) {
   const windowMat = windowAtlasMaterial();
   const woodMat = surfaceMaterial("PlankWood", [1, 1]);
 
+  // ── Shared prop materials (Batch 2 art): painted metal for ironwork, striped
+  // canvas for the awning, sailcloth for rigging, twisted hemp for rope. Metalness
+  // rides the ORM B channel (high for metal, 0 otherwise), so the multiplier is 1.
+  const metalMat = propMaterial("PaintedMetal", [1, 1]);
+  const awningMat = propMaterial("AwningStripe", [3, 1], { side: THREE.DoubleSide });
+  const sailMat = propMaterial("Sailcloth", [1, 1], { side: THREE.DoubleSide, metalness: 0 });
+  const ropeMat = propMaterial("Rope", [6, 1], { metalness: 0 });
+
   // ── Ground + water.
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(120, 120),
@@ -248,12 +264,20 @@ export function buildWorld(scene) {
   scene.add(quay);
   for (let z = -34; z <= 34; z += 8) {
     const bollard = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.22, 0.26, 0.7, 10),
-      new THREE.MeshStandardMaterial({ color: 0x14171c, roughness: 0.7 }),
+      new THREE.CylinderGeometry(0.22, 0.26, 0.7, 12),
+      metalMat,
     );
     bollard.position.set(-11.1, 1.15, z);
     bollard.castShadow = true;
     scene.add(bollard);
+    // A coil of mooring rope looped over every other bollard.
+    if ((z / 8) % 2 === 0) {
+      const coil = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.07, 8, 18), ropeMat);
+      coil.rotation.x = Math.PI / 2;
+      coil.position.set(-11.1, 1.5, z);
+      coil.castShadow = true;
+      scene.add(coil);
+    }
   }
 
   // ── A row of harbour buildings on the east side (fronts facing the water).
@@ -276,7 +300,7 @@ export function buildWorld(scene) {
   // ── Street lamps along the quay.
   const lampHeads = [];
   for (let z = -28; z <= 28; z += 14) {
-    const { group, head } = makeLamp(-9.5, z);
+    const { group, head } = makeLamp(-9.5, z, metalMat);
     scene.add(group);
     lampHeads.push(head);
   }
@@ -284,19 +308,41 @@ export function buildWorld(scene) {
   // ── A market stall with a striped awning, mid-street.
   const stall = new THREE.Group();
   stall.position.set(-5, 0, 4);
-  const counter = box(2.6, 0.9, 1.4, 0x5a4636);
+  const counter = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.9, 1.4), woodMat);
+  counter.castShadow = true;
+  counter.receiveShadow = true;
   counter.position.y = 0.45;
   stall.add(counter);
-  const awning = box(3.0, 0.12, 1.8, 0xb4452f, { cast: true });
+  const awning = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.12, 1.8), awningMat);
+  awning.castShadow = true;
   awning.position.y = 1.9;
   awning.rotation.z = -0.12;
   stall.add(awning);
   for (let i = 0; i < 2; i++) {
-    const post = box(0.1, 1.9, 0.1, 0x2a211a);
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.9, 8), metalMat);
+    post.castShadow = true;
     post.position.set(i ? 1.3 : -1.3, 0.95, 0.7);
     stall.add(post);
   }
   scene.add(stall);
+
+  // ── A few barrels by the stall: plank-wood staves bound with painted-metal hoops.
+  const barrelSpots = [[-7.2, 2.6], [-7.0, 3.5], [3.2, -10]];
+  barrelSpots.forEach(([x, z]) => {
+    const barrel = new THREE.Group();
+    barrel.position.set(x, 0, z);
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.36, 1.0, 14), woodMat);
+    body.castShadow = true;
+    body.receiveShadow = true;
+    body.position.y = 0.5;
+    barrel.add(body);
+    for (const hy of [0.18, 0.82]) {
+      const hoop = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.44, 0.08, 16, 1, true), metalMat);
+      hoop.position.y = hy;
+      barrel.add(hoop);
+    }
+    scene.add(barrel);
+  });
 
   // ── Stacks of crates near a wall, all in the painted plank-wood material.
   const crateSpots = [[-1, -8], [-0.2, -8], [-0.6, -8.7], [6, 14], [6.6, 14]];
@@ -311,15 +357,31 @@ export function buildWorld(scene) {
   // ── A moored boat out on the water for life on the horizon.
   const boat = new THREE.Group();
   boat.position.set(-20, 0, -6);
-  const hull = box(3.2, 1.0, 8, 0x3a2c22);
+  const hull = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.0, 8), woodMat);
+  hull.castShadow = true;
+  hull.receiveShadow = true;
   hull.position.y = 0.2;
   boat.add(hull);
-  const cabin = box(2.2, 1.4, 3, 0x6b5a44);
+  const cabin = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.4, 3), woodMat);
+  cabin.castShadow = true;
   cabin.position.set(0, 1.3, -0.5);
   boat.add(cabin);
-  const mast = box(0.18, 5, 0.18, 0x241b14);
+  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 5, 8), woodMat);
+  mast.castShadow = true;
   mast.position.set(0, 3, 1.5);
   boat.add(mast);
+  // A furled-but-open sail of weathered canvas, bowed slightly by the wind.
+  const sail = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 3.2, 6, 6), sailMat);
+  const sp = sail.geometry.attributes.position;
+  for (let i = 0; i < sp.count; i++) {
+    const sx = sp.getX(i);
+    sp.setZ(i, Math.cos((sx / 2.6) * Math.PI) * 0.35); // gentle billow
+  }
+  sp.needsUpdate = true;
+  sail.geometry.computeVertexNormals();
+  sail.position.set(0, 3.3, 1.5);
+  sail.castShadow = true;
+  boat.add(sail);
   scene.add(boat);
 
   // ── A notice board for the "read the board" interactable.

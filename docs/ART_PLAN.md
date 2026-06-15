@@ -74,7 +74,7 @@ Read this before generating or integrating any asset.
 
 - [x] **Batch 1 — Old Harbour core surfaces**: cobblestone quay, weathered
       plank wood, aged plaster facade, harbour water, + window atlas (albedo + emissive).
-- [ ] **Batch 2 — Harbour props**: crates, barrels, mooring bollards, street lamp, stall fabric
+- [x] **Batch 2 — Harbour props**: crates, barrels, mooring bollards, street lamp, stall fabric
       (awning), painted metal, rope, sailcloth.
 - [ ] **Batch 3 — Characters**: citizen billboards/sprite sheets (variants; chroma-key cutouts),
       player skin/clothing texture for the low-poly figure.
@@ -88,3 +88,4 @@ Read this before generating or integrating any asset.
 ## Progress log
 
 - 2026-06-15: Batch 1 generated with built-in GPT-Image-2 and ImageMagick/Python post-processing; 14 harbour PNGs, tile-checked, total payload 4,442,460 bytes.
+- 2026-06-15: Batch 2 generated with built-in GPT-Image-2 and ImageMagick/Python post-processing; painted metal, awning stripe, sailcloth, and rope prop maps; 12 harbour PNGs, tile-checked, total payload 1,118,287 bytes.
