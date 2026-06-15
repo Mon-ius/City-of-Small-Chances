@@ -8,6 +8,8 @@
 export class Input {
   constructor(canvas) {
     this.keys = new Set();
+    // One-shot actions (interact / cancel), edge-triggered and consumed once.
+    this._actions = [];
     // Accumulated drag, consumed by the camera each frame.
     this.dragYaw = 0;
     this.dragPitch = 0;
@@ -17,6 +19,12 @@ export class Input {
 
     this._onKeyDown = (e) => {
       if (this._typing(e.target)) return;
+      const act = this._action(e);
+      if (act) {
+        this._actions.push(act);
+        if (act === "interact") e.preventDefault();
+        return;
+      }
       const k = this._code(e);
       if (!k) return;
       this.keys.add(k);
@@ -70,6 +78,19 @@ export class Input {
       case "d": case "D": case "ArrowRight": return "right";
       default: return null;
     }
+  }
+
+  _action(e) {
+    switch (e.key) {
+      case "e": case "E": return "interact";
+      case "Escape": return "cancel";
+      default: return null;
+    }
+  }
+
+  // Consume the oldest pending one-shot action, or null.
+  takeAction() {
+    return this._actions.shift() || null;
   }
 
   // Per-frame movement axes in screen space: x = strafe (right+), z = forward(+).

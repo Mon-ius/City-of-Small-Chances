@@ -59,6 +59,57 @@ html, body {
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
 }
 
+/* ── Interaction prompt ───────────────────────────────────────────────────
+   A small pill that appears just above the controls hint when you're near a
+   point of interest. Non-interactive; the world handles the keypress. */
+.hud-prompt {
+  position: fixed; left: 50%; bottom: 3.2rem; transform: translateX(-50%);
+  z-index: 15; pointer-events: none; user-select: none;
+  font-size: 0.9rem; font-weight: 700; white-space: nowrap;
+  color: #f3f7fc; background: rgba(8, 11, 16, 0.66);
+  border: 1px solid #3a5573; border-radius: 99px; padding: 0.42rem 1rem;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+}
+.hud-prompt[hidden] { display: none; }
+
+/* ── Interaction panel ────────────────────────────────────────────────────
+   A fixed, self-contained card over a dimmed backdrop. The card sizes to its
+   content so it never needs to scroll; the page never scrolls regardless. */
+.hud-panel {
+  position: fixed; inset: 0; z-index: 30;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(4, 7, 11, 0.55);
+  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+}
+.hud-panel[hidden] { display: none; }
+.panel__card {
+  --accent: #6fa8ff;
+  position: relative; width: min(92vw, 470px); max-height: 82vh; overflow: auto;
+  background: #11161e; color: #e8eef6;
+  border: 1px solid var(--accent); border-top: 3px solid var(--accent);
+  border-radius: 14px; padding: 1.15rem 1.25rem 1.25rem;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.6);
+}
+.panel__close {
+  position: absolute; top: 0.5rem; right: 0.6rem;
+  width: 2rem; height: 2rem; line-height: 1; font-size: 1.35rem;
+  color: #aebccd; background: transparent; border: 0; border-radius: 8px;
+  cursor: pointer;
+}
+.panel__close:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
+.panel__title { font-size: 1.12rem; font-weight: 800; margin: 0 1.8rem 0.5rem 0; }
+.panel__lead { color: #b9c6d6; font-size: 0.9rem; margin-bottom: 0.7rem; }
+.panel__lead[hidden] { display: none; }
+.panel__list { list-style: none; display: flex; flex-direction: column; gap: 0.4rem; }
+.panel__list li {
+  font-size: 0.88rem; line-height: 1.35; color: #dbe5f0;
+  padding: 0.5rem 0.65rem; border-radius: 9px;
+  background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.panel__foot { margin-top: 0.85rem; font-size: 0.78rem; color: #7d8da0; font-style: italic; }
+.panel__foot[hidden] { display: none; }
+
 /* ── Boot splash ──────────────────────────────────────────────────────────*/
 #boot {
   position: fixed; inset: 0; z-index: 20;

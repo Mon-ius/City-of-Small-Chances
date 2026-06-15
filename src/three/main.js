@@ -7,6 +7,8 @@
 import * as THREE from "three";
 import { buildWorld } from "./world.js";
 import { createDayCycle } from "./daycycle.js";
+import { createInteractions } from "./interactions.js";
+import { createInteractionUI } from "./ui.js";
 import { createFigure } from "./player.js";
 import { Input } from "./input.js";
 
@@ -56,12 +58,19 @@ function start() {
 
   const input = new Input(canvas);
 
+  // In-world interaction: proximity points + a prompt/panel overlay.
+  const interactions = createInteractions(player);
+  const ui = createInteractionUI();
+  let interacting = false;
+  ui.onClose(() => { interacting = false; });
+
   // Reusable vectors (no per-frame allocation in the hot loop).
   const fwd = new THREE.Vector3();
   const right = new THREE.Vector3();
   const move = new THREE.Vector3();
   const lookAt = new THREE.Vector3();
   const clock = new THREE.Clock();
+  let markerPhase = 0;
 
   function placeCamera() {
     const p = player.root.position;
@@ -79,32 +88,57 @@ function start() {
   function tick() {
     const dt = Math.min(clock.getDelta(), 0.05);
 
-    // Drag orbits the camera around the player.
-    const drag = input.takeDrag();
-    CAM.yaw -= drag.yaw;
-    CAM.pitch = Math.max(0.05, Math.min(1.15, CAM.pitch + drag.pitch));
-
-    // Camera-relative movement on the ground plane.
-    fwd.set(-Math.sin(CAM.yaw), 0, -Math.cos(CAM.yaw)).normalize();
-    right.set(-fwd.z, 0, fwd.x);
-    const a = input.axis();
-    move.set(0, 0, 0).addScaledVector(fwd, a.z).addScaledVector(right, a.x);
+    const drag = input.takeDrag(); // always consume so it never bursts on resume
+    const act = input.takeAction();
 
     let speed = 0;
-    if (move.lengthSq() > 0) {
-      move.normalize();
-      const p = player.root.position;
-      p.x += move.x * MOVE_SPEED * dt;
-      p.z += move.z * MOVE_SPEED * dt;
-      const b = world.bounds;
-      p.x = Math.max(b.minX, Math.min(b.maxX, p.x));
-      p.z = Math.max(b.minZ, Math.min(b.maxZ, p.z));
-      player.root.rotation.y = Math.atan2(move.x, move.z);
-      speed = MOVE_SPEED;
+    if (interacting) {
+      // Reading a panel: the world breathes on, but the player is still.
+      if (act === "interact" || act === "cancel") ui.closePanel();
+    } else {
+      // Drag orbits the camera around the player.
+      CAM.yaw -= drag.yaw;
+      CAM.pitch = Math.max(0.05, Math.min(1.15, CAM.pitch + drag.pitch));
+
+      // Camera-relative movement on the ground plane.
+      fwd.set(-Math.sin(CAM.yaw), 0, -Math.cos(CAM.yaw)).normalize();
+      right.set(-fwd.z, 0, fwd.x);
+      const a = input.axis();
+      move.set(0, 0, 0).addScaledVector(fwd, a.z).addScaledVector(right, a.x);
+
+      if (move.lengthSq() > 0) {
+        move.normalize();
+        const p = player.root.position;
+        p.x += move.x * MOVE_SPEED * dt;
+        p.z += move.z * MOVE_SPEED * dt;
+        const b = world.bounds;
+        p.x = Math.max(b.minX, Math.min(b.maxX, p.x));
+        p.z = Math.max(b.minZ, Math.min(b.maxZ, p.z));
+        player.root.rotation.y = Math.atan2(move.x, move.z);
+        speed = MOVE_SPEED;
+      }
+
+      // Context prompt for the nearest point of interest; act to open it.
+      const near = interactions.nearest();
+      if (near) {
+        ui.showPrompt(`[E] ${near.label}`);
+        if (act === "interact") { ui.openPanel(near.panel); interacting = true; ui.hidePrompt(); }
+      } else {
+        ui.hidePrompt();
+      }
     }
+
     player.update(dt, speed);
 
     for (const c of world.citizens) c.update(dt);
+
+    // Bob the interaction markers so they catch the eye.
+    markerPhase += dt * 2.2;
+    for (let i = 0; i < world.markers.length; i++) {
+      const m = world.markers[i];
+      m.rotation.y += dt * 1.1;
+      m.position.y = 2.4 + Math.sin(markerPhase + i) * 0.12;
+    }
 
     // Advance the harbour clock and relight the world; refresh the HUD readout.
     day.update(dt);
@@ -125,7 +159,7 @@ function start() {
   window.addEventListener("resize", onResize);
 
   // Debug / test hook: lets the headless smoke read state and drive the world.
-  window.__game = { THREE, scene, camera, renderer, player, world, input, CAM, day };
+  window.__game = { THREE, scene, camera, renderer, player, world, input, CAM, day, interactions, ui };
 
   requestAnimationFrame(tick);
 

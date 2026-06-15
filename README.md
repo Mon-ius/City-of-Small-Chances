@@ -22,15 +22,16 @@ This is a web adaptation of the *City of Small Chances* game design book. The te
 - **Multiple valid lives** — security, freedom, connection, respect or wealth.
 - **Mastery without grind** — manual work compresses once you've proven competence.
 
-## Current build — v0.1.1 · *A day in the harbour*
+## Current build — v0.1.2 · *Walk up and ask*
 
-The experience is a **game, not a dashboard**: a full-screen, walkable **Old Harbour** in Three.js — no scrollbars, no UI panels between you and the world — and now the day passes around you as you walk.
+The experience is a **game, not a dashboard**: a full-screen, walkable **Old Harbour** in Three.js — no scrollbars, no UI panels between you and the world — that now **answers when you reach it**. Points of interest stand on the quay, each marked by a slow-spinning beacon; walk close and an **[E]** prompt rises, press **E** and a clean card opens — drawn straight from the retained simulation's own data.
 
-- **Time flows as you walk** *(new in v0.1.1)* — a living clock, borrowed from the book's calendar (the 06:00–24:00 active day in named blocks), drives the world. The **sun arcs** from a low warm dawn through a high midday to an orange dusk; the **sky and fog recolour** with the hour; the **street lamps and windows warm up** as night falls; and the HUD clock ticks *Day · HH:MM · block*. This is the first wiring of the retained simulation into the 3D world.
+- **In-world interaction** *(new in v0.1.2)* — approach **Mei's noodle stall** or the **harbour notice board** and a context prompt appears; **E** opens a panel, **Esc** or the **×** closes it, and you stand still while you read. **Mei's card** is built from the NPC table — her role, her blurb, how she sizes up a stranger, the rent pressure on her mind, and the meal she'll stand you once she trusts you. **The board** lists the five real jobs from the work tables — each with its district, working window and starting pay (e.g. *Dockside container loading — Dockside, 06:00–14:00 · from $66*). Floating beacons mark both from across the quay.
+- **Time flows as you walk** — a living clock (the book's 06:00–24:00 day in named blocks) arcs the sun dawn→midday→dusk, recolours the sky and fog, warms the lamps and windows at night, and ticks *Day · HH:MM · block* on the HUD.
 - **Walk the quay in 3D** — a third-person character you steer with **WASD / arrows**, behind an orbiting follow camera you aim by **dragging**. Movement is camera-relative and clamped to the playable street.
 - **A harbour that feels lived-in** — a cobbled quayside with a row of inhabited buildings, street lamps, a market stall, crates, mooring bollards, a boat out on the water, and **ambient citizens** patrolling the street with a real walk cycle.
 - **Built to load instantly** — the whole scene is geometry + materials (no binary art over the network), Three.js is vendored same-origin, and there is no build step. It boots straight to the world behind a brief splash.
-- **The simulation is retained** — the v0.0.1–v0.0.7 engine (day loop, condition, jobs & mastery, NPCs & relationships, the Opportunity Web) is kept intact as a tested core; v0.1.1 begins folding it into the walkable world, starting with time.
+- **The simulation is retained** — the v0.0.1–v0.0.7 engine (day loop, condition, jobs & mastery, NPCs & relationships, the Opportunity Web) is kept intact as a tested core; v0.1.2 begins **reading that core through the world itself** — the panels show the very same job and NPC tables the engine runs on.
 
 ### Earlier milestones — the simulation core
 
@@ -127,7 +128,7 @@ Each milestone is a tagged release (`v0.0.x`).
 - **v0.0.7** — Opportunity Web: chances gated on six legible components (skill, relationship, reputation, possession, timing, history), a Hidden→Rumoured→Known→Available state machine, per-district reputation, and a plain-language reason on every chance. ✓
 - **v0.1.0** — Step into the harbour: a full-screen, scrollbar-free, **walkable 3D** Old Harbour in Three.js — third-person character (WASD/arrows), drag-to-look follow camera, dawn lighting with shadows & fog, lit-window buildings, lamps, market stall, boat, and ambient citizens. The simulation engine is retained for wiring in. ✓
 - **v0.1.1** — A day in the harbour: a living clock (from the book's 06:00–24:00 calendar) drives a sun that arcs dawn→midday→dusk, a sky & fog that recolour with the hour, street lamps that warm up at night, and a ticking HUD clock — the first wiring of the retained engine into the 3D world. ✓
-- v0.1.2 — Interaction: approach NPCs and the job board *in world* to open shifts, talk, and the Opportunity Web.
+- **v0.1.2** — Walk up and ask: in-world interaction — a context **[E]** prompt and beacon-marked points of interest on the quay; walk up to **Mei's stall** or the **notice board** and press **E** to open a card built live from the NPC and job tables (movement locks while reading, **Esc**/**×** closes). The first reading of the retained engine *through* the world. ✓
 - v0.1.3 — Economy in the streets: rent, bills and debt surfaced as places you visit.
 - … iterating toward **v1.0.0** (full city, AAA-quality presentation).
 

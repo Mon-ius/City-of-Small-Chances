@@ -9,6 +9,7 @@
 
 import * as THREE from "three";
 import { createFigure } from "./player.js";
+import { INTERACTABLES } from "./interactions.js";
 
 const COLORS = {
   cobble: 0x2b2f36,
@@ -245,6 +246,35 @@ export function buildWorld(scene) {
   boat.add(mast);
   scene.add(boat);
 
+  // ── A notice board for the "read the board" interactable.
+  const boardSpot = INTERACTABLES.find((i) => i.id === "board");
+  if (boardSpot) {
+    const bg = new THREE.Group();
+    bg.position.set(boardSpot.x, 0, boardSpot.z);
+    const postL = box(0.12, 1.8, 0.12, 0x3a2f25); postL.position.set(-0.75, 0.9, 0); bg.add(postL);
+    const postR = box(0.12, 1.8, 0.12, 0x3a2f25); postR.position.set(0.75, 0.9, 0); bg.add(postR);
+    const panel = box(1.8, 1.15, 0.1, 0x6b5535); panel.position.set(0, 1.55, 0); bg.add(panel);
+    for (let i = 0; i < 3; i++) {
+      const note = box(0.42, 0.32, 0.02, 0xe8e0cf, { cast: false });
+      note.position.set(-0.47 + i * 0.47, 1.6, 0.06);
+      bg.add(note);
+    }
+    bg.rotation.y = -0.4; // angle it toward the street
+    scene.add(bg);
+  }
+
+  // ── Floating markers above each interactable, so you can spot them from afar.
+  const markers = [];
+  for (const it of INTERACTABLES) {
+    const m = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.22),
+      new THREE.MeshStandardMaterial({ color: it.marker, emissive: it.marker, emissiveIntensity: 0.85, roughness: 0.4 }),
+    );
+    m.position.set(it.x, 2.4, it.z);
+    scene.add(m);
+    markers.push(m);
+  }
+
   // ── Ambient citizens patrolling the quay.
   const citizens = [];
   const roster = [
@@ -261,7 +291,7 @@ export function buildWorld(scene) {
   });
 
   const bounds = { minX: -10.5, maxX: 6.5, minZ: -34, maxZ: 34 };
-  return { bounds, citizens, lampHeads, sun, hemi, ambient, skyDome, paintSky };
+  return { bounds, citizens, lampHeads, markers, sun, hemi, ambient, skyDome, paintSky };
 }
 
 // Wrapper so makeBuilding (which builds a Group) is added to the scene.
