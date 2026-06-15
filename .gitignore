@@ -11,6 +11,11 @@
 *.log
 node_modules/
 
+# Asset-gen intermediates: the large chroma-key/source PNGs fed to the
+# post-process scripts. Reproducibility lives in the prompts + scripts + the
+# chosen finals under assets/; the bulky sources stay local (see docs/ART_PLAN.md).
+tools/gen/source_batch*/
+
 # Local-only design source (kept out of the public game repo)
 City_of_Small_Chances_Game_Design_Book.md
 .claude/

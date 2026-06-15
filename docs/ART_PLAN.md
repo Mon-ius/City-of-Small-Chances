@@ -86,7 +86,7 @@ Read this before generating or integrating any asset.
       ES-module synthesising the soundscape at runtime — sea-wash + gull + lamp-hum ambient bed,
       footsteps, coins-on-pay, panel open/close, confirm/deny/select, mute toggle (M). **Core
       shipped**; weather beds, work-family textures, music & voice are deferred (see manifest).
-- [ ] **Batch 3 — Characters & sprites**: player skin/clothing texture, citizen billboard
+- [x] **Batch 3 — Characters & sprites**: player skin/clothing texture, citizen billboard
       sprite-sheets (chroma-key cutouts), major-NPC clothing textures, job-task + story props.
 - [ ] **Batch 4 — UI & 2D icons + portraits**: NPC portraits (mei, jun, rafiq, tomo, clara, ava ×3
       tiers), weather icons (clear/cloud/rain/storm/heat), money/energy + condition/status icons,
@@ -113,3 +113,4 @@ voice, localization fonts (EN/SC/TC), controller glyphs, and Steam achievement a
 - 2026-06-15: Batch 2 wired into `world.js` (lamps, bollards, awning, boat sail, rope coils, barrels).
 - 2026-06-15: Full asset gap mapped by the `asset-gap-scope` multi-agent workflow → `ASSET_MANIFEST.md` (98 entries, 10 batches). Roadmap extended (Batches 7–9 + Audio batch A).
 - 2026-06-15: Batch A audio CORE shipped — `src/three/audio.js`, a procedural Web Audio module (sea/gull/lamp ambient bed + footsteps/coins/panel/confirm/deny + mute), wired into the frame loop; **0 binary audio bytes**.
+- 2026-06-15: Batch 3 generated with built-in GPT-Image-2 and chroma-key post-processing; 6 citizen billboard cutouts, clean alpha checked on grey, total payload 1,610,379 bytes.

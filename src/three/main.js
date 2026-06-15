@@ -179,6 +179,12 @@ function start() {
 
     for (const c of world.citizens) c.update(dt);
 
+    // Turn each painted citizen billboard to face the camera (cylindrical: only
+    // around Y, so the figures stay upright as the camera orbits and pitches).
+    for (const b of world.billboards) {
+      b.rotation.y = Math.atan2(camera.position.x - b.position.x, camera.position.z - b.position.z);
+    }
+
     // Bob the interaction markers so they catch the eye.
     markerPhase += dt * 2.2;
     for (let i = 0; i < world.markers.length; i++) {

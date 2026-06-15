@@ -4,8 +4,9 @@
 // sky with a warm low sun and soft shadows. No textures load over the network;
 // everything is geometry + materials so it renders the instant the module does.
 //
-// buildWorld(scene) returns the play-area bounds (for clamping the player) and an
-// array of ambient citizens that patrol the quay.
+// buildWorld(scene) returns the play-area bounds (for clamping the player), an
+// array of ambient citizens that patrol the quay, and a set of painted citizen
+// billboards (camera-facing sprite quads) the frame loop turns to face the camera.
 
 import * as THREE from "three";
 import { createFigure } from "./player.js";
@@ -26,6 +27,7 @@ const COLORS = {
 // per the glTF convention Three.js samples (roughness←G, metalness←B). Relative
 // path keeps it working under the GitHub Pages project sub-path.
 const TEX_DIR = "./assets/textures/harbour/";
+const SPRITE_DIR = "./assets/sprites/citizens/";
 const _texLoader = new THREE.TextureLoader();
 
 function surfaceTex(name, { srgb = false, repeat = [1, 1] } = {}) {
@@ -91,6 +93,52 @@ function windowPlane(winW, winH, cell, material) {
   const m = new THREE.Mesh(geo, material);
   m.rotation.y = -Math.PI / 2;
   return m;
+}
+
+// ── Citizen billboards (Batch 3): painted full-body cutouts with transparent
+// alpha, generated with GPT-Image-2 and chroma-keyed. Each is a single upright
+// quad turned to face the camera every frame (cylindrical billboarding, done in
+// main.js) so the painted figure always reads front-on. The albedo carries warm
+// dusk shading already; we light it lightly and floor it with a touch of emissive
+// so it neither flickers as you orbit nor goes black after dark.
+function citizenSprite(role, height = 1.85) {
+  const map = _texLoader.load(`${SPRITE_DIR}CHAR_Harbour_Citizen_${role}_albedo.png`);
+  map.colorSpace = THREE.SRGBColorSpace;
+  map.anisotropy = 8;
+  const mat = new THREE.MeshStandardMaterial({
+    map,
+    transparent: true,
+    alphaTest: 0.5,
+    side: THREE.DoubleSide,
+    roughness: 1,
+    metalness: 0,
+    emissive: 0xffffff,
+    emissiveMap: map,
+    emissiveIntensity: 0.28,
+  });
+  const w = height * 0.5; // sprites ship 512×1024 (1:2)
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(w, height), mat);
+  plane.position.y = height / 2; // feet on the ground
+  plane.castShadow = false;      // a camera-facing plane casts a bad rotating shadow
+  return plane;
+}
+
+// A soft round contact shadow, so a billboard reads as planted rather than
+// floating. One radial-alpha canvas texture is shared by every blob.
+let _shadowTex = null;
+function shadowTexture() {
+  if (_shadowTex) return _shadowTex;
+  const c = document.createElement("canvas");
+  c.width = c.height = 64;
+  const g = c.getContext("2d");
+  const grad = g.createRadialGradient(32, 32, 2, 32, 32, 30);
+  grad.addColorStop(0, "rgba(0,0,0,0.5)");
+  grad.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 64, 64);
+  _shadowTex = new THREE.CanvasTexture(c);
+  _shadowTex.colorSpace = THREE.SRGBColorSpace;
+  return _shadowTex;
 }
 
 function box(w, h, d, color, opts = {}) {
@@ -428,8 +476,40 @@ export function buildWorld(scene) {
     citizens.push(makePatrol(fig, r.z - r.span / 2, r.z + r.span / 2, i));
   });
 
+  // ── A standing crowd of painted citizen billboards milling along the quay.
+  // Static positions (these figures watch the water and loiter rather than walk —
+  // a walking flat sprite reads badly); main.js turns each to face the camera.
+  // Placed clear of the interactables (vendor −5,4 · board 5,−6) and the spawn.
+  const billboards = [];
+  const shadowTex = shadowTexture();
+  const crowd = [
+    { role: "Fisher",       x: -9.5, z: -14 },
+    { role: "DockWorker",   x:  2.0, z: -11 },
+    { role: "Elder",        x: -2.0, z: -24 },
+    { role: "Commuter",     x: -5.0, z:  28 },
+    { role: "Youth",        x:  3.0, z:  10 },
+    { role: "MarketVendor", x: -7.5, z:   8 },
+    { role: "DockWorker",   x: -9.0, z:  22 },
+    { role: "Commuter",     x:  1.0, z: -28 },
+  ];
+  for (const c of crowd) {
+    const plane = citizenSprite(c.role);
+    plane.position.set(c.x, plane.position.y, c.z);
+    scene.add(plane);
+    billboards.push(plane);
+
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.55 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(c.x, 0.02, c.z);
+    blob.renderOrder = -1; // under the cobbles' specular, never over the figure
+    scene.add(blob);
+  }
+
   const bounds = { minX: -10.5, maxX: 6.5, minZ: -34, maxZ: 34 };
-  return { bounds, citizens, lampHeads, markers, sun, hemi, ambient, skyDome, paintSky };
+  return { bounds, citizens, billboards, lampHeads, markers, sun, hemi, ambient, skyDome, paintSky };
 }
 
 // Wrapper so makeBuilding (which builds a Group) is added to the scene.
