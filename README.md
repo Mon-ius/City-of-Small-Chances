@@ -1,10 +1,10 @@
 # City of Small Chances
 
-A grounded urban **life-simulation** about building a stable life under economic pressure. You arrive in **Haiyun City** with little money and an obligation that won't wait. Work, rest, eat, learn the streets, and decide what kind of life is worth protecting.
+A grounded urban **life game** about building a stable life under economic pressure. You arrive in **Haiyun City** with little money and an obligation that won't wait. Now you don't read about the harbour — you **walk it**, in full-screen 3D, and decide what kind of life is worth protecting.
 
 > Every day matters. You work, rest, train, connect and survive long enough to choose your future.
 
-Built in **pure HTML, CSS and vanilla JavaScript** — no frameworks, no build step. It runs anywhere static files can be served.
+Built in **pure HTML, CSS and vanilla JavaScript with [Three.js](https://threejs.org/)** (vendored locally) — no frameworks, no bundler, no build step. It runs anywhere static files can be served.
 
 **▶ Play:** https://mon-ius.github.io/City-of-Small-Chances/
 
@@ -12,7 +12,7 @@ Built in **pure HTML, CSS and vanilla JavaScript** — no frameworks, no build s
 
 ## About
 
-This is a web adaptation of the *City of Small Chances* game design book — a systems-driven life-sim whose core is its **phone, map, calendar and end-of-day report** rather than twitch action, which makes it a natural fit for the browser.
+This is a web adaptation of the *City of Small Chances* game design book. The tested simulation engine — days, jobs, relationships, the Opportunity Web — drives the world; the front door is now a **walkable 3D city** you move through, not a panel you scroll.
 
 ### Design pillars (from the book)
 
@@ -22,9 +22,18 @@ This is a web adaptation of the *City of Small Chances* game design book — a s
 - **Multiple valid lives** — security, freedom, connection, respect or wealth.
 - **Mastery without grind** — manual work compresses once you've proven competence.
 
-## Current build — v0.0.7 · *The web of small chances*
+## Current build — v0.1.0 · *Step into the harbour*
 
-The game's central promise is now playable: **chances are never luck**. Open the **Opportunity Web** and every prospect in the city is laid out with the exact things it would take — and *why* it's where it is.
+The experience is now a **game, not a dashboard**. The front door is a full-screen, walkable **Old Harbour** rendered in Three.js — no scrollbars, no UI panels between you and the world.
+
+- **Walk the quay in 3D** — a third-person character you steer with **WASD / arrows**, behind an orbiting follow camera you aim by **dragging**. Movement is camera-relative and clamped to the playable street.
+- **A harbour that feels lived-in** — a cobbled quayside under a graded dawn sky and a warm low sun with soft shadows and distance fog: a row of inhabited buildings with lit windows, street lamps, a market stall, crates, mooring bollards, a boat out on the water, and **ambient citizens** patrolling the street with a real walk cycle.
+- **Built to load instantly** — the whole scene is geometry + materials (no binary art over the network), Three.js is vendored same-origin, and there is no build step. It boots straight to the world behind a brief splash.
+- **The simulation is retained** — the v0.0.1–v0.0.7 engine (day loop, condition, jobs & mastery, NPCs & relationships, the Opportunity Web) is kept intact as a tested core and will be wired into the walkable world in the milestones ahead.
+
+### Earlier milestones — the simulation core
+
+The game's central promise — **chances are never luck** — was built across v0.0.1–v0.0.7. Open the **Opportunity Web** and every prospect in the city is laid out with the exact things it would take — and *why* it's where it is.
 
 - **Six requirement components, all legible** — each chance is gated on some mix of a **Skill**, a **Relationship**, a district **Reputation**, a **Possession**, the **Timing** (weather + hour), and your own **History**. Every requirement shows a tick or a gap, a progress bar, and a plain hint on how to close it — the recommended skill path, who you'd need to befriend, how to get the gear (buy or rent), the window it opens in.
 - **A chance's whole life, visible** — opportunities move through honest states: **Hidden** → **Rumoured** (you've caught wind, but not the specifics) → **Known** (you see what it takes, but you're short) → **Available** → **Yours now**. A chance, once glimpsed, never un-discovers itself.
@@ -72,21 +81,22 @@ python3 -m http.server 8000
 ## Project layout
 
 ```
-index.html            entry point + boot splash
-styles/main.css       full stylesheet (warm interiors vs cold rain palette)
+index.html                  full-screen game entry (canvas + importmap + HUD + boot splash)
+styles/game.css             game shell stylesheet — locks the viewport, no scrollbar ever
+assets/vendor/three/        vendored Three.js (single-file ESM, same-origin, no build)
 src/
-  main.js             bootstrap
-  game.js             Game orchestrator (day cycle, actions)
-  core/               rng · store · time · state · save
-  systems/            weather · condition · activities · travel · jobs · relationships · reputation · opportunities
-  render/             WebGL2 3D — mat · gl · textures · scene · renderer · avatar · sprites
-  ui/                 dom helpers · hud · cityview · map · jobboard · shift · people · talk · opportunities · screens
-  data/               authored content tables (content · districts · jobs · npcs · opportunities)
-assets/               sprites · textures · audio (generated per-milestone)
+  three/                    the walkable game — main (frame loop) · world · player · input
+  core/                     rng · store · time · state · save           ┐
+  systems/                  weather · condition · activities · travel ·  │ tested simulation
+                            jobs · relationships · reputation · opportunities  ├ engine, retained
+  data/                     authored content tables (content · districts · jobs · npcs · opportunities)  ┘
+  (game.js · main.js · render/ · ui/ · styles/main.css — the prior DOM front door, kept for reference)
 ```
 
-### Debug views
+### Debug views (prior DOM build)
 
+These hash routes drove the **previous** DOM front door (`src/main.js`); they are not wired
+into the v0.1.0 walkable game yet, and are kept here as a reference for the retained engine.
 Append a hash to the URL: `#debug-city`, `#debug-city:<minute>:<weather>:<district>`
 (e.g. `#debug-city:1290:rain:old_harbour` for a rainy 21:30 on the quay, or
 `#debug-city:540::tenements` for a 09:00 inland scene), `#debug-walk` (follow camera on a
@@ -114,10 +124,11 @@ Each milestone is a tagged release (`v0.0.x`).
 - **v0.0.5** — Jobs & work mastery: five jobs, an in-world work-rhythm shift scene, quality-based pay, and a mastery curve (pattern preview → auto-resolve). ✓
 - **v0.0.6** — NPCs, relationships & social memory: six scheduled characters, trust/respect/affection/debt/conflict, a "People here" panel, conversations, and favours with traceable, material payoffs. ✓
 - **v0.0.7** — Opportunity Web: chances gated on six legible components (skill, relationship, reputation, possession, timing, history), a Hidden→Rumoured→Known→Available state machine, per-district reputation, and a plain-language reason on every chance. ✓
-- v0.0.8 — Economy: rent ladder, bills, debt.
-- v0.0.9 — Events & crises with recovery paths.
-- v0.1.0 — Phone UI, audio, accessibility; first vertical-slice polish.
-- … iterating toward **v1.0.0** (full 3D, AAA-quality presentation).
+- **v0.1.0** — Step into the harbour: a full-screen, scrollbar-free, **walkable 3D** Old Harbour in Three.js — third-person character (WASD/arrows), drag-to-look follow camera, dawn lighting with shadows & fog, lit-window buildings, lamps, market stall, boat, and ambient citizens. The simulation engine is retained for wiring in. ✓
+- v0.1.1 — Wire the day loop & clock into the walkable world (real time-of-day sun, working HUD clock).
+- v0.1.2 — Interaction: approach NPCs and the job board *in world* to open shifts, talk, and the Opportunity Web.
+- v0.1.3 — Economy in the streets: rent, bills and debt surfaced as places you visit.
+- … iterating toward **v1.0.0** (full city, AAA-quality presentation).
 
 ## Credits
 
