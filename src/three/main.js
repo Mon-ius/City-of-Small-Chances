@@ -8,7 +8,8 @@ import * as THREE from "three";
 import { buildWorld } from "./world.js";
 import { createDayCycle } from "./daycycle.js";
 import { createInteractions } from "./interactions.js";
-import { createInteractionUI } from "./ui.js";
+import { createInteractionUI, createStatsHUD } from "./ui.js";
+import { createPlayerState } from "./playerstate.js";
 import { createFigure } from "./player.js";
 import { Input } from "./input.js";
 
@@ -58,11 +59,43 @@ function start() {
 
   const input = new Input(canvas);
 
+  // The player's pocket — money + energy — shown in the corner HUD.
+  const pstate = createPlayerState();
+  const hud = createStatsHUD();
+  hud.set(pstate.money, pstate.energy);
+
   // In-world interaction: proximity points + a prompt/panel overlay.
   const interactions = createInteractions(player);
   const ui = createInteractionUI();
   let interacting = false;
-  ui.onClose(() => { interacting = false; });
+  let activePoint = null;
+  let renderActive = () => {};
+  let lastBoardMin = -1; // in-game minute the live board last rendered at
+  ui.onClose(() => { interacting = false; activePoint = null; });
+
+  // Open an interactable: render its panel (live, if it builds from world state)
+  // and wire up acting on it. Re-renders in place after each action.
+  function openInteractable(near) {
+    activePoint = near;
+    pstate.lastWork = null; // a fresh visit starts without a stale result banner
+    renderActive = () => {
+      const data = near.build ? near.build({ nowMin: day.minutes, pstate }) : near.panel;
+      ui.openPanel(data, near.act ? performAct : null);
+      lastBoardMin = Math.floor(day.minutes);
+    };
+    renderActive();
+    interacting = true;
+    ui.hidePrompt();
+  }
+
+  // Perform action #i on the open interactable (a click or a number key), then
+  // refresh the panel and the stats HUD so the result shows immediately.
+  function performAct(i) {
+    if (!activePoint || !activePoint.act) return;
+    activePoint.act(i, { nowMin: day.minutes, pstate, day });
+    hud.set(pstate.money, pstate.energy);
+    renderActive();
+  }
 
   // Reusable vectors (no per-frame allocation in the hot loop).
   const fwd = new THREE.Vector3();
@@ -95,6 +128,7 @@ function start() {
     if (interacting) {
       // Reading a panel: the world breathes on, but the player is still.
       if (act === "interact" || act === "cancel") ui.closePanel();
+      else if (typeof act === "string" && act.startsWith("pick:")) performAct(Number(act.slice(5)) - 1);
     } else {
       // Drag orbits the camera around the player.
       CAM.yaw -= drag.yaw;
@@ -122,7 +156,7 @@ function start() {
       const near = interactions.nearest();
       if (near) {
         ui.showPrompt(`[E] ${near.label}`);
-        if (act === "interact") { ui.openPanel(near.panel); interacting = true; ui.hidePrompt(); }
+        if (act === "interact") openInteractable(near);
       } else {
         ui.hidePrompt();
       }
@@ -145,6 +179,14 @@ function start() {
     const label = day.label();
     if (clockEl && label !== lastClock) { clockEl.textContent = label; lastClock = label; }
 
+    // Keep a live panel (the notice board) honest with the moving clock: as the
+    // minute ticks over, re-score the shifts so a window can open or close, a
+    // requirement can lift, and the dimmed/open rows match reality while you read.
+    if (interacting && activePoint && activePoint.build) {
+      const m = Math.floor(day.minutes);
+      if (m !== lastBoardMin) renderActive();
+    }
+
     placeCamera();
     renderer.render(scene, camera);
     requestAnimationFrame(tick);
@@ -159,7 +201,7 @@ function start() {
   window.addEventListener("resize", onResize);
 
   // Debug / test hook: lets the headless smoke read state and drive the world.
-  window.__game = { THREE, scene, camera, renderer, player, world, input, CAM, day, interactions, ui };
+  window.__game = { THREE, scene, camera, renderer, player, world, input, CAM, day, interactions, ui, pstate, hud };
 
   requestAnimationFrame(tick);
 

@@ -1,14 +1,15 @@
 // Points of interest you can walk up to in the harbour, and the proximity test
-// that decides which one you're close enough to use. This is the second strand of
-// wiring the retained simulation into the 3D world (after the clock): the content
-// of each panel is read straight from the sim's data tables — Mei from the NPC
-// roster, the notice board from the job list — so what you read in-world is the
-// real city, not placeholder text. Full conversations / shift scenes land later;
-// this milestone is the approach-and-read loop the book calls a "context prompt".
+// that decides which one you're close enough to use. This is the wiring of the
+// retained simulation into the 3D world: the content of each panel is read
+// straight from the sim's data tables — Mei from the NPC roster, the notice board
+// from the job list — so what you read in-world is the real city, not placeholder
+// text. As of v0.1.3 the board is live: it reflects the world clock and your own
+// pocket, and working an open shift earns its pay and spends the day.
 
 import { JOBS } from "../data/jobs.js";
 import { NPCS } from "../data/npcs.js";
 import { fmtClock } from "../core/time.js";
+import { jobStatus } from "./playerstate.js";
 
 const RADIUS = 3.4; // metres: how close you must stand to get the prompt
 
@@ -17,9 +18,13 @@ const titleCase = (id) =>
 
 function fmtWindow(windows) {
   if (!windows || !windows.length) return "anytime";
-  const [a, b] = windows[0];
-  return `${fmtClock(a)}–${fmtClock(b)}`;
+  return windows.map(([a, b]) => `${fmtClock(a)}–${fmtClock(b)}`).join(", ");
 }
+
+const hours = (min) => {
+  const h = min / 60;
+  return Number.isInteger(h) ? `${h}h` : `${h.toFixed(1)}h`;
+};
 
 // Mei's stall — a first taste of the relationship system, read from npcs.js.
 function vendorPanel() {
@@ -37,22 +42,55 @@ function vendorPanel() {
   };
 }
 
-// The notice board — every job going across the city, read from jobs.js.
-function boardPanel() {
+// The notice board — every job going across the city, read live from jobs.js and
+// scored against the world clock + your energy. Open shifts are workable buttons.
+function boardBuild(ctx) {
+  const { nowMin, pstate } = ctx;
+  const items = JOBS.map((job, i) => {
+    const st = jobStatus(job, nowMin, pstate);
+    const base = `${titleCase(job.district)} · ${fmtWindow(job.windows)} · ${hours(job.minutes)} · +$${job.pay.base}`;
+    if (st.workable) {
+      return {
+        state: "open",
+        key: i + 1, // press this number (or click) to work it
+        label: `${job.icon || "•"} ${job.name}`,
+        sub: `${base} · costs ${st.cost} energy`,
+      };
+    }
+    let note;
+    if (st.reason === "tired") note = `you're too tired — needs ${st.cost} energy`;
+    else if (st.reason === "requires") note = st.note || "you don't meet what this work needs yet";
+    else if (st.reason === "no-time") note = "not enough day left for this shift";
+    else note = `opens ${fmtClock(job.windows[0][0])}`;
+    return { state: "locked", label: `${job.icon || "•"} ${job.name}`, sub: base, note };
+  });
   return {
     title: "📋 Harbour notice board",
     accent: "#6fa8ff",
-    lead: "Work going across Haiyun City right now:",
-    lines: JOBS.map((j) =>
-      `${j.icon || "•"}  ${j.name} — ${titleCase(j.district)}, ${fmtWindow(j.windows)} · from $${j.pay && j.pay.base != null ? j.pay.base : "?"}`),
-    foot: "Reach a job's district in its window to work the shift (coming soon).",
+    lead: "Work going across Haiyun City right now — take an open shift:",
+    banner: pstate.lastWork || null,
+    items,
+    foot: "Open shifts pay on the spot and pass the hours. Closed ones wait for their window.",
   };
+}
+
+// Work job #i, if it's workable now. Advances the world clock by the shift length.
+function boardAct(i, ctx) {
+  const { nowMin, pstate, day } = ctx;
+  const job = JOBS[i];
+  if (!job) return { ok: false };
+  const res = pstate.work(job, nowMin);
+  if (!res.ok) return res;
+  if (day && typeof day.setMinutes === "function") day.setMinutes(nowMin + res.minutes);
+  const endMin = day && typeof day.minutes === "number" ? Math.floor(day.minutes) : nowMin + res.minutes;
+  pstate.lastWork = `✓ ${job.name}: earned $${res.pay}, −${res.energySpent} energy. It's now ${fmtClock(endMin)}.`;
+  return res;
 }
 
 // Anchored to real world positions; world.js places matching props/markers here.
 export const INTERACTABLES = [
   { id: "vendor", x: -5, z: 4,  marker: 0xffb347, label: "Talk to Mei at the noodle stall", panel: vendorPanel() },
-  { id: "board",  x: 5,  z: -6, marker: 0x6fa8ff, label: "Read the harbour notice board",   panel: boardPanel() },
+  { id: "board",  x: 5,  z: -6, marker: 0x6fa8ff, label: "Read the harbour notice board",   build: boardBuild, act: boardAct },
 ];
 
 export function createInteractions(player) {

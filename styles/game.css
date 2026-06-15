@@ -85,14 +85,21 @@ html, body {
 .hud-panel[hidden] { display: none; }
 .panel__card {
   --accent: #6fa8ff;
-  position: relative; width: min(92vw, 470px); max-height: 82vh; overflow: auto;
+  position: relative; width: min(92vw, 470px);
   background: #11161e; color: #e8eef6;
   border: 1px solid var(--accent); border-top: 3px solid var(--accent);
-  border-radius: 14px; padding: 1.15rem 1.25rem 1.25rem;
+  border-radius: 14px;
   box-shadow: 0 18px 60px rgba(0, 0, 0, 0.6);
 }
+/* The card itself never scrolls (so the close button is never clipped); its
+   content scrolls within this inner box when it's taller than the viewport. */
+.panel__scroll {
+  max-height: 82vh; overflow-y: auto; overflow-x: hidden;
+  scrollbar-gutter: stable;
+  padding: 1.15rem 1.25rem 1.25rem; border-radius: 14px;
+}
 .panel__close {
-  position: absolute; top: 0.5rem; right: 0.6rem;
+  position: absolute; top: 0.5rem; right: 0.6rem; z-index: 1;
   width: 2rem; height: 2rem; line-height: 1; font-size: 1.35rem;
   color: #aebccd; background: transparent; border: 0; border-radius: 8px;
   cursor: pointer;
@@ -109,6 +116,67 @@ html, body {
 }
 .panel__foot { margin-top: 0.85rem; font-size: 0.78rem; color: #7d8da0; font-style: italic; }
 .panel__foot[hidden] { display: none; }
+
+/* A result banner above the list (e.g. "earned $38"). */
+.panel__banner {
+  margin-bottom: 0.7rem; padding: 0.5rem 0.7rem;
+  font-size: 0.85rem; font-weight: 600; color: #d7ffe6;
+  background: rgba(70, 190, 120, 0.14); border: 1px solid rgba(90, 210, 140, 0.4);
+  border-radius: 9px;
+}
+.panel__banner[hidden] { display: none; }
+
+/* Actionable rows: an "open" shift is a button; a closed one is a dimmed row. */
+.panel__list li.panel__actrow { padding: 0; background: none; border: 0; }
+.panel__act {
+  display: flex; align-items: center; gap: 0.6rem; width: 100%; text-align: left;
+  color: #eaf2fb; background: rgba(111, 168, 255, 0.10);
+  border: 1px solid rgba(111, 168, 255, 0.32); border-radius: 10px;
+  padding: 0.5rem 0.6rem; cursor: pointer; font: inherit;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.panel__act:hover { background: rgba(111, 168, 255, 0.2); border-color: rgba(111, 168, 255, 0.6); }
+.panel__act-key {
+  flex: none; width: 1.5rem; height: 1.5rem; display: grid; place-content: center;
+  font-weight: 800; font-size: 0.82rem; color: #cfe0ff;
+  background: rgba(111, 168, 255, 0.22); border-radius: 6px;
+}
+.panel__act-text { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+.panel__act-label { font-weight: 700; font-size: 0.9rem; }
+.panel__act-sub { font-size: 0.78rem; color: #b9c6d6; }
+.panel__list li.panel__row.is-locked {
+  display: flex; flex-direction: column; gap: 0.12rem;
+  background: rgba(255, 255, 255, 0.03); border: 1px dashed rgba(255, 255, 255, 0.1);
+  opacity: 0.72;
+}
+.panel__row-label { font-weight: 700; font-size: 0.88rem; color: #c4cedb; }
+.panel__row-sub { font-size: 0.78rem; color: #94a3b5; }
+.panel__row-note { font-size: 0.76rem; color: #d79a6a; font-style: italic; }
+.panel__row-note[hidden] { display: none; }
+
+/* ── Corner stats: money in hand + an energy bar ──────────────────────────*/
+.hud-stats {
+  position: fixed; left: 1rem; top: 2.7rem; z-index: 12;
+  display: flex; align-items: center; gap: 0.5rem;
+  pointer-events: none; user-select: none;
+}
+.hud-stat {
+  display: flex; align-items: center; gap: 0.35rem;
+  background: rgba(8, 11, 16, 0.5); border: 1px solid #2b3a4d;
+  border-radius: 99px; padding: 0.22rem 0.6rem;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+.hud-stat__icon { font-size: 0.8rem; line-height: 1; }
+.hud-stat__money { font-variant-numeric: tabular-nums; font-weight: 800; font-size: 0.85rem; }
+.hud-stat__bar {
+  position: relative; display: block; width: 64px; height: 7px;
+  background: rgba(255, 255, 255, 0.13); border-radius: 99px; overflow: hidden;
+}
+.hud-stat__fill {
+  position: absolute; inset: 0 auto 0 0; width: 100%;
+  background: hsl(120 70% 48%); border-radius: 99px;
+  transition: width 0.25s ease, background 0.25s ease;
+}
 
 /* ── Boot splash ──────────────────────────────────────────────────────────*/
 #boot {

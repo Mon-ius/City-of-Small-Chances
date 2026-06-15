@@ -84,7 +84,10 @@ export class Input {
     switch (e.key) {
       case "e": case "E": return "interact";
       case "Escape": return "cancel";
-      default: return null;
+      default:
+        // Digit 1–9 selects a numbered choice in an open panel (e.g. a shift).
+        if (e.key >= "1" && e.key <= "9") return "pick:" + e.key;
+        return null;
     }
   }
 
