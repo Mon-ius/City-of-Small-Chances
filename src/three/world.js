@@ -30,6 +30,7 @@ const TEX_DIR = "./assets/textures/harbour/";
 const SPRITE_DIR = "./assets/sprites/citizens/";
 const SIGNAGE_DIR = "./assets/sprites/signage/";
 const SKY_DIR = "./assets/sprites/sky/";
+const PROP_SPRITE_DIR = "./assets/sprites/props/";
 const _texLoader = new THREE.TextureLoader();
 
 function surfaceTex(name, { srgb = false, repeat = [1, 1] } = {}) {
@@ -221,7 +222,7 @@ function box(w, h, d, color, opts = {}) {
 
 // A building: a coloured block, a darker roof, and a grid of warm windows on the
 // street-facing (west, −x) wall so it reads as inhabited.
-function makeBuilding(x, z, w, h, d, bodyMat, windowMat) {
+function makeBuilding(x, z, w, h, d, bodyMat, windowMat, roofMat) {
   const g = new THREE.Group();
   g.position.set(x, 0, z);
 
@@ -231,7 +232,13 @@ function makeBuilding(x, z, w, h, d, bodyMat, windowMat) {
   body.position.y = h / 2;
   g.add(body);
 
-  const roof = box(w + 0.3, 0.3, d + 0.3, COLORS.roof);
+  // Painted clay-tile lid (Batch 11) if a roof material is supplied; else the
+  // flat fallback colour. The shared tiled material reads as rows from above.
+  const roof = roofMat
+    ? new THREE.Mesh(new THREE.BoxGeometry(w + 0.3, 0.3, d + 0.3), roofMat)
+    : box(w + 0.3, 0.3, d + 0.3, COLORS.roof);
+  roof.castShadow = true;
+  roof.receiveShadow = true;
   roof.position.y = h + 0.15;
   g.add(roof);
 
@@ -329,6 +336,9 @@ export function buildWorld(scene) {
   const plasterMat = surfaceMaterial("Plaster", [2, 2]);
   const windowMat = windowAtlasMaterial();
   const woodMat = surfaceMaterial("PlankWood", [1, 1]);
+  // Weathered clay-tile roof (Batch 11): a single shared tile, repeated so the
+  // pitched lids read as rows of tiles rather than a flat grey cap.
+  const roofMat = surfaceMaterial("Roof", [4, 4]);
 
   // ── Shared prop materials (Batch 2 art): painted metal for ironwork, striped
   // canvas for the awning, sailcloth for rigging, twisted hemp for rope. Metalness
@@ -405,7 +415,7 @@ export function buildWorld(scene) {
   ];
   let zCursor = -30;
   for (const f of facades) {
-    makeBuildingInto(scene, 9 + f.w / 2, zCursor + f.d / 2, f.w, f.h, f.d, plasterMat, windowMat);
+    makeBuildingInto(scene, 9 + f.w / 2, zCursor + f.d / 2, f.w, f.h, f.d, plasterMat, windowMat, roofMat);
     zCursor += f.d + 2.5;
   }
 
@@ -443,12 +453,14 @@ export function buildWorld(scene) {
   stall.add(stallSign);
   scene.add(stall);
 
-  // ── A few barrels by the stall: plank-wood staves bound with painted-metal hoops.
+  // ── A few barrels by the stall: painted barrel-stave wrap (Batch 11) bound with
+  // raised painted-metal hoops. The stave texture tiles once around the circumference.
+  const barrelMat = propMaterial("Barrel", [1, 1]);
   const barrelSpots = [[-7.2, 2.6], [-7.0, 3.5], [3.2, -10]];
   barrelSpots.forEach(([x, z]) => {
     const barrel = new THREE.Group();
     barrel.position.set(x, 0, z);
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.36, 1.0, 14), woodMat);
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.36, 1.0, 14), barrelMat);
     body.castShadow = true;
     body.receiveShadow = true;
     body.position.y = 0.5;
@@ -461,10 +473,12 @@ export function buildWorld(scene) {
     scene.add(barrel);
   });
 
-  // ── Stacks of crates near a wall, all in the painted plank-wood material.
+  // ── Stacks of crates near a wall, in the painted shipping-crate material (Batch
+  // 11): planked faces with metal corner banding and cross-braces, one tile per face.
+  const crateMat = propMaterial("Crate", [1, 1]);
   const crateSpots = [[-1, -8], [-0.2, -8], [-0.6, -8.7], [6, 14], [6.6, 14]];
   crateSpots.forEach(([x, z], i) => {
-    const c = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.9, 0.9), woodMat);
+    const c = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.9, 0.9), crateMat);
     c.castShadow = true;
     c.receiveShadow = true;
     c.position.set(x, 0.45 + (i % 2 ? 0.9 : 0), z);
@@ -513,6 +527,12 @@ export function buildWorld(scene) {
     const notes = cutoutPlane(`${SIGNAGE_DIR}DECAL_BoardNotes.png`, 1.55, 0.98, { emissive: 0.2 });
     notes.position.set(0, 1.58, 0.061);
     bg.add(notes);
+    // A courier's delivery bike (Batch 11) parked at the board — the courier job's
+    // required possession, stood right where the shift is taken. Fixed side-profile
+    // (no billboarding): a bike reads by its silhouette, so it must not pivot.
+    const bike = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Job_Bicycle.png`, 1.5, 1.05, { emissive: 0.12 });
+    bike.position.set(1.55, 0.52, 0.2);
+    bg.add(bike);
     bg.rotation.y = -0.4; // angle it toward the street
     scene.add(bg);
   }
@@ -619,8 +639,8 @@ export function buildWorld(scene) {
 }
 
 // Wrapper so makeBuilding (which builds a Group) is added to the scene.
-function makeBuildingInto(scene, x, z, w, h, d, bodyMat, windowMat) {
-  scene.add(makeBuilding(x, z, w, h, d, bodyMat, windowMat));
+function makeBuildingInto(scene, x, z, w, h, d, bodyMat, windowMat, roofMat) {
+  scene.add(makeBuilding(x, z, w, h, d, bodyMat, windowMat, roofMat));
 }
 
 // A citizen that walks back and forth between two z values, facing its direction.
