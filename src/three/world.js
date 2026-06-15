@@ -28,6 +28,8 @@ const COLORS = {
 // path keeps it working under the GitHub Pages project sub-path.
 const TEX_DIR = "./assets/textures/harbour/";
 const SPRITE_DIR = "./assets/sprites/citizens/";
+const SIGNAGE_DIR = "./assets/sprites/signage/";
+const SKY_DIR = "./assets/sprites/sky/";
 const _texLoader = new THREE.TextureLoader();
 
 function surfaceTex(name, { srgb = false, repeat = [1, 1] } = {}) {
@@ -121,6 +123,68 @@ function citizenSprite(role, height = 1.85) {
   plane.position.y = height / 2; // feet on the ground
   plane.castShadow = false;      // a camera-facing plane casts a bad rotating shadow
   return plane;
+}
+
+// ── Painted alpha-cutout plane (Batch 6 signage & decals): chroma-keyed art on a
+// flat quad, lit lightly with a touch of self-emission so the motif stays readable
+// after dark (the same trick the citizen billboards use). Default faces +z; the
+// caller rotates it to its wall. Used for the noodle-stall sign and board notes.
+function cutoutPlane(url, w, h, { emissive = 0.25, alphaTest = 0.45 } = {}) {
+  const map = _texLoader.load(url);
+  map.colorSpace = THREE.SRGBColorSpace;
+  map.anisotropy = 8;
+  const mat = new THREE.MeshStandardMaterial({
+    map,
+    transparent: true,
+    alphaTest,
+    side: THREE.DoubleSide,
+    roughness: 1,
+    metalness: 0,
+    emissive: 0xffffff,
+    emissiveMap: map,
+    emissiveIntensity: emissive,
+  });
+  return new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+}
+
+// ── Drifting cloud billboards (Batch 6): painted neutral cloud cutouts placed in
+// a band near the horizon, INSIDE the sky dome (which the day cycle still paints
+// every frame — these add to it, they do not replace it). They are unlit
+// (MeshBasic) so tintClouds() can multiply them from near-white at noon, through
+// warm at dusk, to near-invisible against the night sky. main.js drifts them
+// along x (wrapping) and turns each to face the camera.
+function buildClouds(scene) {
+  const defs = [
+    { tex: "A", x: -120, y: 52, z:  -70, s: 96 },
+    { tex: "B", x:   40, y: 44, z: -150, s: 128 },
+    { tex: "C", x:  130, y: 60, z:   30, s: 80 },
+    { tex: "D", x:  -60, y: 40, z:  140, s: 72 },
+    { tex: "A", x:   90, y: 56, z:  120, s: 104 },
+    { tex: "B", x: -150, y: 48, z:   60, s: 116 },
+    { tex: "C", x:   10, y: 66, z: -120, s: 88 },
+  ];
+  const clouds = [];
+  const wrap = 200; // x loops within ±wrap so clouds never run out
+  for (let i = 0; i < defs.length; i++) {
+    const d = defs[i];
+    const map = _texLoader.load(`${SKY_DIR}FX_Sky_Cloud_${d.tex}.png`);
+    map.colorSpace = THREE.SRGBColorSpace;
+    const mesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(d.s, d.s * 0.5),
+      new THREE.MeshBasicMaterial({
+        map,
+        transparent: true,
+        depthWrite: false,
+        fog: false,
+        opacity: 0.92,
+        side: THREE.DoubleSide,
+      }),
+    );
+    mesh.position.set(d.x, d.y, d.z);
+    scene.add(mesh);
+    clouds.push({ mesh, speed: 0.5 + (i % 3) * 0.35, wrap });
+  }
+  return clouds;
 }
 
 // A soft round contact shadow, so a billboard reads as planted rather than
@@ -372,6 +436,11 @@ export function buildWorld(scene) {
     post.position.set(i ? 1.3 : -1.3, 0.95, 0.7);
     stall.add(post);
   }
+  // Mei's painted noodle-stall sign, hung under the awning facing the approaching
+  // street (+z, the way the player walks in from the spawn).
+  const stallSign = cutoutPlane(`${SIGNAGE_DIR}SIGN_NoodleStall.png`, 1.15, 1.15, { emissive: 0.3 });
+  stallSign.position.set(0, 1.32, 0.96);
+  stall.add(stallSign);
   scene.add(stall);
 
   // ── A few barrels by the stall: plank-wood staves bound with painted-metal hoops.
@@ -440,11 +509,10 @@ export function buildWorld(scene) {
     const postL = box(0.12, 1.8, 0.12, 0x3a2f25); postL.position.set(-0.75, 0.9, 0); bg.add(postL);
     const postR = box(0.12, 1.8, 0.12, 0x3a2f25); postR.position.set(0.75, 0.9, 0); bg.add(postR);
     const panel = box(1.8, 1.15, 0.1, 0x6b5535); panel.position.set(0, 1.55, 0); bg.add(panel);
-    for (let i = 0; i < 3; i++) {
-      const note = box(0.42, 0.32, 0.02, 0xe8e0cf, { cast: false });
-      note.position.set(-0.47 + i * 0.47, 1.6, 0.06);
-      bg.add(note);
-    }
+    // A painted cluster of pinned notes & curled flyers overlaid on the panel face.
+    const notes = cutoutPlane(`${SIGNAGE_DIR}DECAL_BoardNotes.png`, 1.55, 0.98, { emissive: 0.2 });
+    notes.position.set(0, 1.58, 0.061);
+    bg.add(notes);
     bg.rotation.y = -0.4; // angle it toward the street
     scene.add(bg);
   }
@@ -508,8 +576,20 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // ── Drifting clouds over the painted dome. tintClouds() lets the day cycle
+  // multiply them with the horizon colour each minute (bright by day, warm at
+  // dusk, sunk into the night sky after dark); main.js drifts + billboards them.
+  const clouds = buildClouds(scene);
+  const _cloudTint = new THREE.Color();
+  const _white = new THREE.Color(0xffffff);
+  function tintClouds(botC, sunI) {
+    const lift = Math.min(0.42, Math.max(0, sunI) * 0.16);
+    _cloudTint.copy(botC).lerp(_white, lift);
+    for (const c of clouds) c.mesh.material.color.copy(_cloudTint);
+  }
+
   const bounds = { minX: -10.5, maxX: 6.5, minZ: -34, maxZ: 34 };
-  return { bounds, citizens, billboards, lampHeads, markers, sun, hemi, ambient, skyDome, paintSky };
+  return { bounds, citizens, billboards, clouds, lampHeads, markers, sun, hemi, ambient, skyDome, paintSky, tintClouds };
 }
 
 // Wrapper so makeBuilding (which builds a Group) is added to the scene.

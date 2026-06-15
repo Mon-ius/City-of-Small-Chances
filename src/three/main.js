@@ -185,6 +185,15 @@ function start() {
       b.rotation.y = Math.atan2(camera.position.x - b.position.x, camera.position.z - b.position.z);
     }
 
+    // Drift the clouds slowly across the sky (wrapping in x) and turn each to face
+    // the camera, so the painted cards always read front-on against the dome.
+    for (const c of world.clouds) {
+      let x = c.mesh.position.x + c.speed * dt;
+      if (x > c.wrap) x -= c.wrap * 2;
+      c.mesh.position.x = x;
+      c.mesh.rotation.y = Math.atan2(camera.position.x - x, camera.position.z - c.mesh.position.z);
+    }
+
     // Bob the interaction markers so they catch the eye.
     markerPhase += dt * 2.2;
     for (let i = 0; i < world.markers.length; i++) {

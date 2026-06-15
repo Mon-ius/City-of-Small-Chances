@@ -52,7 +52,7 @@ export function createDayCycle(world, scene, opts = {}) {
   for (const k of KEYS) { k.sunC = new THREE.Color(k.sun); k.topC = new THREE.Color(k.top); k.botC = new THREE.Color(k.bot); k.fogC = new THREE.Color(k.fog); }
   const _sun = new THREE.Color(), _top = new THREE.Color(), _bot = new THREE.Color(), _fog = new THREE.Color();
 
-  const { sun, hemi, ambient, lampHeads, paintSky } = world;
+  const { sun, hemi, ambient, lampHeads, paintSky, tintClouds } = world;
 
   function clampMin(m) {
     return Math.min(DAY_END_MIN - 0.001, Math.max(DAY_START_MIN, m));
@@ -93,9 +93,14 @@ export function createDayCycle(world, scene, opts = {}) {
     const lampI = lerp(a.lamp, b.lamp, t);
     for (const h of lampHeads) h.material.emissiveIntensity = lampI;
 
-    // Repaint the sky gradient at most once per in-game minute (cheap, throttled).
+    // Repaint the sky gradient at most once per in-game minute (cheap, throttled),
+    // and retint the drifting clouds with the same horizon colour + sun strength.
     const mi = Math.floor(m);
-    if (mi !== lastPaintedMin && paintSky) { lastPaintedMin = mi; paintSky(_top, _bot); }
+    if (mi !== lastPaintedMin) {
+      lastPaintedMin = mi;
+      if (paintSky) paintSky(_top, _bot);
+      if (tintClouds) tintClouds(_bot, sunI);
+    }
   }
 
   applyAt(minutes); // light the very first frame correctly

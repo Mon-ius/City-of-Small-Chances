@@ -98,8 +98,13 @@ Read this before generating or integrating any asset.
       tileable PBR surfaces (albedo/normal/orm) per district, into `assets/textures/<district>/`.
       8 surfaces (24 maps), seam-checked. **Ship ready** — the walkable build is still Old Harbour
       only, so these wire in when the other districts become walkable (Batch 7+).
-- [ ] **Batch 6 — Sky & FX**: dusk/day/night sky panoramas + clouds (replace the procedural dome),
-      rain/fog/heat FX cards, day-transition + condition screen overlays, signage & decals.
+- [x] **Batch 6 — Sky & FX**: drifting cloud billboards over the dome (which stays the
+      dynamic, day-cycle-painted procedural gradient — the clouds *add to* it, they do
+      **not** replace it), rain/fog/heat/puddle weather FX cards, and 5 pictorial
+      signage/decals. 13 transparent cutouts. **Live:** clouds drift + tint with the
+      hour, Mei's noodle-stall sign hangs on the live stall, and the painted board-notes
+      decal overlays the notice board. The 4 weather cards + 3 other signs (chandler,
+      harbour-shop, civic) ship ready for the weather system & the other shops (Batch 7+).
 - [ ] **Batch 7 — Interiors, workplaces & business premises**: rent-ladder housing interiors,
       per-family workplace/activity environments, business-route premises.
 - [ ] **Batch 8 — Screen & menu UI systems**: phone + apps, planner/calendar, end-of-day report,
@@ -127,3 +132,5 @@ voice, localization fonts (EN/SC/TC), controller glyphs, and Steam achievement a
 - 2026-06-16: Batch 4 part C wired in — the 5 painted job emblems now lead each row of the live notice board (replacing the emoji): `interactions.js` supplies an `iconImg` per job, `ui.js#renderItem` renders an optional `<img class="panel__item-icon">` on both open and locked rows, with `.panel__item-icon` + a `.panel__row-text` column in `game.css`. The district markers, Opportunity-Web and skill icons ship ready for the planner/web/skills screens. Batch 4 complete.
 - 2026-06-16: Batch 5 generated with built-in GPT-Image-2 and ImageMagick/Python post-processing; 8 district-kit surfaces for tenements, market_row, dockside, and uptown, 24 PNGs, tile-checked, total payload 2,720,091 bytes.
 - 2026-06-16: Batch 5 verified — all 8 albedos tile seamlessly (wrap-seam ≪ interior detail after PNG8 quantization), normals clean (no banding at ~190 colours), each kit reads as its district beside the harbour set. No live wiring this batch: the walkable world is Old Harbour only, so the kits ship ready for when the other districts become walkable. Batch 5 complete.
+- 2026-06-16: Batch 6 generated with built-in GPT-Image-2 and chroma-key post-processing; 13 transparent cutouts (4 sky clouds, 4 weather FX cards, 5 pictorial signage/decals), clean alpha checked on grey/white + a programmatic chroma-fringe scan (0 residue), clouds confirmed neutral/light & tintable, total payload 1,342,076 bytes.
+- 2026-06-16: Batch 6 wired in — drifting cloud billboards added *over* the procedural sky dome (`world.js#buildClouds` + `tintClouds`, driven each minute by `daycycle.js`, drifted + camera-billboarded in `main.js`): bright near-white at noon, warm at dusk, sunk into the night sky after dark — the dynamic dome is untouched. Mei's painted noodle-stall sign now hangs on the live stall and the painted board-notes decal overlays the notice board (both via a new `cutoutPlane` helper). Verified headless at noon + dusk and with prop close-ups. The 4 weather cards + 3 other signs ship ready. Batch 6 complete.
