@@ -52,6 +52,7 @@ function start() {
 
   const clockEl = document.getElementById("clock");
   let lastClock = "";
+  let lastDay = day.day; // watch for the midnight→dawn rollover to play the veil
 
   const player = createFigure("player");
   player.root.position.set(-3, 0, 16);
@@ -211,6 +212,14 @@ function start() {
       if (clockEl) clockEl.textContent = label;
       lastClock = label;
       audio.setTimeOfDay(day.minutes); // shift gulls/lamp-hum with the hour
+    }
+
+    // When the living clock rolls past midnight into a fresh dawn, play the
+    // day-transition veil (Batch 19): the night draws the screen down and the
+    // world re-emerges through a warm dawn wash.
+    if (day.day !== lastDay) {
+      lastDay = day.day;
+      hud.playDayTransition();
     }
 
     // Keep a live panel (the notice board) honest with the moving clock: as the

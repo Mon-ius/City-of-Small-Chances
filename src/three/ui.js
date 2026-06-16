@@ -174,6 +174,55 @@ export function createStatsHUD() {
     lowEl.style.opacity = lowOp.toFixed(3);
     burnEl.style.opacity = burnOp.toFixed(3);
   };
+
+  // Day-transition veils (Batch 19, fx-005): full-screen opaque cards that play as
+  // the living clock rolls past midnight and a new day breaks — the night draws the
+  // screen down, time drifts, and the world re-emerges through a warm dawn wash. The
+  // veil snaps on at the rollover frame to mask the world's deep-night→dawn relight
+  // pop, then clears. Reduced-motion gets a faint golden nod, no dark flash. JS
+  // animates each layer's opacity inline (snap vs ease) — main.js only calls
+  // playDayTransition() when the day counter ticks over; no other wiring.
+  const trans = document.createElement("div");
+  trans.id = "hud-transition";
+  trans.className = "hud-transition";
+  trans.setAttribute("aria-hidden", "true");
+  trans.innerHTML =
+    `<div class="trans-layer trans-layer--night"></div>
+     <div class="trans-layer trans-layer--grain"></div>
+     <div class="trans-layer trans-layer--dawn"></div>`;
+  document.body.appendChild(trans);
+  const nightEl = trans.querySelector(".trans-layer--night");
+  const grainEl = trans.querySelector(".trans-layer--grain");
+  const dawnEl = trans.querySelector(".trans-layer--dawn");
+  const setOp = (el, op, dur) => {
+    el.style.transition = dur > 0 ? `opacity ${dur}s ease` : "none";
+    el.style.opacity = op.toFixed(3);
+  };
+  let transGen = 0; // a generation token so a new play cancels any stale timers
+  const playDayTransition = () => {
+    const gen = ++transGen;
+    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) {
+      // A soft golden nod to the new day — no dark cover, no flash.
+      setOp(dawnEl, 0.22, 0);
+      setTimeout(() => { if (gen === transGen) setOp(dawnEl, 0, 0.9); }, 60);
+      return;
+    }
+    // 1) Snap the night cover on (masks the world's single-frame relight pop).
+    setOp(nightEl, 0.95, 0);
+    setOp(grainEl, 0.28, 0);
+    setOp(dawnEl, 0, 0);
+    void nightEl.offsetWidth; // force the snap to apply before we animate
+    // 2) Hold a beat, then reveal: night recedes, dawn blooms in then clears.
+    setTimeout(() => {
+      if (gen !== transGen) return;
+      setOp(nightEl, 0, 1.5);
+      setOp(grainEl, 0, 1.2);
+      setOp(dawnEl, 0.6, 0.9);
+      setTimeout(() => { if (gen === transGen) setOp(dawnEl, 0, 1.6); }, 950);
+    }, 240);
+  };
+
   // The mute button must catch clicks even though the HUD layer ignores them.
   // It keeps the shared .hud-stat painted-plate look (Batch 8); we only re-enable
   // pointer events and inherit the HUD's text colour/font for the emoji glyph.
@@ -195,5 +244,14 @@ export function createStatsHUD() {
     moneyText() { return moneyEl.textContent; },
     energyPct() { return parseFloat(fillEl.style.width) || 0; },
     conditionFx() { return { low: lowOp, burnout: burnOp, coldwet: coldOp }; },
+    // Play the day-rollover veil (called from main.js when the day counter ticks up).
+    playDayTransition,
+    transitionFx() {
+      return {
+        night: parseFloat(nightEl.style.opacity) || 0,
+        dawn: parseFloat(dawnEl.style.opacity) || 0,
+        grain: parseFloat(grainEl.style.opacity) || 0,
+      };
+    },
   };
 }

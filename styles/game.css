@@ -235,6 +235,24 @@ html, body {
 .cond-layer--burnout   { background-image: url("../assets/sprites/fx/FX_Cond_Burnout.png"); }
 .cond-layer--coldwet   { background-image: url("../assets/sprites/fx/FX_Cond_ColdWet.png"); }
 
+/* ── Day-transition veils (Batch 19, fx-005) ─────────────────────────────────
+   Full-screen opaque cards stretched edge-to-edge that play as the living clock
+   rolls past midnight into a new dawn. Sits above the condition vignette (z 8) and
+   below the HUD readouts (z 12) so the meters stay legible; click-through. Each
+   layer's opacity (and its transition timing) is driven inline from ui.js
+   playDayTransition() — the night snaps on to mask the relight pop, then clears
+   through a warm dawn wash. Reduced motion is handled in JS (a faint golden nod,
+   no dark flash), so no CSS transition is declared here to suppress. */
+#hud-transition { position: fixed; inset: 0; z-index: 10; pointer-events: none; }
+.trans-layer {
+  position: absolute; inset: 0; opacity: 0;
+  background-position: center; background-repeat: no-repeat; background-size: 100% 100%;
+  will-change: opacity;
+}
+.trans-layer--night { background-image: url("../assets/sprites/fx/FX_Trans_NightVeil.png"); }
+.trans-layer--dawn  { background-image: url("../assets/sprites/fx/FX_Trans_DawnVeil.png"); }
+.trans-layer--grain { background-image: url("../assets/sprites/fx/FX_Trans_RestGrain.png"); }
+
 /* ── Boot splash ──────────────────────────────────────────────────────────*/
 #boot {
   position: fixed; inset: 0; z-index: 20;
