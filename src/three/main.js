@@ -35,6 +35,11 @@ function weatherFor(dayNumber) {
   const i = ((Math.floor(dayNumber) - 1) % WEATHER_CYCLE.length + WEATHER_CYCLE.length) % WEATHER_CYCLE.length;
   return WEATHER_CYCLE[i];
 }
+// How overcast the sky goes for a given day's weather — rain leads, fog adds a
+// little, capped so the time-of-day sky never fully vanishes behind the grey.
+function wetnessFor(w) {
+  return Math.max(0, Math.min(0.85, w.rain * 0.7 + w.fog * 0.5));
+}
 
 function fail(msg) {
   const boot = document.getElementById("boot");
@@ -84,7 +89,7 @@ function start() {
   const pstate = createPlayerState();
   const hud = createStatsHUD();
   hud.set(pstate.money, pstate.energy);
-  { const w = weatherFor(day.day); hud.setWeather(w.rain, w.fog); } // the day's sky
+  { const w = weatherFor(day.day); hud.setWeather(w.rain, w.fog); world.setOvercast(wetnessFor(w)); } // the day's sky
 
   // The harbour's procedural soundscape (resumes on first gesture; see audio.js).
   const audio = createAudio();
@@ -242,6 +247,7 @@ function start() {
       hud.playDayTransition();
       const w = weatherFor(day.day); // the new day brings its own weather, masked
       hud.setWeather(w.rain, w.fog);  // by the transition veil so the swap is unseen
+      world.setOvercast(wetnessFor(w)); // and greys the sky if the day is wet
     }
 
     // Keep a live panel (the notice board) honest with the moving clock: as the

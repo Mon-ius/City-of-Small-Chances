@@ -356,6 +356,16 @@ export function buildWorld(scene) {
   }
   setSkyBlend(1, 0, 0); // a sensible bright-day default until the cycle sets it
 
+  // ── Overcast veil (fx-004 weather slice): a grey stratus panel laid in front
+  // of the day/dusk/night blend, faded in by the day's wetness so a rainy day
+  // greys the sky over whatever the time-of-day blend is doing — the rain (a
+  // Batch-21 overlay) then falls over a proper overcast instead of clear blue.
+  const skyOvercast = skyPanel("SKY_Atmos_Overcast.png", 218.7, 4);
+  function setOvercast(t) {
+    skyOvercast.material.opacity = Math.max(0, Math.min(0.9, t || 0));
+  }
+  setOvercast(0); // clear until the weather cycle says otherwise
+
   scene.fog = new THREE.Fog(0x9a8a7a, 35, 150);
 
   // ── Lighting: cool sky fill + warm sun with soft shadows. The day cycle drives
@@ -754,7 +764,7 @@ export function buildWorld(scene) {
   }
 
   const bounds = { minX: -10.5, maxX: 6.5, minZ: -34, maxZ: 34 };
-  return { bounds, citizens, billboards, clouds, lampHeads, markers, sun, hemi, ambient, skyDome, paintSky, setSkyBlend, tintClouds };
+  return { bounds, citizens, billboards, clouds, lampHeads, markers, sun, hemi, ambient, skyDome, paintSky, setSkyBlend, setOvercast, tintClouds };
 }
 
 // Wrapper so makeBuilding (which builds a Group) is added to the scene.
