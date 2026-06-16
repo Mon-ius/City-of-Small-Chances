@@ -207,6 +207,16 @@ html, body {
 }
 .hud-stat__icon { font-size: 0.8rem; line-height: 1; }
 .hud-stat__img { width: 18px; height: 18px; object-fit: contain; display: block; }
+/* Condition-state badge (Batch 27, ui-003): the burnout / well-rested glyph that
+   rides beside the energy bar. Slightly larger than the leading meter icon so it
+   reads as a status flag; drop-shadow lifts it off the plate. `display:block`
+   would override the UA [hidden] default, so re-hide it explicitly. */
+.hud-stat__status {
+  width: 20px; height: 20px; object-fit: contain; display: block;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
+  transition: opacity 0.4s ease;
+}
+.hud-stat__status[hidden] { display: none; }
 .hud-stat__money { font-variant-numeric: tabular-nums; font-weight: 800; font-size: 0.85rem; }
 .hud-stat__bar {
   position: relative; display: block; width: 64px; height: 7px;

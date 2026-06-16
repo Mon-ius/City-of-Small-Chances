@@ -138,13 +138,14 @@ export function createStatsHUD() {
   wrap.className = "hud-stats";
   wrap.innerHTML =
     `<div class="hud-stat hud-stat--money"><img class="hud-stat__icon hud-stat__img" src="./assets/ui/icons/UI_Icon_Money.png" alt="Money" draggable="false"><span class="hud-stat__money">$0</span></div>
-     <div class="hud-stat hud-stat--energy"><img class="hud-stat__icon hud-stat__img" src="./assets/ui/icons/UI_Icon_Energy.png" alt="Energy" draggable="false"><span class="hud-stat__bar"><span class="hud-stat__fill"></span></span></div>
+     <div class="hud-stat hud-stat--energy"><img class="hud-stat__icon hud-stat__img" src="./assets/ui/icons/UI_Icon_Energy.png" alt="Energy" draggable="false"><span class="hud-stat__bar"><span class="hud-stat__fill"></span></span><img class="hud-stat__status" alt="" draggable="false" hidden></div>
      <button class="hud-stat hud-stat--mute" type="button" aria-label="Toggle sound" title="Sound (M)"><span class="hud-stat__icon hud-stat__mute-icon">🔊</span></button>`;
   document.body.appendChild(wrap);
   const moneyEl = wrap.querySelector(".hud-stat__money");
   const fillEl = wrap.querySelector(".hud-stat__fill");
   const muteBtn = wrap.querySelector(".hud-stat--mute");
   const muteIcon = wrap.querySelector(".hud-stat__mute-icon");
+  const statusEl = wrap.querySelector(".hud-stat__status");
 
   // Screen-state condition FX (Batch 14, fx-006): full-screen vignette cards that
   // fade in over the world as the body fails — a wordless, colour-redundant channel
@@ -179,6 +180,36 @@ export function createStatsHUD() {
     burnOp = ramp(e, 22, 0);   // burnout compounds below 22, full at empty
     lowEl.style.opacity = lowOp.toFixed(3);
     burnEl.style.opacity = burnOp.toFixed(3);
+  };
+
+  // Condition-STATE badge (Batch 27, ui-003): a discrete painted glyph beside the
+  // energy meter that names the body's *state* in words+shape, not just the bar's
+  // colour — the same accessibility rule as the vignette (never hue alone). It snaps
+  // between two energy-driven states and is hidden in the comfortable middle:
+  //   < 22 energy → Burnout (snuffed-candle glyph, matching the burnout vignette)
+  //   ≥ 82 energy → Well rested (crescent-moon glyph)
+  // The Illness/Injury glyphs in the same set ship ready for a future health state.
+  const STATE_ICON = {
+    burnout: { src: "./assets/ui/icons/UI_Icon_State_Burnout.png", label: "Burnt out" },
+    rested:  { src: "./assets/ui/icons/UI_Icon_State_WellRested.png", label: "Well rested" },
+  };
+  let statusKey = "";
+  const paintStatus = (energy) => {
+    const e = Math.max(0, Math.min(100, energy));
+    const key = e < 22 ? "burnout" : e >= 82 ? "rested" : "";
+    if (key === statusKey) return; // only touch the DOM when the state actually flips
+    statusKey = key;
+    if (key) {
+      const s = STATE_ICON[key];
+      statusEl.src = s.src;
+      statusEl.alt = s.label;
+      statusEl.title = s.label;
+      statusEl.hidden = false;
+    } else {
+      statusEl.hidden = true;
+      statusEl.removeAttribute("title");
+      statusEl.alt = "";
+    }
   };
 
   // Day-transition veils (Batch 19, fx-005): full-screen opaque cards that play as
@@ -276,6 +307,7 @@ export function createStatsHUD() {
       fillEl.style.width = `${e}%`;
       fillEl.style.background = `hsl(${Math.round((e / 100) * 120)} 70% 48%)`; // green→red as it drains
       paintCondition(e); // deepen the condition vignette in step with the meter
+      paintStatus(e);    // flip the discrete burnout / well-rested badge
     },
     // Cold/wet exposure overlay (0..1). Now driven live by weather via setWeather,
     // but still callable directly for any future wet/exposure state.
@@ -289,6 +321,8 @@ export function createStatsHUD() {
     moneyText() { return moneyEl.textContent; },
     energyPct() { return parseFloat(fillEl.style.width) || 0; },
     conditionFx() { return { low: lowOp, burnout: burnOp, coldwet: coldOp }; },
+    // The current discrete condition-state badge key ("burnout" | "rested" | "").
+    statusState() { return statusKey; },
     // Play the day-rollover veil (called from main.js when the day counter ticks up).
     playDayTransition,
     transitionFx() {
