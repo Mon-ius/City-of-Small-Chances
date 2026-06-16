@@ -610,9 +610,20 @@ export function buildWorld(scene) {
   if (boardSpot) {
     const bg = new THREE.Group();
     bg.position.set(boardSpot.x, 0, boardSpot.z);
-    const postL = box(0.12, 1.8, 0.12, 0x3a2f25); postL.position.set(-0.75, 0.9, 0); bg.add(postL);
-    const postR = box(0.12, 1.8, 0.12, 0x3a2f25); postR.position.set(0.75, 0.9, 0); bg.add(postR);
-    const panel = box(1.8, 1.15, 0.1, 0x6b5535); panel.position.set(0, 1.55, 0); bg.add(panel);
+    // Posts + backing panel in the painted weathered notice-board timber (Batch 38,
+    // ENV_Harbour_NoticeBoard) — the harbour's last flat-colour surface. One shared
+    // tiled material (greyer, older grain than the boardwalk planks) skins the two
+    // posts and the panel the day's shifts get pinned to.
+    const boardMat = surfaceMaterial("NoticeBoard", [1, 1]);
+    const postL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.8, 0.12), boardMat);
+    postL.castShadow = true; postL.receiveShadow = true;
+    postL.position.set(-0.75, 0.9, 0); bg.add(postL);
+    const postR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.8, 0.12), boardMat);
+    postR.castShadow = true; postR.receiveShadow = true;
+    postR.position.set(0.75, 0.9, 0); bg.add(postR);
+    const panel = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.15, 0.1), boardMat);
+    panel.castShadow = true; panel.receiveShadow = true;
+    panel.position.set(0, 1.55, 0); bg.add(panel);
     // A painted cluster of pinned notes & curled flyers as the weathered backing.
     const notes = cutoutPlane(`${SIGNAGE_DIR}DECAL_BoardNotes.png`, 1.55, 0.98, { emissive: 0.16 });
     notes.position.set(0, 1.58, 0.061);
