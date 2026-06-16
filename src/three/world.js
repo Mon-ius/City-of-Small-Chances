@@ -1106,6 +1106,39 @@ export function buildWorld(scene) {
     scene.add(line);
   }
 
+  // ── Life on the cobbles (Batch 48): the gulls gave the harbour life in the air and the
+  // citizens give it people, but the quay kept no animals at the player's own eye level.
+  // A sparse scatter of camera-facing animal billboards (the citizen/gull idiom) puts a
+  // little life underfoot: the quay cat settled on the sea-wall coping watching the water
+  // (perched on a surface, so no contact-shadow blob — like the gulls), a stray dock dog
+  // hoping for scraps by Mei's stall, and two clusters of pigeons working the cobbles
+  // (ground-planted, each with a soft contact-shadow blob). `baseY` is the surface the
+  // animal sits on (0 = the deck, 0.9 = the sea-wall top); the plane centre is half its
+  // height above that. Kept clear of the interactables, the named cast and the spawn.
+  const animals = [
+    // [file, w, h, x, z, baseY, shadowR] — shadowR 0 = perched on a surface, no blob.
+    ["PROP_Animal_Cat", 0.28, 0.55, -11.1, 9, 0.9, 0], // the quay cat on the sea-wall coping
+    ["PROP_Animal_Dog", 0.85, 0.85, -7.0, 5.5, 0, 0.42], // a stray by Mei's noodle stall
+    ["PROP_Animal_Pigeons", 0.84, 0.4, -2.5, 6.0, 0, 0.34], // pecking the cobbles near the stall
+    ["PROP_Animal_Pigeons", 0.78, 0.37, 1.5, 14, 0, 0.32], // a second group out on the quay
+  ];
+  for (const [file, w, h, x, z, baseY, shadowR] of animals) {
+    const animal = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive: 0.16, alphaTest: 0.4 });
+    animal.position.set(x, baseY + h / 2, z);
+    scene.add(animal);
+    billboards.push(animal); // main.js turns it to face the camera each frame
+    if (shadowR > 0) {
+      const blob = new THREE.Mesh(
+        new THREE.CircleGeometry(shadowR, 16),
+        new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+      );
+      blob.rotation.x = -Math.PI / 2;
+      blob.position.set(x, 0.02, z);
+      blob.renderOrder = -1; // under the cobbles' specular, never over the animal
+      scene.add(blob);
+    }
+  }
+
   // ── Drifting clouds over the painted dome. tintClouds() lets the day cycle
   // multiply them with the horizon colour each minute (bright by day, warm at
   // dusk, sunk into the night sky after dark); main.js drifts + billboards them.
