@@ -294,6 +294,51 @@ export function createStatsHUD() {
     applyColdWet(r * 0.5); // out in the rain → a faint cold-wet chill at the edges
   };
 
+  // Shift montage (Batch 29, fx-007): a brief full-screen painted beat that plays
+  // when a shift is worked off the notice board — the hours of labour you'd otherwise
+  // skip in a silent clock-jump given a moment's weight. One painted scene per job
+  // family; the card fades up over everything (z 40, above the panel), holds on the
+  // work, then clears to reveal the updated panel + the jumped clock. JS animates the
+  // opacity inline (like the day-transition veil); a generation token cancels stale
+  // timers if shifts are worked back-to-back; reduced-motion gets a quick soft dim.
+  const shift = document.createElement("div");
+  shift.id = "hud-shift";
+  shift.className = "hud-shift";
+  shift.setAttribute("aria-hidden", "true");
+  shift.innerHTML = `<img class="shift-art" alt="" draggable="false"><div class="shift-vignette"></div>`;
+  document.body.appendChild(shift);
+  const shiftArt = shift.querySelector(".shift-art");
+  const SHIFT_SCENE = {
+    labour:   "./assets/ui/shifts/SHIFT_Labour.png",
+    delivery: "./assets/ui/shifts/SHIFT_Delivery.png",
+    admin:    "./assets/ui/shifts/SHIFT_Admin.png",
+    service:  "./assets/ui/shifts/SHIFT_Service.png",
+  };
+  let shiftGen = 0, shiftKey = "";
+  const fadeShift = (op, dur) => {
+    shift.style.transition = dur > 0 ? `opacity ${dur}s ease` : "none";
+    shift.style.opacity = op.toFixed(3);
+  };
+  const playShiftScene = (family) => {
+    const src = SHIFT_SCENE[family];
+    if (!src) return; // only a worked shift carries a job family
+    const gen = ++shiftGen;
+    shiftKey = family;
+    shiftArt.src = src;
+    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) {
+      // A brief soft dim of the scene — no long hold, no harsh flash.
+      fadeShift(0.5, 0.25);
+      setTimeout(() => { if (gen === shiftGen) fadeShift(0, 0.5); }, 420);
+      return;
+    }
+    // Fade the work scene up, hold a beat, then clear to the result.
+    fadeShift(0, 0);
+    void shift.offsetWidth; // apply the reset before animating the fade-in
+    fadeShift(0.96, 0.28);
+    setTimeout(() => { if (gen === shiftGen) fadeShift(0, 0.7); }, 1050);
+  };
+
   // The mute button must catch clicks even though the HUD layer ignores them.
   // It keeps the shared .hud-stat painted-plate look (Batch 8); we only re-enable
   // pointer events and inherit the HUD's text colour/font for the emoji glyph.
@@ -325,6 +370,10 @@ export function createStatsHUD() {
     statusState() { return statusKey; },
     // Play the day-rollover veil (called from main.js when the day counter ticks up).
     playDayTransition,
+    // Play the brief shift-work montage for a job family (called from main.js when a
+    // shift is worked off the notice board). Unknown families are a no-op.
+    playShiftScene,
+    shiftFx() { return { opacity: parseFloat(shift.style.opacity) || 0, key: shiftKey, src: shiftArt.getAttribute("src") || "" }; },
     transitionFx() {
       return {
         night: parseFloat(nightEl.style.opacity) || 0,

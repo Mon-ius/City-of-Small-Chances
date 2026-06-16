@@ -131,9 +131,13 @@ function start() {
     if (!activePoint || !activePoint.act) return;
     const res = activePoint.act(i, { nowMin: day.minutes, pstate, day });
     hud.set(pstate.money, pstate.energy);
-    // A worked shift gets its own family texture (which ends in the coin payout);
-    // any other successful act just chimes the coins. A blocked one buzzes.
-    if (res && res.ok) audio.workShift(res.family); else audio.deny();
+    // A worked shift gets its own family texture (which ends in the coin payout)
+    // plus a brief painted montage of the work (fx-007); any other successful act
+    // just chimes the coins. A blocked one buzzes.
+    if (res && res.ok) {
+      audio.workShift(res.family);
+      if (res.family) hud.playShiftScene(res.family);
+    } else audio.deny();
     renderActive();
   }
 

@@ -263,6 +263,24 @@ html, body {
 .trans-layer--dawn  { background-image: url("../assets/sprites/fx/FX_Trans_DawnVeil.png"); }
 .trans-layer--grain { background-image: url("../assets/sprites/fx/FX_Trans_RestGrain.png"); }
 
+/* ── Shift montage (Batch 29, fx-007) ────────────────────────────────────────
+   A brief painted scene of the work you just did off the notice board, played
+   over a worked shift so the hours feel like something instead of a silent
+   clock-jump. Sits ABOVE everything (z 40 > the interaction panel at 30) so it
+   reads as a moment of its own, then fades to reveal the updated panel + clock.
+   One opaque 16:9 scene per job family; ui.js#playShiftScene only animates the
+   wrapper opacity. The dark backing means no flash of world if the cover-fit
+   art ever lets an edge through. Click-through; reduced motion gets a quick dim. */
+#hud-shift {
+  position: fixed; inset: 0; z-index: 40; pointer-events: none;
+  opacity: 0; background: #0a0d12; will-change: opacity;
+}
+.shift-art { width: 100%; height: 100%; object-fit: cover; display: block; }
+.shift-vignette {
+  position: absolute; inset: 0;
+  background: radial-gradient(120% 120% at 50% 44%, transparent 52%, rgba(6, 9, 13, 0.72) 100%);
+}
+
 /* ── Weather FX (Batch 21, fx-002) ───────────────────────────────────────────
    The rain and mist that move over the harbour on a grey, wet day. Sits above the
    condition vignette (z 8) and below the day-transition veil (z 10) — so the
