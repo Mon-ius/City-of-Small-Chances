@@ -1216,6 +1216,40 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // ── Quayside comforts for the people who work it (Batch 51): the stones are now
+  // dressed for cargo, for nature and for gear, but there is nothing on the quay for
+  // the labourers themselves — nowhere to rest a back, no water to drink, no fire to
+  // warm cold hands. Three painted cutouts answer that: a slatted timber bench with
+  // cast-iron ends set on the building kerb and again along the water-side promenade, a
+  // black cast-iron parish pump at the south kerb, and a dockers' coal brazier out on
+  // the open quay. Same GROUND-PLANTED camera-facing-billboard idiom as the cargo and
+  // animals, each on a soft contact-shadow blob; placed in the long gaps clear of the
+  // cargo (water-side z −24/−4/30, the building barrow at z 6). The brazier alone gets a
+  // strong emissive (0.6) — cutoutPlane self-illuminates by the sprite's own albedo, so
+  // the glowing coals burn warm against the dark iron and read brighter as the day dims.
+  const comforts = [
+    // [file, w, h, x, z, shadowR, emissive]
+    ["PROP_Quay_Bench", 1.5, 0.8, 6.5, -16, 0.72, 0.18], // a bench by the shopfronts, a tired back's rest
+    ["PROP_Quay_Bench", 1.42, 0.76, -9.7, 20, 0.68, 0.18], // a second bench along the water-side promenade
+    ["PROP_Quay_Pump", 0.7, 1.5, 6.7, -28, 0.32, 0.18], // a parish standpipe at the south kerb
+    ["PROP_Quay_Brazier", 0.94, 1.0, -9.8, 14, 0.46, 0.6], // a dockers' brazier on the open quay, coals aglow
+  ];
+  for (const [file, w, h, x, z, shadowR, emissive] of comforts) {
+    const item = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive, alphaTest: 0.4 });
+    item.position.set(x, h / 2, z);
+    scene.add(item);
+    billboards.push(item); // main.js turns it to face the camera each frame
+
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(shadowR, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(x, 0.02, z);
+    blob.renderOrder = -1; // under the cobbles' specular, never over the comforts
+    scene.add(blob);
+  }
+
   // ── Drifting clouds over the painted dome. tintClouds() lets the day cycle
   // multiply them with the horizon colour each minute (bright by day, warm at
   // dusk, sunk into the night sky after dark); main.js drifts + billboards them.
