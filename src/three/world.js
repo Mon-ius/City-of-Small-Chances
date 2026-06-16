@@ -316,6 +316,46 @@ export function buildWorld(scene) {
     new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide, fog: false }),
   );
   scene.add(skyDome);
+
+  // ── Painted sky panels (fx-001): three full-sky moods — day, dusk, night —
+  // laid just inside the gradient base dome and cross-faded by the day cycle.
+  // The gradient dome stays as a load-time fallback; once these load, the night
+  // panel (the opaque base of the blend) fully covers it. Plain MeshBasic keeps
+  // the panels sRGB-correct + tone-mapped like the rest of the scene; the
+  // cross-fade is an exact convex blend done with over-stack opacities (see
+  // setSkyBlend). The Batch-6 clouds drift inside these, over the painted sky.
+  function skyPanel(file, radius, order) {
+    const tex = _texLoader.load(`${SKY_DIR}${file}`);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(radius, 24, 16),
+      new THREE.MeshBasicMaterial({
+        map: tex, side: THREE.BackSide, fog: false,
+        transparent: true, depthWrite: false, opacity: order === 1 ? 1 : 0,
+      }),
+    );
+    mesh.renderOrder = order; // night(1) behind, dusk(2), day(3) in front
+    scene.add(mesh);
+    return mesh;
+  }
+  // Back-to-front: night is the opaque base; dusk then day blend over it.
+  const skyNight = skyPanel("SKY_Atmos_Night.png", 219.6, 1);
+  const skyDusk = skyPanel("SKY_Atmos_Dusk.png", 219.3, 2);
+  const skyDay = skyPanel("SKY_Atmos_Day.png", 219.0, 3);
+  // A convex blend wDay+wDusk+wNight=1 rendered as an over-stack: the front
+  // (day) layer's opacity is its own weight; the dusk layer's opacity is its
+  // weight normalised by what day leaves behind; night stays opaque underneath.
+  // This reproduces wDay·Day + wDusk·Dusk + wNight·Night exactly, no shader.
+  function setSkyBlend(wDay, wDusk, wNight) {
+    const aDay = Math.max(0, Math.min(1, wDay));
+    const rem = 1 - aDay;
+    const aDusk = rem > 1e-4 ? Math.max(0, Math.min(1, wDusk / rem)) : 0;
+    skyDay.material.opacity = aDay;
+    skyDusk.material.opacity = aDusk;
+    skyNight.material.opacity = 1; // opaque base
+  }
+  setSkyBlend(1, 0, 0); // a sensible bright-day default until the cycle sets it
+
   scene.fog = new THREE.Fog(0x9a8a7a, 35, 150);
 
   // ── Lighting: cool sky fill + warm sun with soft shadows. The day cycle drives
@@ -714,7 +754,7 @@ export function buildWorld(scene) {
   }
 
   const bounds = { minX: -10.5, maxX: 6.5, minZ: -34, maxZ: 34 };
-  return { bounds, citizens, billboards, clouds, lampHeads, markers, sun, hemi, ambient, skyDome, paintSky, tintClouds };
+  return { bounds, citizens, billboards, clouds, lampHeads, markers, sun, hemi, ambient, skyDome, paintSky, setSkyBlend, tintClouds };
 }
 
 // Wrapper so makeBuilding (which builds a Group) is added to the scene.
