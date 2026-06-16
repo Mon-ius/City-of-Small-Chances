@@ -15,9 +15,9 @@ const PALETTES = {
   elder:    { coat: 0x7d7f88, legs: 0x303338, skin: 0xd8b48f, hair: 0xb9bcc4 },
 };
 
-function box(w, h, d, color, rough = 0.85) {
+function box(w, h, d, color, rough = 0.85, material = null) {
   const geo = new THREE.BoxGeometry(w, h, d);
-  const mat = new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: 0.0 });
+  const mat = material ?? new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: 0.0 });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
@@ -25,13 +25,43 @@ function box(w, h, d, color, rough = 0.85) {
 }
 
 // A limb hangs from a pivot placed at the joint, so rotating the pivot swings it.
-function limb(w, h, d, color, jointY, x) {
+function limb(w, h, d, color, jointY, x, material = null) {
   const pivot = new THREE.Object3D();
   pivot.position.set(x, jointY, 0);
-  const mesh = box(w, h, d, color);
+  const mesh = box(w, h, d, color, 0.85, material);
   mesh.position.y = -h / 2; // hang below the joint
   pivot.add(mesh);
   return pivot;
+}
+
+// spr-001 — the player (and ONLY the player) is dressed in painted PBR cloth & skin
+// instead of flat block colour; the geometry hero stays geometry, these maps just
+// skin its boxes. Each material STARTS as the flat palette colour (exactly today's
+// look) and "dresses" into the painted maps once they load — so a slow or missing
+// texture degrades gracefully to flat, never to black. The albedo carries the
+// garment's own colour, so the base tint flips to white the instant it lands.
+const _ptex = new THREE.TextureLoader();
+const PLAYER_TEX = "./assets/textures/player/";
+
+function playerSkin(object, tint, repeat = [1, 1]) {
+  const mat = new THREE.MeshStandardMaterial({ color: tint, roughness: 0.85, metalness: 0.0 });
+  const wrap = (t, srgb) => {
+    t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(repeat[0], repeat[1]);
+    t.anisotropy = 8;
+  };
+  _ptex.load(`${PLAYER_TEX}CHAR_Player_${object}_albedo.png`, (t) => {
+    wrap(t, true); mat.map = t; mat.color.setHex(0xffffff); mat.needsUpdate = true;
+  });
+  _ptex.load(`${PLAYER_TEX}CHAR_Player_${object}_normal.png`, (t) => {
+    wrap(t, false); mat.normalMap = t; mat.needsUpdate = true;
+  });
+  _ptex.load(`${PLAYER_TEX}CHAR_Player_${object}_orm.png`, (t) => {
+    wrap(t, false); mat.roughnessMap = t; mat.metalnessMap = t;
+    mat.roughness = 1; mat.metalness = 1; mat.needsUpdate = true;
+  });
+  return mat;
 }
 
 export function createFigure(kind = "player") {
@@ -40,22 +70,31 @@ export function createFigure(kind = "player") {
   const body = new THREE.Group(); // bobs vertically without moving the root
   root.add(body);
 
+  // Only the hero is painted (spr-001); ambient citizens stay flat block colour —
+  // lighter to draw, and visually distinct so the player reads apart from the crowd.
+  // One shared material per garment family (coat → torso + sleeves, trouser → hips +
+  // legs, skin → head + neck) keeps it to three texture uploads for the whole figure.
+  const dressed = kind === "player";
+  const coatMat = dressed ? playerSkin("Coat", p.coat) : null;
+  const trouserMat = dressed ? playerSkin("Trouser", p.legs) : null;
+  const skinMat = dressed ? playerSkin("Skin", p.skin) : null;
+
   const hipY = 0.82;
   const shoulderY = 1.46;
 
-  const torso = box(0.42, 0.66, 0.26, p.coat);
+  const torso = box(0.42, 0.66, 0.26, p.coat, 0.85, coatMat);
   torso.position.y = hipY + 0.33;
   body.add(torso);
 
-  const hips = box(0.4, 0.18, 0.26, p.legs);
+  const hips = box(0.4, 0.18, 0.26, p.legs, 0.85, trouserMat);
   hips.position.y = hipY + 0.02;
   body.add(hips);
 
-  const neck = box(0.12, 0.08, 0.12, p.skin);
+  const neck = box(0.12, 0.08, 0.12, p.skin, 0.85, skinMat);
   neck.position.y = shoulderY + 0.12;
   body.add(neck);
 
-  const head = box(0.28, 0.3, 0.27, p.skin);
+  const head = box(0.28, 0.3, 0.27, p.skin, 0.85, skinMat);
   head.position.y = shoulderY + 0.33;
   body.add(head);
 
@@ -63,10 +102,10 @@ export function createFigure(kind = "player") {
   hair.position.y = shoulderY + 0.5;
   body.add(hair);
 
-  const legL = limb(0.16, 0.8, 0.18, p.legs, hipY, -0.11);
-  const legR = limb(0.16, 0.8, 0.18, p.legs, hipY, 0.11);
-  const armL = limb(0.12, 0.62, 0.13, p.coat, shoulderY, -0.29);
-  const armR = limb(0.12, 0.62, 0.13, p.coat, shoulderY, 0.29);
+  const legL = limb(0.16, 0.8, 0.18, p.legs, hipY, -0.11, trouserMat);
+  const legR = limb(0.16, 0.8, 0.18, p.legs, hipY, 0.11, trouserMat);
+  const armL = limb(0.12, 0.62, 0.13, p.coat, shoulderY, -0.29, coatMat);
+  const armR = limb(0.12, 0.62, 0.13, p.coat, shoulderY, 0.29, coatMat);
   body.add(legL, legR, armL, armR);
 
   const figure = {
