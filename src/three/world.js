@@ -749,6 +749,18 @@ export function buildWorld(scene) {
     { role: "Urchin",       x:   1.5, z:   4 },
     { role: "Innkeeper",    x:  -5.5, z:  11 },
     { role: "Ferryman",     x:   6.0, z: -20 },
+    // Batch 34 (spr-002): six more trades and the family life of the port — the smith
+    // at his hammer, the baker with his bread, the itinerant tinker laden with pots, a
+    // mother cradling her infant, a soldier of the garrison, and the coal-heaver bent
+    // under his black sack. Set into the quay's far gaps, clear of the interactables
+    // (vendor −5,4 · board 5,−6), the named cast (Mei/Tomo/Jun/Rafiq), the spawn (−3,16)
+    // and each other. (30 → 36 standing crowd, toward the 40-NPC EA target.)
+    { role: "Blacksmith",   x:  -9.5, z:  30 },
+    { role: "Baker",        x:   4.5, z:  18 },
+    { role: "Tinker",       x: -10.0, z: -20 },
+    { role: "Mother",       x:   0.5, z:  30 },
+    { role: "Soldier",      x:   6.0, z:  10 },
+    { role: "Coalman",      x:  -8.0, z: -24 },
   ];
   for (const c of crowd) {
     const plane = citizenSprite(c.role);
