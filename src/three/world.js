@@ -605,10 +605,34 @@ export function buildWorld(scene) {
     const postL = box(0.12, 1.8, 0.12, 0x3a2f25); postL.position.set(-0.75, 0.9, 0); bg.add(postL);
     const postR = box(0.12, 1.8, 0.12, 0x3a2f25); postR.position.set(0.75, 0.9, 0); bg.add(postR);
     const panel = box(1.8, 1.15, 0.1, 0x6b5535); panel.position.set(0, 1.55, 0); bg.add(panel);
-    // A painted cluster of pinned notes & curled flyers overlaid on the panel face.
-    const notes = cutoutPlane(`${SIGNAGE_DIR}DECAL_BoardNotes.png`, 1.55, 0.98, { emissive: 0.2 });
+    // A painted cluster of pinned notes & curled flyers as the weathered backing.
+    const notes = cutoutPlane(`${SIGNAGE_DIR}DECAL_BoardNotes.png`, 1.55, 0.98, { emissive: 0.16 });
     notes.position.set(0, 1.58, 0.061);
     bg.add(notes);
+    // ── Bespoke posted notices (Batch 25, fx-003): six distinct documents pinned
+    // proud of the backing cluster, so the board you read your shifts off looks like
+    // a real working harbour board — a job ad, a harbour bylaw, a ferry timetable, a
+    // room-to-let card, a found/lost note, a festival flyer. Each is a fixed alpha
+    // cutout (no billboarding) sized to its PNG aspect, scattered in a 3×2 grid with
+    // a little jitter + tilt and stepped in z so the layers never z-fight.
+    const NOTE_ASPECT = {
+      NOTE_JobPosting: 350 / 512, NOTE_HarbourBylaw: 340 / 512, NOTE_FerrySchedule: 315 / 512,
+      NOTE_RoomToLet: 437 / 512, NOTE_FoundLost: 469 / 512, NOTE_EventFlyer: 323 / 512,
+    };
+    const boardNotes = [
+      { file: "NOTE_JobPosting",    h: 0.50, x: -0.46, y: 1.80, rot:  0.05 },
+      { file: "NOTE_HarbourBylaw",  h: 0.48, x:  0.00, y: 1.82, rot: -0.03 },
+      { file: "NOTE_FerrySchedule", h: 0.46, x:  0.46, y: 1.79, rot:  0.06 },
+      { file: "NOTE_RoomToLet",     h: 0.40, x: -0.45, y: 1.34, rot: -0.07 },
+      { file: "NOTE_FoundLost",     h: 0.39, x:  0.02, y: 1.32, rot:  0.08 },
+      { file: "NOTE_EventFlyer",    h: 0.50, x:  0.46, y: 1.36, rot: -0.05 },
+    ];
+    boardNotes.forEach((n, i) => {
+      const note = cutoutPlane(`${SIGNAGE_DIR}${n.file}.png`, n.h * NOTE_ASPECT[n.file], n.h, { emissive: 0.16 });
+      note.position.set(n.x, n.y, 0.072 + i * 0.004);
+      note.rotation.z = n.rot;
+      bg.add(note);
+    });
     // A courier's delivery bike (Batch 11) parked at the board — the courier job's
     // required possession, stood right where the shift is taken. Fixed side-profile
     // (no billboarding): a bike reads by its silhouette, so it must not pivot.
