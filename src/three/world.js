@@ -434,6 +434,12 @@ export function buildWorld(scene) {
   // Weathered clay-tile roof (Batch 11): a single shared tile, repeated so the
   // pitched lids read as rows of tiles rather than a flat grey cap.
   const roofMat = surfaceMaterial("Roof", [4, 4]);
+  // Two more roof surfaces (Batch 41) so the rooftops stop reading as one lid
+  // copied six times now that the walls vary: cool grey slate, and a weathered
+  // standing-seam metal warehouse roof. RoofMetal is the only harbour surface
+  // with real metalness (its ORM B channel ≈0.47), so it catches the sun.
+  const slateRoofMat = surfaceMaterial("RoofSlate", [4, 4]);
+  const metalRoofMat = surfaceMaterial("RoofMetal", [4, 4]);
 
   // ── Shared prop materials (Batch 2 art): painted metal for ironwork, striped
   // canvas for the awning, sailcloth for rigging, twisted hemp for rope. Metalness
@@ -531,21 +537,22 @@ export function buildWorld(scene) {
   }
 
   // ── A row of harbour buildings on the east side (fronts facing the water).
-  // Each carries one of three painted façade bodies (Batch 40) so the street
-  // mixes brick warehouses, plaster fronts and grey rendered houses instead of
-  // six copies — body curated per entry so no two neighbours match and all
-  // three surfaces appear; further variety comes from size + window hashing.
+  // Each carries one of three painted façade bodies (Batch 40) AND one of three
+  // roofs (Batch 41) so the street mixes brick/plaster/stucco walls under
+  // clay/slate/metal lids instead of six copies — body + roof curated per entry
+  // so no two neighbours share either surface, the roof never trivially tracks
+  // the wall, and all three of each appear; size + window hashing add the rest.
   const facades = [
-    { w: 7, h: 8.5, d: 7, body: brickMat },
-    { w: 6, h: 6.5, d: 6.5, body: plasterMat },
-    { w: 8, h: 11, d: 8, body: stuccoMat },
-    { w: 6.5, h: 7.5, d: 7, body: plasterMat },
-    { w: 7, h: 9.5, d: 7.5, body: brickMat },
-    { w: 6, h: 6, d: 6.5, body: stuccoMat },
+    { w: 7, h: 8.5, d: 7, body: brickMat, roof: slateRoofMat },
+    { w: 6, h: 6.5, d: 6.5, body: plasterMat, roof: roofMat },
+    { w: 8, h: 11, d: 8, body: stuccoMat, roof: metalRoofMat },
+    { w: 6.5, h: 7.5, d: 7, body: plasterMat, roof: slateRoofMat },
+    { w: 7, h: 9.5, d: 7.5, body: brickMat, roof: metalRoofMat },
+    { w: 6, h: 6, d: 6.5, body: stuccoMat, roof: roofMat },
   ];
   let zCursor = -30;
   for (const f of facades) {
-    makeBuildingInto(scene, 9 + f.w / 2, zCursor + f.d / 2, f.w, f.h, f.d, f.body, windowMat, roofMat);
+    makeBuildingInto(scene, 9 + f.w / 2, zCursor + f.d / 2, f.w, f.h, f.d, f.body, windowMat, f.roof);
     zCursor += f.d + 2.5;
   }
 
