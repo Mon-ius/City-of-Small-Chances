@@ -559,6 +559,24 @@ export function buildWorld(scene) {
     scene.add(bg);
   }
 
+  // ── Parked vehicles (Batch 18): the working harbour's wheels, fixed side-profile
+  // cutouts like the courier bike. A delivery scooter stands near the notice board —
+  // the courier's step-up from the bike, parked where the run is taken — and a small
+  // panel van waits at the east kerb, its broad side to the street. Each is a flat
+  // cutout sized to its PNG aspect, lightly self-lit so it reads after dark; the
+  // scooter faces the approaching street (+z, angled), the van faces the street (−x).
+  const parkedVehicles = [
+    // [file, w, h, [x, y, z], yaw, emissive]
+    ["PROP_Vehicle_Scooter", 1.41, 1.0, [3.5, 0.52, -4.4], 0.35, 0.12],
+    ["PROP_Vehicle_Van", 3.15, 1.55, [5.7, 0.78, 11], -Math.PI / 2, 0.1],
+  ];
+  for (const [file, w, h, [x, y, z], yaw, emissive] of parkedVehicles) {
+    const v = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive });
+    v.position.set(x, y, z);
+    v.rotation.y = yaw;
+    scene.add(v);
+  }
+
   // ── Floating markers above each interactable, so you can spot them from afar.
   const markers = [];
   for (const it of INTERACTABLES) {
