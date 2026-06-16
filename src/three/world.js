@@ -1139,6 +1139,49 @@ export function buildWorld(scene) {
     }
   }
 
+  // ── Smoke from the chimneys (Batch 49): the sky over the rooftops was the emptiest
+  // zone in the frame — clouds and a few high gulls and nothing else rising. A working
+  // port has woodsmoke curling off its roofs; that single touch makes the buildings read
+  // as warm and lived-in rather than empty shells. Three luminance-alpha smoke sprites
+  // (painted on black, alpha = brightness, so the wisps stay truly soft) stand as
+  // billboards over the three tallest roofs — a faint wisp just catching, a steady plume,
+  // a fuller column from a busy kitchen. Unlike the cutout props these use NO alphaTest (a
+  // feathered edge, never a hard sticker rim). The emissive map carries the plume so it
+  // reads pale across the whole day cycle (brightest against the dark night sky, where the
+  // lit windows are glowing too — most subtle against a bright sunset, as real smoke is).
+  // depthTest + depthWrite are OFF and renderOrder is high so the plume always draws over
+  // the sky dome and the day-cycle sky-tint spheres (which sit at the far radius and would
+  // otherwise depth-occlude a thing this far out); standing high above the rooflines, it
+  // never bleeds over anything that ought to be in front of it.
+  const smoke = [
+    // [file, w, h, x, z, roofTop] — the plane base sits on the roof (y = roofTop + h/2).
+    ["PROP_Smoke_Column", 2.87, 5.2, 12.6, -9.0, 11.3], // the tall chandlery: a busy kitchen chimney
+    ["PROP_Smoke_Plume", 1.89, 4.7, 12.4, 10.8, 9.8], // a hearth well alight
+    ["PROP_Smoke_Wisp", 1.3, 3.9, 12.0, -25.0, 8.8], // a fire just catching
+  ];
+  for (const [file, w, h, x, z, roofTop] of smoke) {
+    const map = _texLoader.load(`${PROP_SPRITE_DIR}${file}.png`);
+    map.colorSpace = THREE.SRGBColorSpace;
+    map.anisotropy = 8;
+    const mat = new THREE.MeshStandardMaterial({
+      map,
+      transparent: true,
+      depthWrite: false, // true vapour — nothing reads its depth
+      depthTest: false, // draw over the far sky dome / sky-tint spheres, never occluded
+      side: THREE.DoubleSide,
+      roughness: 1,
+      metalness: 0,
+      emissive: 0xffffff,
+      emissiveMap: map,
+      emissiveIntensity: 1.0, // carries the pale plume across day → night
+    });
+    const plume = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+    plume.position.set(x, roofTop + h / 2, z);
+    plume.renderOrder = 4; // after the opaque world AND the sky-tint spheres (renderOrder 1–3)
+    scene.add(plume);
+    billboards.push(plume); // main.js turns it to face the camera each frame
+  }
+
   // ── Drifting clouds over the painted dome. tintClouds() lets the day cycle
   // multiply them with the horizon colour each minute (bright by day, warm at
   // dusk, sunk into the night sky after dark); main.js drifts + billboards them.
