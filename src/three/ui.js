@@ -167,6 +167,12 @@ export function createStatsHUD() {
   // v at/above `lo` → 0, at/below `hi` → 1, linear between (hi < lo).
   const ramp = (v, lo, hi) => Math.max(0, Math.min(1, (lo - v) / (lo - hi)));
   let lowOp = 0, burnOp = 0, coldOp = 0;
+  // Cold/wet edge vignette (0..1). Driven by weather today (rain → chill); the
+  // public setColdWet method and setWeather both route through here.
+  const applyColdWet = (t) => {
+    coldOp = Math.max(0, Math.min(1, t || 0));
+    coldEl.style.opacity = coldOp.toFixed(3);
+  };
   const paintCondition = (energy) => {
     const e = Math.max(0, Math.min(100, energy));
     lowOp = ramp(e, 45, 12);   // fatigue creeps in below 45, full by 12
@@ -223,6 +229,40 @@ export function createStatsHUD() {
     }, 240);
   };
 
+  // Weather FX (Batch 21, fx-002): the rain and mist that move over the harbour on
+  // a grey, wet day. Three full-screen cards — a tiled, CSS-scrolled rain layer for
+  // the fall, plus a fog veil and a wispier mist veil that drift slowly. Each card
+  // carries its own capped alpha; we only animate each layer's opacity here from a
+  // day's weather (main.js#weatherFor). Rain also feeds the dormant cold/wet
+  // condition vignette — being out in the rain reads as a faint chill at the edges.
+  const wx = document.createElement("div");
+  wx.id = "hud-weather";
+  wx.className = "hud-weather";
+  wx.setAttribute("aria-hidden", "true");
+  wx.innerHTML =
+    `<div class="weather-layer weather-layer--fog"></div>
+     <div class="weather-layer weather-layer--mist"></div>
+     <div class="weather-layer weather-layer--rain"></div>`;
+  document.body.appendChild(wx);
+  const fogEl = wx.querySelector(".weather-layer--fog");
+  const mistEl = wx.querySelector(".weather-layer--mist");
+  const rainEl = wx.querySelector(".weather-layer--rain");
+  let rainOp = 0, fogOp = 0, mistOp = 0;
+  // rain, fog: 0..1 day intensities. Rain drives the rain layer + a thinner mist
+  // companion; fog drives the fog veil (and lifts the mist a touch). The cold/wet
+  // edge vignette tracks the rain so a downpour feels chilly without a new asset.
+  const setWeather = (rain, fog) => {
+    const r = Math.max(0, Math.min(1, rain || 0));
+    const f = Math.max(0, Math.min(1, fog || 0));
+    rainOp = r;
+    fogOp = f;
+    mistOp = Math.max(0, Math.min(1, r * 0.6 + f * 0.25));
+    rainEl.style.opacity = rainOp.toFixed(3);
+    fogEl.style.opacity = fogOp.toFixed(3);
+    mistEl.style.opacity = mistOp.toFixed(3);
+    applyColdWet(r * 0.5); // out in the rain → a faint cold-wet chill at the edges
+  };
+
   // The mute button must catch clicks even though the HUD layer ignores them.
   // It keeps the shared .hud-stat painted-plate look (Batch 8); we only re-enable
   // pointer events and inherit the HUD's text colour/font for the emoji glyph.
@@ -237,8 +277,13 @@ export function createStatsHUD() {
       fillEl.style.background = `hsl(${Math.round((e / 100) * 120)} 70% 48%)`; // green→red as it drains
       paintCondition(e); // deepen the condition vignette in step with the meter
     },
-    // Cold/wet exposure overlay (0..1) — ready for the weather hook; dormant today.
-    setColdWet(t) { coldOp = Math.max(0, Math.min(1, t || 0)); coldEl.style.opacity = coldOp.toFixed(3); },
+    // Cold/wet exposure overlay (0..1). Now driven live by weather via setWeather,
+    // but still callable directly for any future wet/exposure state.
+    setColdWet(t) { applyColdWet(t); },
+    // Set the day's weather: rain & fog intensities (0..1) → the rain/fog/mist
+    // overlay layers (+ the cold/wet edge chill). Called from main.js per day.
+    setWeather,
+    weatherFx() { return { rain: rainOp, fog: fogOp, mist: mistOp }; },
     setMuted(m) { muteIcon.textContent = m ? "🔇" : "🔊"; },
     onMuteToggle(cb) { muteBtn.addEventListener("click", cb); },
     moneyText() { return moneyEl.textContent; },

@@ -17,6 +17,25 @@ import { createAudio } from "./audio.js";
 const MOVE_SPEED = 4.2;            // metres / second
 const CAM = { yaw: 0, pitch: 0.34, dist: 9, height: 1.4 };
 
+// The harbour's weather, day by day (Batch 21, fx-002). Deterministic — no RNG —
+// so a given day always dawns the same: day 1 opens clear so you meet the world
+// dry, then a fixed six-day cycle of working-port weather rolls through — a morning
+// mist, a clear day, a soft rain, a proper wet day, a clearing drizzle. rain & fog
+// are 0..1 intensities the HUD turns into the rain/fog/mist overlay. Grounded,
+// never a storm: rain peaks at a steady drift, fog at a low veil off the water.
+const WEATHER_CYCLE = [
+  { rain: 0.0,  fog: 0.0  }, // clear — the world you arrive into
+  { rain: 0.0,  fog: 0.34 }, // a low morning mist off the water
+  { rain: 0.0,  fog: 0.06 }, // clear, a breath of haze
+  { rain: 0.45, fog: 0.40 }, // a soft rain sets in
+  { rain: 0.85, fog: 0.62 }, // a proper grey, wet day
+  { rain: 0.28, fog: 0.46 }, // the rain easing to a clearing drizzle
+];
+function weatherFor(dayNumber) {
+  const i = ((Math.floor(dayNumber) - 1) % WEATHER_CYCLE.length + WEATHER_CYCLE.length) % WEATHER_CYCLE.length;
+  return WEATHER_CYCLE[i];
+}
+
 function fail(msg) {
   const boot = document.getElementById("boot");
   if (boot) {
@@ -65,6 +84,7 @@ function start() {
   const pstate = createPlayerState();
   const hud = createStatsHUD();
   hud.set(pstate.money, pstate.energy);
+  { const w = weatherFor(day.day); hud.setWeather(w.rain, w.fog); } // the day's sky
 
   // The harbour's procedural soundscape (resumes on first gesture; see audio.js).
   const audio = createAudio();
@@ -220,6 +240,8 @@ function start() {
     if (day.day !== lastDay) {
       lastDay = day.day;
       hud.playDayTransition();
+      const w = weatherFor(day.day); // the new day brings its own weather, masked
+      hud.setWeather(w.rain, w.fog);  // by the transition veil so the swap is unseen
     }
 
     // Keep a live panel (the notice board) honest with the moving clock: as the

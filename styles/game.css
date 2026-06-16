@@ -253,6 +253,45 @@ html, body {
 .trans-layer--dawn  { background-image: url("../assets/sprites/fx/FX_Trans_DawnVeil.png"); }
 .trans-layer--grain { background-image: url("../assets/sprites/fx/FX_Trans_RestGrain.png"); }
 
+/* ── Weather FX (Batch 21, fx-002) ───────────────────────────────────────────
+   The rain and mist that move over the harbour on a grey, wet day. Sits above the
+   condition vignette (z 8) and below the day-transition veil (z 10) — so the
+   rollover wash masks a day's weather swap — and below the HUD (z 12). All three
+   cards carry their own capped alpha (transparent gaps → clear, bright weather →
+   visible); ui.js setWeather() only animates each layer's opacity. The rain card
+   is tiled and SCROLLS in a tight seamless loop (it's even top-to-bottom, so a
+   one-tile drop repeats cleanly), giving the fall; fog and mist are stretched
+   veils that drift slowly. Click-through. Reduced motion freezes the scroll. */
+#hud-weather { position: fixed; inset: 0; z-index: 9; pointer-events: none; }
+.weather-layer {
+  position: absolute; inset: 0; opacity: 0;
+  transition: opacity 1.3s ease; will-change: opacity, background-position;
+}
+/* Rain: a tiled 384px card scrolled exactly one tile DOWN each loop — seamless
+   because the card is even top-to-bottom and the step equals the tile height. The
+   fall is pure-vertical (the diagonal look lives in the streaks themselves); any
+   sideways step that isn't a whole tile would snap-jitter at the loop boundary. */
+.weather-layer--rain {
+  background-image: url("../assets/sprites/fx/FX_Rain_Streaks.png");
+  background-repeat: repeat; background-size: 384px 384px;
+  animation: weather-rain 0.62s linear infinite;
+}
+@keyframes weather-rain { from { background-position: 0 0; } to { background-position: 0 384px; } }
+/* Fog + mist: single stretched veils, gently over-scanned so a slow horizontal
+   drift never exposes an edge. Mist drifts the other way, slower, for parallax. */
+.weather-layer--fog {
+  background-image: url("../assets/sprites/fx/FX_Weather_Fog.png");
+  background-repeat: no-repeat; background-position: center bottom; background-size: 130% 116%;
+  animation: weather-fog 58s ease-in-out infinite alternate;
+}
+.weather-layer--mist {
+  background-image: url("../assets/sprites/fx/FX_Rain_Mist.png");
+  background-repeat: no-repeat; background-position: center; background-size: 138% 124%;
+  animation: weather-mist 81s ease-in-out infinite alternate;
+}
+@keyframes weather-fog  { from { background-position: 42% bottom; } to { background-position: 58% bottom; } }
+@keyframes weather-mist { from { background-position: 56% center; } to { background-position: 44% center; } }
+
 /* ── Boot splash ──────────────────────────────────────────────────────────*/
 #boot {
   position: fixed; inset: 0; z-index: 20;
@@ -267,4 +306,6 @@ html, body {
   #boot { transition-duration: 0.001ms; }
   /* The condition vignettes still appear, but snap rather than fade. */
   .cond-layer { transition: none; }
+  /* Weather still shows (a static rain/fog wash) but stops moving. */
+  .weather-layer { animation: none; }
 }
