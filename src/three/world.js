@@ -1182,6 +1182,40 @@ export function buildWorld(scene) {
     billboards.push(plume); // main.js turns it to face the camera each frame
   }
 
+  // ── The working cargo of the port (Batch 50): the quay is dressed for life — a cat, a
+  // dog, pigeons, washing, planters — far more than for work. There are crates and sacks
+  // by the stall, but none of the heavy freight a port actually handles. Three painted
+  // cargo cutouts now sit, sparsely, in the open working spots: stout iron-hooped casks
+  // rolled off a boat onto the quay, a labourer's two-wheel hand-barrow stood at rest by
+  // the shopfronts, and a great rusted admiralty anchor laid up with its chain at the
+  // north end of the sea-wall. Like the animals these are GROUND-PLANTED camera-facing
+  // billboards, each given a soft contact-shadow blob to sit it on the deck; each prop's
+  // base is the image's bottom edge, so the plane centre is half its height above the
+  // ground. Placed against the water-side wall (x≈−10) and the building kerb (x≈7) in the
+  // long gaps clear of the Batch-42 quay clutter, the planters, the named cast and spawn.
+  const cargo = [
+    // [file, w, h, x, z, shadowR]
+    ["PROP_Cargo_Barrels", 1.2, 1.03, -9.8, -24, 0.6], // casks off a boat, south quay
+    ["PROP_Cargo_Barrels", 1.1, 0.95, -9.9, -4, 0.55], // a second stack, mid-quay
+    ["PROP_Cargo_Handbarrow", 0.8, 1.4, 7.0, 6, 0.42], // a barrow at rest by the shopfronts
+    ["PROP_Cargo_Anchor", 1.4, 1.6, -10.3, 30, 0.62], // a great anchor laid up, north quay
+  ];
+  for (const [file, w, h, x, z, shadowR] of cargo) {
+    const item = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive: 0.18, alphaTest: 0.4 });
+    item.position.set(x, h / 2, z);
+    scene.add(item);
+    billboards.push(item); // main.js turns it to face the camera each frame
+
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(shadowR, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(x, 0.02, z);
+    blob.renderOrder = -1; // under the cobbles' specular, never over the cargo
+    scene.add(blob);
+  }
+
   // ── Drifting clouds over the painted dome. tintClouds() lets the day cycle
   // multiply them with the horizon colour each minute (bright by day, warm at
   // dusk, sunk into the night sky after dark); main.js drifts + billboards them.
