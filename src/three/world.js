@@ -725,6 +725,18 @@ export function buildWorld(scene) {
     { role: "Constable",    x:   5.0, z:   6 },
     { role: "Musician",     x:  -1.0, z:  16 },
     { role: "Fishwife",     x:  -8.0, z:  19 },
+    // Batch 32 (spr-002): six more that reach into corners of port society the roster
+    // still missed — the inshore fisherman in his oilskins, a nun on her charity round,
+    // a war-worn veteran on a cane, a girl selling cut flowers, the harbour-master with
+    // his ledger, and a soot-black chimney sweep with his rods. Tucked into real gaps
+    // along the quay, clear of the interactables (vendor −5,4 · board 5,−6), the named
+    // cast (Mei/Tomo/Jun/Rafiq), the spawn (−3,16) and each other.
+    { role: "Fisherman",    x: -10.2, z:   4 },
+    { role: "Nun",          x:   0.5, z:  20 },
+    { role: "Veteran",      x:  -3.5, z: -16 },
+    { role: "FlowerGirl",   x:  -2.5, z:   9 },
+    { role: "Dockmaster",   x:   5.0, z: -26 },
+    { role: "Sweep",        x:  -8.5, z:  26 },
   ];
   for (const c of crowd) {
     const plane = citizenSprite(c.role);
