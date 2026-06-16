@@ -955,6 +955,46 @@ export function buildWorld(scene) {
     scene.add(sign);
   }
 
+  // ── Seagulls (Batch 43): the harbour's defining creature, absent until now — a
+  // port without gulls doesn't read as a port. Painted herring-gull cutouts perched
+  // along the wet sea-wall top, on the lamp cross-arms, on the moored boat (one at
+  // the masthead, calling), on two rooftops, and a few soaring high over the water.
+  // Each is a camera-facing billboard (pushed to `billboards`, turned to face the
+  // camera every frame in main.js) just like the citizens; the perched birds sit ON
+  // their surface, the soarers hang high like the drifting clouds. No contact-shadow
+  // blob — gulls perch on rails and wing over water, never plant on the ground. Three
+  // poses (perched / calling / flying) repeat across the flock; the flyers ship ~2:1.
+  const gulls = [
+    // [pose, x, y, z, w, h, emissive]
+    // Along the wet sea-wall top (wall top y≈0.9, x≈−11.4), set between the bollards.
+    ["Perched", -11.4, 1.16, -6, 0.5, 0.5, 0.16],
+    ["Calling", -11.4, 1.18, 3, 0.52, 0.52, 0.16],
+    ["Perched", -11.4, 1.16, 12, 0.5, 0.5, 0.16],
+    ["Perched", -11.4, 1.16, -19, 0.48, 0.48, 0.16],
+    ["Calling", -11.4, 1.18, 25, 0.52, 0.52, 0.16],
+    // On the lamp cross-arms (arm at y≈3.0, x≈−9.3; lamps sit at z∈{−28,−14,0,14,28}).
+    ["Perched", -9.25, 3.2, -14, 0.46, 0.46, 0.18],
+    ["Calling", -9.25, 3.22, 14, 0.46, 0.46, 0.18],
+    // On the moored boat, out over the water at (−20,·,−6): one on the gunwale, one
+    // up at the masthead crying over the harbour.
+    ["Perched", -19.8, 0.95, -2.5, 0.5, 0.5, 0.16],
+    ["Calling", -20.0, 5.75, -4.5, 0.44, 0.44, 0.2],
+    // On two harbour rooftops (front edge x≈9, roof top y≈h+0.3), high over the street.
+    ["Perched", 9.2, 9.05, -26.5, 0.5, 0.5, 0.2],
+    ["Calling", 9.2, 10.05, 12.25, 0.5, 0.5, 0.2],
+    // Soaring high over the water and the quay — a static glide reads like the clouds.
+    ["Flying", -25, 9, -2, 1.4, 0.7, 0.22],
+    ["Flying", -18, 11, 9, 1.2, 0.6, 0.22],
+    ["Flying", -30, 13, -15, 1.5, 0.75, 0.22],
+    ["Flying", 4, 14, -4, 1.1, 0.55, 0.22],
+  ];
+  for (const [pose, x, y, z, w, h, emissive] of gulls) {
+    const gull = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Gull_${pose}.png`, w, h, { emissive, alphaTest: 0.4 });
+    gull.position.set(x, y, z);
+    scene.add(gull);
+    billboards.push(gull); // main.js turns it to face the camera each frame
+  }
+
   // ── Drifting clouds over the painted dome. tintClouds() lets the day cycle
   // multiply them with the horizon colour each minute (bright by day, warm at
   // dusk, sunk into the night sky after dark); main.js drifts + billboards them.
