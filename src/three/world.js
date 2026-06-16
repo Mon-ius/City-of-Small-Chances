@@ -761,6 +761,16 @@ export function buildWorld(scene) {
     { role: "Mother",       x:   0.5, z:  30 },
     { role: "Soldier",      x:   6.0, z:  10 },
     { role: "Coalman",      x:  -8.0, z: -24 },
+    // Batch 35 (spr-002): the last four, landing the roster on the book's full 40
+    // citizen variants — the schoolmistress with her slate, the knife-grinder at his
+    // treadle barrow, the town crier mid-call with his bell, and a widow in mourning
+    // black come to the water's edge (the sea's cost, counterpart to the mother above).
+    // Set into the final gaps, clear of the interactables (vendor −5,4 · board 5,−6),
+    // the named cast (Mei/Tomo/Jun/Rafiq), the spawn (−3,16) and each other.
+    { role: "Schoolmistress", x: -1.0, z: -20 },
+    { role: "Knifegrinder",   x:  4.0, z:  28 },
+    { role: "TownCrier",      x: -4.0, z:  -8 },
+    { role: "Widow",          x: -10.0, z: 16 },
   ];
   for (const c of crowd) {
     const plane = citizenSprite(c.role);
