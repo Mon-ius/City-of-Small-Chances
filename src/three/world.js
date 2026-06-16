@@ -713,6 +713,18 @@ export function buildWorld(scene) {
     { role: "Clerk",        x: -3.2, z:  24 },
     { role: "Washerwoman",  x: -9.0, z:  12 },
     { role: "OldWoman",     x: -7.4, z:   1 },
+    // Batch 28 (spr-002): six more that span the book's class spectrum — the harbour
+    // is "City of Small Chances", so the quay should hold the whole society, from the
+    // destitute to the genteel: a beggar against the harbour wall (cap in hand), a
+    // fishwife crying her basket, the constable on his beat, a busker on the fiddle,
+    // a merchant in a top hat, a lady with a parasol. Spread into gaps along the quay,
+    // clear of the interactables (vendor −5,4 · board 5,−6), the named cast and spawn.
+    { role: "Beggar",       x: -10.2, z: -10 },
+    { role: "Merchant",     x:   3.0, z: -22 },
+    { role: "Lady",         x:   4.0, z:   0 },
+    { role: "Constable",    x:   5.0, z:   6 },
+    { role: "Musician",     x:  -1.0, z:  16 },
+    { role: "Fishwife",     x:  -8.0, z:  19 },
   ];
   for (const c of crowd) {
     const plane = citizenSprite(c.role);
