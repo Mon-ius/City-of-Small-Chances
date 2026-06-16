@@ -104,8 +104,7 @@ function windowPlane(winW, winH, cell, material) {
 // main.js) so the painted figure always reads front-on. The albedo carries warm
 // dusk shading already; we light it lightly and floor it with a touch of emissive
 // so it neither flickers as you orbit nor goes black after dark.
-function citizenSprite(role, height = 1.85) {
-  const map = _texLoader.load(`${SPRITE_DIR}CHAR_Harbour_Citizen_${role}_albedo.png`);
+function spritePlane(map, height) {
   map.colorSpace = THREE.SRGBColorSpace;
   map.anisotropy = 8;
   const mat = new THREE.MeshStandardMaterial({
@@ -124,6 +123,14 @@ function citizenSprite(role, height = 1.85) {
   plane.position.y = height / 2; // feet on the ground
   plane.castShadow = false;      // a camera-facing plane casts a bad rotating shadow
   return plane;
+}
+function citizenSprite(role, height = 1.85) {
+  return spritePlane(_texLoader.load(`${SPRITE_DIR}CHAR_Harbour_Citizen_${role}_albedo.png`), height);
+}
+// The named major NPCs (Batch 22, spr-003): full-body sprites painted to match
+// each character's talk-panel portrait, same billboard treatment as the citizens.
+function npcSprite(name, height = 1.85) {
+  return spritePlane(_texLoader.load(`${SPRITE_DIR}CHAR_NPC_${name}_albedo.png`), height);
 }
 
 // ── Painted alpha-cutout plane (Batch 6 signage & decals): chroma-keyed art on a
@@ -636,6 +643,35 @@ export function buildWorld(scene) {
     blob.rotation.x = -Math.PI / 2;
     blob.position.set(c.x, 0.02, c.z);
     blob.renderOrder = -1; // under the cobbles' specular, never over the figure
+    scene.add(blob);
+  }
+
+  // ── The named cast (Batch 22, spr-003): the harbour's own people, standing where
+  // the day tends to put them — Mei working behind her noodle-stall counter, Tomo the
+  // quayside mechanic at his patch by the water, Jun the courier dispatcher by the
+  // notice board where the runs are taken, Rafiq the dock foreman with the gang to the
+  // north. (Clara and Ava belong to uptown and the tenements — ship-ready until those
+  // districts become walkable.) Same camera-facing billboard + contact-shadow treatment
+  // as the ambient crowd, so the people you meet in the talk panel are the same people
+  // you pass on the quay. Placed clear of the interactables and the spawn.
+  const namedLocals = [
+    { name: "Mei", x: -5.0, z: 3.1 },   // behind her stall counter (stall at −5,4)
+    { name: "Tomo", x: -8.8, z: -7 },   // the quay mechanic, water-side at his patch
+    { name: "Jun", x: 3.0, z: -7 },     // the dispatcher near the board + parked bike
+    { name: "Rafiq", x: 4.7, z: -12 },  // the foreman with the dock gang, north end
+  ];
+  for (const p of namedLocals) {
+    const plane = npcSprite(p.name);
+    plane.position.set(p.x, plane.position.y, p.z);
+    scene.add(plane);
+    billboards.push(plane);
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.55 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(p.x, 0.02, p.z);
+    blob.renderOrder = -1;
     scene.add(blob);
   }
 
