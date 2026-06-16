@@ -1085,6 +1085,27 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // ── Washing day over the quay (Batch 47): the tall façades fronting the quay were the
+  // plainest surface left — bare wall, a grid of windows, a few hanging signs. A crowded
+  // period port hangs its washing out over the street, so three painted washing-line
+  // cutouts now sag across the upper façades: household linens, everyday clothes, and
+  // dock-labour work-clothes. Like the Batch-9 signage these are FIXED cutouts (laundry
+  // hangs still on its line — it does not billboard to watch you), hung a little proud of
+  // the wall (x≈8.5) facing the street (−x), strung high above the doors and shop signs and
+  // below the rooflines, lit a touch (emissive) so they stay readable after dark.
+  const laundry = [
+    // [file, w, h, y, z] — all at x=8.5, facing −x (FACADE), strung across an upper façade.
+    ["PROP_Laundry_Workclothes", 3.4, 1.13, 5.2, -26.5], // over the southmost building (h8.5)
+    ["PROP_Laundry_Linens", 3.7, 1.23, 6.5, -7.5], // high on the tall Chandlery wall (h11)
+    ["PROP_Laundry_Garments", 3.4, 1.13, 5.8, 12.25], // a splash of colour, north building (h9.5)
+  ];
+  for (const [file, w, h, y, z] of laundry) {
+    const line = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive: 0.2, alphaTest: 0.35 });
+    line.position.set(8.5, y, z);
+    line.rotation.y = FACADE; // face −x, hanging out over the street
+    scene.add(line);
+  }
+
   // ── Drifting clouds over the painted dome. tintClouds() lets the day cycle
   // multiply them with the horizon colour each minute (bright by day, warm at
   // dusk, sunk into the night sky after dark); main.js drifts + billboards them.
