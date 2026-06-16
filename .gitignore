@@ -23,3 +23,6 @@ tools/gen/watch_batch*
 # Local-only design source (kept out of the public game repo)
 City_of_Small_Chances_Game_Design_Book.md
 .claude/
+
+# Transient Chromium headless logs (written to CWD when probing from the repo root).
+logs/

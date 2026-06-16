@@ -1017,6 +1017,28 @@ export function buildWorld(scene) {
     billboards.push(ship); // main.js turns it to face the camera each frame
   }
 
+  // ── The far shore (Batch 45): close the empty horizon — the opposite bank of the bay.
+  // A FIXED (NOT billboarded — a horizon must never turn) fog-blended band of painted hazy
+  // distant land standing along the far-west edge of the water (x≈−79), facing the quay
+  // (+x). Atmospheric-perspective art + the harbour fog sink it into the distance behind the
+  // Batch-44 vessels: a rolling-cliff coast, a far-bank town, and a lighthouse headland at
+  // the harbour mouth. Each piece's painted shoreline is the image bottom edge, so we sit
+  // that edge on the water surface (WL). Segments overlap in z so the bank reads continuous
+  // across the western view; low emissive keeps them dim and far, alphaTest depth-sorts them
+  // cleanly in front of the sky dome and behind the ships.
+  const shore = [
+    // [file, w, h, z] — all at x=−79, facing +x, shoreline on the waterline.
+    ["PROP_Shore_Cliffs", 54, 5, -42],
+    ["PROP_Shore_Town", 50, 5, 4],
+    ["PROP_Shore_Lighthouse", 50, 9, 44],
+  ];
+  for (const [file, w, h, z] of shore) {
+    const land = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive: 0.14, alphaTest: 0.3 });
+    land.position.set(-79, WL + h / 2, z);
+    land.rotation.y = Math.PI / 2; // face +x, toward the quay
+    scene.add(land);
+  }
+
   // ── Drifting clouds over the painted dome. tintClouds() lets the day cycle
   // multiply them with the horizon colour each minute (bright by day, warm at
   // dusk, sunk into the night sky after dark); main.js drifts + billboards them.
