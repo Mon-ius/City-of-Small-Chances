@@ -995,6 +995,28 @@ export function buildWorld(scene) {
     billboards.push(gull); // main.js turns it to face the camera each frame
   }
 
+  // ── Vessels on the water (Batch 44): the wide sea west of the quay carried just one
+  // moored boat (real geometry, near). These three painted broadside cutouts stand far
+  // out as camera-facing billboards (the cloud/gull idiom) — a three-masted tall ship at
+  // anchor, a steam fishing trawler, a tan-sailed sailing barge — so the harbour reads as
+  // a working port with traffic, not an empty bay. Each ship's painted waterline is the
+  // image's bottom edge, so we sit that edge on the water surface (WL): the plane centre
+  // is half its height above the water. Placed far enough (x≤−40) that the billboard's
+  // slow turn is imperceptible, and lightly hazed by the harbour fog at distance.
+  const WL = -0.05; // water surface y (matches the water plane above)
+  const vessels = [
+    // [file, w, h, x, z] — hull bottom (= image bottom) sits on the waterline.
+    ["PROP_Ship_TallShip", 11.4, 10, -60, -20],
+    ["PROP_Ship_Trawler", 6.6, 4, -44, 28],
+    ["PROP_Ship_Barge", 9.1, 6, -40, -34],
+  ];
+  for (const [file, w, h, x, z] of vessels) {
+    const ship = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive: 0.2, alphaTest: 0.35 });
+    ship.position.set(x, WL + h / 2, z);
+    scene.add(ship);
+    billboards.push(ship); // main.js turns it to face the camera each frame
+  }
+
   // ── Drifting clouds over the painted dome. tintClouds() lets the day cycle
   // multiply them with the horizon colour each minute (bright by day, warm at
   // dusk, sunk into the night sky after dark); main.js drifts + billboards them.
