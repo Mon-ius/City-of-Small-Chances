@@ -737,6 +737,18 @@ export function buildWorld(scene) {
     { role: "FlowerGirl",   x:  -2.5, z:   9 },
     { role: "Dockmaster",   x:   5.0, z: -26 },
     { role: "Sweep",        x:  -8.5, z:  26 },
+    // Batch 33 (spr-002): six working trades, each known by the tool it carries — the
+    // priest with his book, the doctor with his bag, the lamplighter shouldering his
+    // long pole, a barefoot urchin, the innkeeper with his tankard, the ferryman with
+    // his oar. Tucked into the remaining gaps along the quay, clear of the interactables
+    // (vendor −5,4 · board 5,−6), the named cast (Mei/Tomo/Jun/Rafiq), the spawn (−3,16)
+    // and each other.
+    { role: "Priest",       x:   2.5, z:  25 },
+    { role: "Doctor",       x:  -6.0, z: -12 },
+    { role: "Lamplighter",  x:  -6.0, z:  -3 },
+    { role: "Urchin",       x:   1.5, z:   4 },
+    { role: "Innkeeper",    x:  -5.5, z:  11 },
+    { role: "Ferryman",     x:   6.0, z: -20 },
   ];
   for (const c of crowd) {
     const plane = citizenSprite(c.role);
