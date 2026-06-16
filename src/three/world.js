@@ -752,6 +752,27 @@ export function buildWorld(scene) {
     scene.add(v);
   }
 
+  // ── Quayside working clutter (Batch 42): the everyday gear of a working port,
+  // fixed side-profile cutouts like the vehicles. Most sit along the water's edge
+  // against the painted sea-wall where it belongs — buoys hung at the wall, a net
+  // drying, a coil of mooring rope — with a stack of lobster pots on the east kerb.
+  // Each is sized to its PNG aspect, sat on the deck (y = h/2), lightly self-lit so
+  // it reads after dark, broad side turned to the walkable quay. Placed in the long
+  // gaps clear of the stall/board/spawn/crates so nothing blocks the path.
+  const quayClutter = [
+    // [file, w, h, [x, y, z], yaw, emissive]
+    ["PROP_Quay_Buoys", 1.07, 0.9, [-10.3, 0.45, -13], Math.PI / 2, 0.12],
+    ["PROP_Quay_FishingNet", 1.06, 0.7, [-10.0, 0.35, 24], Math.PI / 2, 0.1],
+    ["PROP_Quay_RopeCoil", 0.75, 0.45, [-9.6, 0.22, 16], Math.PI / 2 - 0.3, 0.1],
+    ["PROP_Quay_LobsterPots", 1.17, 0.8, [5.8, 0.4, -18], -Math.PI / 2, 0.1],
+  ];
+  for (const [file, w, h, [x, y, z], yaw, emissive] of quayClutter) {
+    const c = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive });
+    c.position.set(x, y, z);
+    c.rotation.y = yaw;
+    scene.add(c);
+  }
+
   // ── Floating markers above each interactable, so you can spot them from afar.
   const markers = [];
   for (const it of INTERACTABLES) {
