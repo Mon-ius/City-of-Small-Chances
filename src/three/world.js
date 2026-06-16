@@ -423,6 +423,12 @@ export function buildWorld(scene) {
 
   // ── Shared baked materials for the harbour surfaces (Batch 1 art).
   const plasterMat = surfaceMaterial("Plaster", [2, 2]);
+  // Two more painted façade surfaces (Batch 40) so the east-side row stops
+  // reading as one building copied six times: warm weathered warehouse brick
+  // and a cool grey flaking lime render, each distinct from the beige plaster
+  // and the grey quay-wall stone. The facades table rotates the three below.
+  const brickMat = surfaceMaterial("Brick", [2, 2]);
+  const stuccoMat = surfaceMaterial("StuccoGrey", [2, 2]);
   const windowMat = windowAtlasMaterial();
   const woodMat = surfaceMaterial("PlankWood", [1, 1]);
   // Weathered clay-tile roof (Batch 11): a single shared tile, repeated so the
@@ -525,19 +531,21 @@ export function buildWorld(scene) {
   }
 
   // ── A row of harbour buildings on the east side (fronts facing the water).
-  // All share the one painted plaster body + window-atlas material; per-building
-  // variety comes from size and from the window-cell hashing inside makeBuilding.
+  // Each carries one of three painted façade bodies (Batch 40) so the street
+  // mixes brick warehouses, plaster fronts and grey rendered houses instead of
+  // six copies — body curated per entry so no two neighbours match and all
+  // three surfaces appear; further variety comes from size + window hashing.
   const facades = [
-    { w: 7, h: 8.5, d: 7 },
-    { w: 6, h: 6.5, d: 6.5 },
-    { w: 8, h: 11, d: 8 },
-    { w: 6.5, h: 7.5, d: 7 },
-    { w: 7, h: 9.5, d: 7.5 },
-    { w: 6, h: 6, d: 6.5 },
+    { w: 7, h: 8.5, d: 7, body: brickMat },
+    { w: 6, h: 6.5, d: 6.5, body: plasterMat },
+    { w: 8, h: 11, d: 8, body: stuccoMat },
+    { w: 6.5, h: 7.5, d: 7, body: plasterMat },
+    { w: 7, h: 9.5, d: 7.5, body: brickMat },
+    { w: 6, h: 6, d: 6.5, body: stuccoMat },
   ];
   let zCursor = -30;
   for (const f of facades) {
-    makeBuildingInto(scene, 9 + f.w / 2, zCursor + f.d / 2, f.w, f.h, f.d, plasterMat, windowMat, roofMat);
+    makeBuildingInto(scene, 9 + f.w / 2, zCursor + f.d / 2, f.w, f.h, f.d, f.body, windowMat, roofMat);
     zCursor += f.d + 2.5;
   }
 
