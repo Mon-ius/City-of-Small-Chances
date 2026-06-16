@@ -31,6 +31,7 @@ const SPRITE_DIR = "./assets/sprites/citizens/";
 const SIGNAGE_DIR = "./assets/sprites/signage/";
 const SKY_DIR = "./assets/sprites/sky/";
 const PROP_SPRITE_DIR = "./assets/sprites/props/";
+const DECAL_DIR = "./assets/sprites/decals/";
 const _texLoader = new THREE.TextureLoader();
 
 function surfaceTex(name, { srgb = false, repeat = [1, 1] } = {}) {
@@ -153,6 +154,37 @@ function cutoutPlane(url, w, h, { emissive = 0.25, alphaTest = 0.45 } = {}) {
     emissiveIntensity: emissive,
   });
   return new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+}
+
+// ── A flat grime decal laid on the ground (Batch 39, DECAL_Ground_*): a soft-edged
+// alpha plane lying just above the boardwalk to break the ground tiling and let the
+// quay read as worked-on — puddles, oil, moss, scattered debris. Unlike cutoutPlane
+// it uses NO alphaTest (the feathered edge must stay soft, not a hard sticker rim)
+// and depthWrite off + a polygon offset so it never z-fights the planks. Lit by the
+// scene (MeshStandard) so a low-roughness puddle catches a wet sun-glint. renderOrder
+// −2 keeps the citizens' contact-shadow blobs (−1) reading on top.
+function groundDecal(url, size, x, z, rot = 0, { rough = 0.92, opacity = 1 } = {}) {
+  const map = _texLoader.load(url);
+  map.colorSpace = THREE.SRGBColorSpace;
+  map.anisotropy = 8;
+  const mat = new THREE.MeshStandardMaterial({
+    map,
+    transparent: true,
+    opacity,
+    depthWrite: false,
+    roughness: rough,
+    metalness: 0,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits: -2,
+  });
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(size, size), mat);
+  plane.rotation.x = -Math.PI / 2;
+  plane.rotation.z = rot;
+  plane.position.set(x, 0.03, z);
+  plane.renderOrder = -2;
+  plane.receiveShadow = true;
+  return plane;
 }
 
 // ── Drifting cloud billboards (Batch 6): painted neutral cloud cutouts placed in
@@ -436,6 +468,31 @@ export function buildWorld(scene) {
   water.position.set(-46, -0.05, 0);
   water.receiveShadow = true;
   scene.add(water);
+
+  // ── Ground grime (Batch 39): puddles, oil, moss & debris scattered over the
+  // boardwalk to kill the tiling and make the quay feel worked-on. Authored spots
+  // in the play area, clear of the stall / board / crates / named cast / spawn.
+  // Moss hugs the damp base of the quay wall (west edge); puddles are low-roughness
+  // so they catch a wet sun-glint; oil & debris are matte. [file, size, x, z, rot].
+  const PUD = { rough: 0.28 };
+  const groundGrime = [
+    [`${DECAL_DIR}DECAL_Ground_Moss.png`, 1.8, -10.0, 6.0, 0.2],
+    [`${DECAL_DIR}DECAL_Ground_Moss.png`, 1.6, -10.0, -16.0, 1.0],
+    [`${DECAL_DIR}DECAL_Ground_Moss.png`, 1.7, -9.9, 24.0, 0.5],
+    [`${DECAL_DIR}DECAL_Ground_Puddle.png`, 2.6, -2.5, -2.0, 0.3, PUD],
+    [`${DECAL_DIR}DECAL_Ground_Puddle.png`, 2.0, 1.5, 9.5, 1.1, PUD],
+    [`${DECAL_DIR}DECAL_Ground_Puddle.png`, 1.9, -7.5, 20.0, 0.7, PUD],
+    [`${DECAL_DIR}DECAL_Ground_Puddle.png`, 1.8, 0.5, -24.0, 0.2, PUD],
+    [`${DECAL_DIR}DECAL_Ground_OilStain.png`, 1.6, 2.0, -18.0, 0.0],
+    [`${DECAL_DIR}DECAL_Ground_OilStain.png`, 1.5, -4.0, -22.0, 0.8],
+    [`${DECAL_DIR}DECAL_Ground_OilStain.png`, 1.4, -6.5, 28.0, 0.4],
+    [`${DECAL_DIR}DECAL_Ground_Debris.png`, 2.0, -1.5, 13.5, 0.2],
+    [`${DECAL_DIR}DECAL_Ground_Debris.png`, 1.7, 2.8, 1.0, 0.9],
+    [`${DECAL_DIR}DECAL_Ground_Debris.png`, 1.6, -8.0, 0.0, 0.5],
+  ];
+  for (const [url, size, x, z, rot, opts] of groundGrime) {
+    scene.add(groundDecal(url, size, x, z, rot, opts || {}));
+  }
 
   // ── Quay wall separating the street from the water, with bollards on top.
   // Painted wet-stone masonry (Batch 37, ENV_Harbour_QuayWall) — the harbour's last
