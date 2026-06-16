@@ -19,7 +19,7 @@ from Three.js primitives.
 
 | ID | For | Exists | Method | Batch | Pri |
 |---|---|---|---|---|---|
-| mat-001 | Old Harbour core surfaces (cobblestone quay, plank wood, plaster facade, harbour water) — already wired into world.js | yes | gpt-image-2 | Batch 1 | high |
+| mat-001 | Old Harbour core surfaces (cobblestone quay, plank wood, plaster facade, harbour water, **quay sea-wall**) — all wired into world.js | yes | gpt-image-2 | Batch 1, 37 | high | **Batch 37** — `ENV_Harbour_QuayWall` (seamless 512² PBR: albedo/normal/ORM) skins the 80-unit quay sea-wall via `surfaceMaterial("QuayWall",[24,1])`, replacing the last flat-colour box (`COLORS.quay`). Damp salt-stained coursed harbour masonry; the harbour's final bare core surface is now painted. |
 | mat-002 | Window atlas (4x4 lit-pane cells) for building windows — wired via windowAtlasMaterial() | partial | gpt-image-2 | Batch 1 | high |
 | mat-003 | Harbour prop surfaces (awning stripe, painted metal, rope, sailcloth) — committed but NOT yet referenced in src/; lamps/bollards/awning/boat still flat-colour | yes | gpt-image-2 | Batch 2 | high |
 | mat-004 | Crate/barrel surface detail with metal bands — **Batch 11**, LIVE: PROP_Harbour_Crate (planked face + metal banding/cross-braces) skins every crate cube, PROP_Harbour_Barrel (stave wrap + hoops) every barrel | yes | gpt-image-2 | Batch 11 | medium |

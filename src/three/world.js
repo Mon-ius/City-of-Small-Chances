@@ -438,8 +438,16 @@ export function buildWorld(scene) {
   scene.add(water);
 
   // ── Quay wall separating the street from the water, with bollards on top.
-  const quay = box(1.2, 0.9, 80, COLORS.quay, { cast: true });
+  // Painted wet-stone masonry (Batch 37, ENV_Harbour_QuayWall) — the harbour's last
+  // bare surface; tiled along its 80-unit length so the player walks a real sea-wall
+  // of damp salt-stained blocks instead of a flat-colour box.
+  const quay = new THREE.Mesh(
+    new THREE.BoxGeometry(1.2, 0.9, 80),
+    surfaceMaterial("QuayWall", [24, 1]),
+  );
   quay.position.set(-11.4, 0.45, 0);
+  quay.castShadow = true;
+  quay.receiveShadow = true;
   scene.add(quay);
   for (let z = -34; z <= 34; z += 8) {
     const bollard = new THREE.Mesh(
