@@ -703,6 +703,16 @@ export function buildWorld(scene) {
     { role: "MarketVendor", x: -7.5, z:   8 },
     { role: "DockWorker",   x: -9.0, z:  22 },
     { role: "Commuter",     x:  1.0, z: -28 },
+    // Batch 26 (spr-002): six more roles broaden the port's range of age & class —
+    // a child underfoot, a sailor off a boat, a sack-hauling porter, an uptown clerk,
+    // a washerwoman at her basket, an old woman on her cane. Placed clear of the
+    // interactables (vendor −5,4 · board 5,−6), the named cast and the spawn.
+    { role: "Child",        x:  3.6, z:  13 },
+    { role: "Sailor",       x: -9.5, z:  -3 },
+    { role: "Porter",       x: -6.5, z: -20 },
+    { role: "Clerk",        x: -3.2, z:  24 },
+    { role: "Washerwoman",  x: -9.0, z:  12 },
+    { role: "OldWoman",     x: -7.4, z:   1 },
   ];
   for (const c of crowd) {
     const plane = citizenSprite(c.role);
