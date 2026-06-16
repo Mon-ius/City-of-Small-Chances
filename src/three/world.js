@@ -1039,6 +1039,52 @@ export function buildWorld(scene) {
     scene.add(land);
   }
 
+  // ── Living green on the grey quay (Batch 46): the harbour is all stone, timber and
+  // water — painted ground, gulls, vessels, a far shore — but not one growing thing.
+  // These three painted plant cutouts dress the quay with green: clipped bay topiary in
+  // tubs flanking the building doorways, half-barrel flower planters down the water-side
+  // rail (a splash of warm colour), and two hardy trees sprung from the cobbles at the
+  // building-row ends (vertical green for the skyline). Unlike the gulls/vessels/shore
+  // these are GROUND-PLANTED, so each gets a soft contact-shadow blob (the citizen idiom)
+  // to sit it on the deck, and each is a camera-facing billboard so its painted face always
+  // reads. Each plant's base is the image's bottom edge, so the plane centre is half its
+  // height above the ground. Placed clear of the walkable bounds (against the building
+  // fronts x≈8 and the water-side wall x≈−10.2), the interactables (vendor −5,4 · board
+  // 5,−6) and the named cast.
+  const plants = [
+    // [file, w, h, x, z, shadowR]
+    // Bay topiary in tubs flanking the harbour doorways (against the façades at x≈8.1,
+    // just past the walkable edge — below the hanging shop signs, framing the doors).
+    ["PROP_Plant_PottedTree", 0.82, 1.7, 8.1, 1.0, 0.36], // Tavern door, south jamb
+    ["PROP_Plant_PottedTree", 0.82, 1.7, 8.1, 3.5, 0.36], // Tavern door, north jamb
+    ["PROP_Plant_PottedTree", 0.78, 1.62, 8.1, -8.6, 0.34], // Chandlery door, south jamb
+    ["PROP_Plant_PottedTree", 0.78, 1.62, 8.1, -6.4, 0.34], // Chandlery door, north jamb
+    // Half-barrel flower planters down the water-side quay rail (x≈−10.2, on the deck just
+    // inside the sea-wall) — warm reds and golds against the grey stone and water.
+    ["PROP_Plant_Flowers", 1.05, 1.02, -10.2, -15, 0.55],
+    ["PROP_Plant_Flowers", 1.05, 1.02, -10.2, 1, 0.55],
+    ["PROP_Plant_Flowers", 1.05, 1.02, -10.2, 18, 0.55],
+    // Hardy quayside trees at the ends of the building row — sprung from a corner of the
+    // cobbles, vertical green closing the street's north and south ends.
+    ["PROP_Tree_Quay", 2.7, 4.2, 7.8, 27, 0.6],
+    ["PROP_Tree_Quay", 2.45, 3.8, 7.8, -30, 0.55],
+  ];
+  for (const [file, w, h, x, z, shadowR] of plants) {
+    const plant = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive: 0.18, alphaTest: 0.35 });
+    plant.position.set(x, h / 2, z);
+    scene.add(plant);
+    billboards.push(plant); // main.js turns it to face the camera each frame
+
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(shadowR, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(x, 0.02, z);
+    blob.renderOrder = -1; // under the cobbles' specular, never over the plant
+    scene.add(blob);
+  }
+
   // ── Drifting clouds over the painted dome. tintClouds() lets the day cycle
   // multiply them with the horizon colour each minute (bright by day, warm at
   // dusk, sunk into the night sky after dark); main.js drifts + billboards them.
