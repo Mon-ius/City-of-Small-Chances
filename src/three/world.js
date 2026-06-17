@@ -1588,6 +1588,54 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // ── Firelight from the brazier (Batch 64): the dockers' coal brazier above (at
+  // −9.8,14) glows by its own albedo (emissive 0.6) but throws NO light on the stones
+  // around it or into the air — the same gap Batch 62 fixed for the street lamps. Lay
+  // a HOT fire-glow at the brazier: a flat ground pool on the cobbles around the coals
+  // (the player looks DOWN at the quay, so a flat decal reads here — the Batch-62
+  // lamp-pool idiom, NOT the grazing-angle water of Batch 63) AND an upright camera-
+  // facing halo of firelight standing over the basket. One hot texture, both additive +
+  // fog-off + self-lit (MeshBasic), hotter and more orange-red than the amber lamp pool
+  // so the fire reads apart from the lamps; opacity driven off the SAME lamp intensity
+  // the day cycle feeds the lamp heads (setBrazierGlow, from daycycle.js) — dark by day,
+  // full at deep night, exactly when the coals would burn against the dark.
+  const brazierGlows = [];
+  const brazierTex = _texLoader.load(`${FX_DIR}FX_Light_BrazierGlow.png`);
+  brazierTex.colorSpace = THREE.SRGBColorSpace;
+  const BRZ_X = -9.8, BRZ_Z = 14; // matches the PROP_Quay_Brazier placement above
+  // (1) the hot pool of firelight on the cobbles around the coals.
+  const brazierPool = new THREE.Mesh(
+    new THREE.PlaneGeometry(3.4, 3.4),
+    new THREE.MeshBasicMaterial({
+      map: brazierTex, transparent: true, opacity: 0,
+      depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
+    }),
+  );
+  brazierPool.rotation.x = -Math.PI / 2;
+  brazierPool.position.set(BRZ_X, 0.04, BRZ_Z); // on the cobbles, just over the grime/water-shimmer
+  brazierPool.renderOrder = 1;
+  brazierPool.userData.glowBase = 0.78;
+  scene.add(brazierPool);
+  brazierGlows.push(brazierPool);
+  // (2) the upright halo of firelight standing over the coals (basket top ≈ 0.8).
+  const brazierHalo = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.7, 1.7),
+    new THREE.MeshBasicMaterial({
+      map: brazierTex, transparent: true, opacity: 0,
+      depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
+    }),
+  );
+  brazierHalo.position.set(BRZ_X, 0.85, BRZ_Z); // centred on the glowing coals
+  brazierHalo.renderOrder = 2;
+  brazierHalo.userData.glowBase = 0.62;
+  scene.add(brazierHalo);
+  billboards.push(brazierHalo); // main.js turns the halo to face the camera each frame
+  brazierGlows.push(brazierHalo);
+  function setBrazierGlow(intensity) {
+    const n = Math.max(0, Math.min(1, intensity));
+    for (const g of brazierGlows) g.material.opacity = n * g.userData.glowBase;
+  }
+
   // ── The market's wares (Batch 52): the Old Harbour is a working dock AND a
   // market — Mei's noodle-stall stands mid-street — but almost nothing on the quay
   // reads as goods for sale; the palette runs grey timber and rust end to end. Three
@@ -1705,7 +1753,7 @@ export function buildWorld(scene) {
   }
 
   const bounds = { minX: -10.5, maxX: 6.5, minZ: -34, maxZ: 34 };
-  return { bounds, citizens, billboards, clouds, lampHeads, lampGlows, waterGlows, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow, setWaterGlow };
+  return { bounds, citizens, billboards, clouds, lampHeads, lampGlows, waterGlows, brazierGlows, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow, setWaterGlow, setBrazierGlow };
 }
 
 // Wrapper so makeBuilding (which builds a Group) is added to the scene.
