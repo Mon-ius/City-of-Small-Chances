@@ -773,6 +773,30 @@ export function buildWorld(scene) {
     scene.add(c);
   }
 
+  // ── Quay-edge safety & mooring gear (Batch 55): the sea-wall the near craft tie up
+  // against carried bollards, rope, a net and buoys — but none of the gear a working
+  // berth keeps right at the water's edge. Three FIXED side-profile cutouts (the same
+  // Batch-42 quayClutter idiom — broad face turned to the walkable quay, NOT
+  // billboarded) dress the bare coping: a cork life-ring on its station mounted above
+  // the parapet (y raised so it sits over the coping, its backing board grounding it),
+  // a timber quay ladder with its foot on the deck and grab-hoops rising past the wall
+  // top, and a cluster of fenders hung from a lashing at the coping draping down the
+  // wall face. Slotted into the long empty stretches clear of the bollards
+  // (z∈{−34…30 step 8}), the perched gulls (z∈{−6,3,12,−19,25}) and the existing
+  // clutter (buoys z=−13, rope z=16, net z=24).
+  const quayEdgeGear = [
+    // [file, w, h, [x, y, z], yaw, emissive]
+    ["PROP_Quay_LifeRing", 0.82, 0.92, [-10.7, 1.05, -22], Math.PI / 2, 0.14], // throw-ring station, mounted over the coping
+    ["PROP_Quay_Fenders", 0.635, 0.9, [-10.72, 0.45, 0], Math.PI / 2, 0.1], // fenders hung over the coping, lashing at wall top
+    ["PROP_Quay_Ladder", 0.45, 1.6, [-10.7, 0.8, 10], Math.PI / 2, 0.1], // access ladder, foot on the deck, grab-hoops above the parapet
+  ];
+  for (const [file, w, h, [x, y, z], yaw, emissive] of quayEdgeGear) {
+    const c = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive, alphaTest: 0.4 });
+    c.position.set(x, y, z);
+    c.rotation.y = yaw;
+    scene.add(c);
+  }
+
   // ── Floating markers above each interactable, so you can spot them from afar.
   const markers = [];
   for (const it of INTERACTABLES) {
