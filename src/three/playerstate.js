@@ -48,8 +48,8 @@ export function jobStatus(job, nowMin, player) {
 
 export function createPlayerState(opts = {}) {
   return {
-    // $240 is the "Carried debt" background's starting cash (src/data/content.js):
-    // you arrive in Haiyun City owing money, so every shift counts.
+    // $240 is the "Carried debt" starting cash from the book's opening: you
+    // arrive in Haiyun City owing money, so every shift counts.
     money: opts.money ?? 240,
     energy: opts.energy ?? 100,
     shiftsWorked: 0,

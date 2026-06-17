@@ -12,7 +12,7 @@ Built in **pure HTML, CSS and vanilla JavaScript with [Three.js](https://threejs
 
 ## About
 
-This is a web adaptation of the *City of Small Chances* game design book. The tested simulation engine — days, jobs, relationships, the Opportunity Web — drives the world; the front door is now a **walkable 3D city** you move through, not a panel you scroll.
+This is a web adaptation of the *City of Small Chances* game design book. The front door is a **walkable 3D city** you move through, not a panel you scroll — a living day/clock, a wallet and energy, jobs worked off a notice board, and people drawn straight from the book's tables. (The systems below — days, jobs, relationships, the Opportunity Web — were first prototyped in an earlier DOM build; that build has since been **retired**, and the walkable game is progressively re-growing those systems natively in the world.)
 
 ### Design pillars (from the book)
 
@@ -32,11 +32,12 @@ The experience is a **game, not a dashboard**: a full-screen, walkable **Old Har
 - **Walk the quay in 3D** — a third-person character you steer with **WASD / arrows**, behind an orbiting follow camera you aim by **dragging**. Movement is camera-relative and clamped to the playable street.
 - **A harbour that feels lived-in** — a cobbled quayside with a row of inhabited buildings, street lamps, a market stall, crates, mooring bollards, a boat out on the water, and **ambient citizens** patrolling the street with a real walk cycle.
 - **A hand-painted harbour** *(new)* — the quay's surfaces are now dressed in **committed PBR textures** — cobblestone, weathered plank wood, aged plaster, harbour water — painted with GPT-Image-2 and post-processed into albedo + normal + roughness/metalness/AO maps, plus a window atlas whose lit panes glow warm at dusk. Generated large, shipped small (512², 8-bit, quantised), Three.js stays vendored same-origin, and there is still **no build step** — it boots straight to the world behind a brief splash.
-- **The simulation is retained** — the v0.0.1–v0.0.7 engine (day loop, condition, jobs & mastery, NPCs & relationships, the Opportunity Web) is kept intact as a tested core; v0.1.2 begins **reading that core through the world itself** — the panels show the very same job and NPC tables the engine runs on.
+- **A real body, not a box** *(new)* — the player and the ambient citizens are now **smooth, rounded figures** — capsule torso, limbs and pelvis, a spherical head, a hair cap and boots — replacing the old blocky "minecraft" avatar. The **player** is dressed in painted, seamless **PBR character maps** (skin, wool coat, twill trousers) generated with GPT-Image-2; citizens stay flat-coloured so you read apart from the crowd.
+- **A single front door** *(new)* — the parallel DOM prototype and its raw-WebGL2 renderer, along with the deeper unused engine modules, have been **removed**; the walkable `src/three/` build is now the only code path. The data tables it reads (the **job** and **NPC** tables) come straight from the book.
 
 ### Earlier milestones — the simulation core
 
-The game's central promise — **chances are never luck** — was built across v0.0.1–v0.0.7. Open the **Opportunity Web** and every prospect in the city is laid out with the exact things it would take — and *why* it's where it is.
+The game's central promise — **chances are never luck** — was first built across v0.0.1–v0.0.7 in an earlier DOM build (now retired). The walkable game is re-growing these systems in the world; what follows is the design they're built toward. In the original Opportunity Web, every prospect in the city was laid out with the exact things it would take — and *why* it's where it is.
 
 - **Six requirement components, all legible** — each chance is gated on some mix of a **Skill**, a **Relationship**, a district **Reputation**, a **Possession**, the **Timing** (weather + hour), and your own **History**. Every requirement shows a tick or a gap, a progress bar, and a plain hint on how to close it — the recommended skill path, who you'd need to befriend, how to get the gear (buy or rent), the window it opens in.
 - **A chance's whole life, visible** — opportunities move through honest states: **Hidden** → **Rumoured** (you've caught wind, but not the specifics) → **Known** (you see what it takes, but you're short) → **Available** → **Yours now**. A chance, once glimpsed, never un-discovers itself.
@@ -87,34 +88,15 @@ python3 -m http.server 8000
 index.html                  full-screen game entry (canvas + importmap + HUD + boot splash)
 styles/game.css             game shell stylesheet — locks the viewport, no scrollbar ever
 assets/vendor/three/        vendored Three.js (single-file ESM, same-origin, no build)
+assets/textures/            committed PBR maps — harbour/ surfaces, player/ character cloth & skin
 src/
-  three/                    the walkable game — main (frame loop) · world · daycycle · player · input
-  core/                     rng · store · time · state · save           ┐
-  systems/                  weather · condition · activities · travel ·  │ tested simulation
-                            jobs · relationships · reputation · opportunities  ├ engine, retained
-  data/                     authored content tables (content · districts · jobs · npcs · opportunities)  ┘
-  (game.js · main.js · render/ · ui/ · styles/main.css — the prior DOM front door, kept for reference)
+  three/                    the walkable game (the only code path) —
+                            main (frame loop) · world · daycycle · player · playerstate ·
+                            interactions · input · ui · audio
+  data/                     authored content tables read by the world — jobs · npcs
+  core/time.js              the shared day/clock calendar
+tools/gen/                  the art pipeline (codex image_gen prompts + ImageMagick post-process)
 ```
-
-### Debug views (prior DOM build)
-
-These hash routes drove the **previous** DOM front door (`src/main.js`); they are not wired
-into the v0.1.0 walkable game yet, and are kept here as a reference for the retained engine.
-Append a hash to the URL: `#debug-city`, `#debug-city:<minute>:<weather>:<district>`
-(e.g. `#debug-city:1290:rain:old_harbour` for a rainy 21:30 on the quay, or
-`#debug-city:540::tenements` for a 09:00 inland scene), `#debug-walk` (follow camera on a
-mid-stride avatar), `#debug-figure` (a close orbit on the avatar and crowd), or `#debug-report`.
-District ids: `tenements`, `market_row`, `old_harbour`, `dockside`, `uptown`.
-`#debug-shift:<jobId>` jumps straight into a shift scene (append `:play` to start the
-rhythm game, `:auto` to see the result screen). Job ids: `market_haul`, `harbour_labour`,
-`dock_load`, `courier_run`, `civic_filing`.
-`#debug-talk:<npcId>` opens a conversation where/when that person is around (append
-`:bonded` to pre-warm the relationship, `:act` to auto-play the first social action);
-`#debug-people:<district>:<minute>` shows the city with the "People here" panel for a
-given place and time. NPC ids: `mei`, `jun`, `rafiq`, `tomo`, `clara`, `ava`.
-`#debug-web:<preset>` opens the Opportunity Web — `mid` (a believable mid-game, several
-chances Available), `storm` (also opens the weather-gated surge run), or `fresh` (the
-near-empty web showing a first Rumoured chance).
 
 ## Roadmap
 

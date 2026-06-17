@@ -1,21 +1,19 @@
 // Jobs (book §9 "Work, Jobs and Career Progression"). A job is a richer thing
-// than a one-click activity: it has entry requirements, time windows, an in-world
-// **shift scene** (the manual "work rhythm" mini-game in ui/shift.js), a pay model
-// that rewards performance, and a mastery curve that eventually lets you preview
-// the pattern and auto-resolve. All declarative so systems/jobs.js can reason
-// about availability, pay and difficulty without per-job code.
+// than a one-click activity: it has entry requirements, time windows, a pay model
+// that rewards performance, and a mastery curve. Declarative content — the live
+// notice board (src/three/interactions.js) reads these to score and run a shift.
 //
 // Field guide
-//   family       book job taxonomy (flavour + colour theme of the shift scene)
+//   family       book job taxonomy (flavour + colour theme)
 //   district     where the work is (you must be standing there, in a time window)
 //   windows      [[fromMin,toMin], ...] minutes-of-day the shift is offered
 //   minutes      how long the shift takes on the clock
 //   requires     gate fn(state) + requiresNote
 //   primary      skills that drive pay quality and that the shift grows
-//   pay          { base, skillDiv, weather } — see systems/jobs.payFor()
-//   task         shift-scene tuning: beats, tempo, band, verb/unit/theme
+//   pay          { base, skillDiv, weather } — interpreted by playerstate.work()
+//   task         shift tuning: beats, tempo, band, verb/unit/theme
 //   risk         { atEnergy, chance, healthHit } — injury when tired & sloppy
-//   mastery      xp thresholds that unlock preview / auto-resolve
+//   mastery      xp thresholds (reserved for future mastery scaling)
 
 export const JOB_FAMILIES = {
   labour: { label: "Day labour", color: "#c9803f" },

@@ -9,9 +9,13 @@
 //   • voice LINES at three closeness tiers, and a FAVOUR — a concrete, traceable
 //     boon they can grant once you've earned their trust (book: NPCs are economic
 //     actors with material impact, not quest boards).
-// All the relationship maths lives in systems/relationships.js; this is content.
+// This is pure content; the live build reads the cards through src/three/interactions.js.
 
-import { clamp } from "../core/state.js";
+// Self-contained clamp (favour rewards keep meters in 0..100). Kept local so the
+// live walkable build needs nothing from the retired simulation engine.
+function clamp(v, lo = 0, hi = 100) {
+  return Math.max(lo, Math.min(hi, v));
+}
 
 // Closeness ladder shared by every NPC. `bond` (a 0..100 composite of the
 // relationship variables) crosses these thresholds to change the stage.
