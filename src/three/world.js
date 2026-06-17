@@ -32,6 +32,7 @@ const SIGNAGE_DIR = "./assets/sprites/signage/";
 const SKY_DIR = "./assets/sprites/sky/";
 const PROP_SPRITE_DIR = "./assets/sprites/props/";
 const DECAL_DIR = "./assets/sprites/decals/";
+const FX_DIR = "./assets/sprites/fx/";
 const _texLoader = new THREE.TextureLoader();
 
 function surfaceTex(name, { srgb = false, repeat = [1, 1] } = {}) {
@@ -589,6 +590,40 @@ export function buildWorld(scene) {
     const { group, head } = makeLamp(-9.5, z, metalMat);
     scene.add(group);
     lampHeads.push(head);
+  }
+
+  // ── Lamplight on the wet stones (Batch 62): the lamp-heads above warm up after
+  // dusk (their emissiveIntensity rides the clock) but cast no light on the ground —
+  // the cobbles stayed flat-dark at night. Lay one soft warm pool decal flat on the
+  // cobbles beneath each lamp, ADDITIVELY blended so it brightens the stones rather
+  // than painting over them, and drive its opacity off the SAME lamp intensity the
+  // day cycle feeds the heads (setLampGlow, called from daycycle.js) — off by day,
+  // full at deep night. One texture (MeshBasic, self-lit, fog off) instanced under
+  // all five lamps; tiny payload, the floor lights up exactly when the lamps do.
+  const lampGlows = [];
+  const poolTex = _texLoader.load(`${FX_DIR}FX_Light_LampPool.png`);
+  poolTex.colorSpace = THREE.SRGBColorSpace;
+  for (let z = -28; z <= 28; z += 14) {
+    const pool = new THREE.Mesh(
+      new THREE.PlaneGeometry(5.5, 5.5),
+      new THREE.MeshBasicMaterial({
+        map: poolTex,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        fog: false,
+      }),
+    );
+    pool.rotation.x = -Math.PI / 2;
+    pool.position.set(-9.0, 0.05, z); // under the bulb (head ≈ x−9.08), on the cobbles
+    pool.renderOrder = 1; // over the ground grime (renderOrder −2), additive
+    scene.add(pool);
+    lampGlows.push(pool);
+  }
+  function setLampGlow(intensity) {
+    const o = Math.max(0, Math.min(0.85, intensity * 0.85));
+    for (const p of lampGlows) p.material.opacity = o;
   }
 
   // ── A market stall with a striped awning, mid-street.
@@ -1620,7 +1655,7 @@ export function buildWorld(scene) {
   }
 
   const bounds = { minX: -10.5, maxX: 6.5, minZ: -34, maxZ: 34 };
-  return { bounds, citizens, billboards, clouds, lampHeads, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon };
+  return { bounds, citizens, billboards, clouds, lampHeads, lampGlows, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow };
 }
 
 // Wrapper so makeBuilding (which builds a Group) is added to the scene.

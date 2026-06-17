@@ -55,7 +55,7 @@ export function createDayCycle(world, scene, opts = {}) {
   for (const k of KEYS) { k.sunC = new THREE.Color(k.sun); k.topC = new THREE.Color(k.top); k.botC = new THREE.Color(k.bot); k.fogC = new THREE.Color(k.fog); }
   const _sun = new THREE.Color(), _top = new THREE.Color(), _bot = new THREE.Color(), _fog = new THREE.Color();
 
-  const { sun, hemi, ambient, lampHeads, paintSky, setSkyBlend, tintClouds, setMoon } = world;
+  const { sun, hemi, ambient, lampHeads, paintSky, setSkyBlend, tintClouds, setMoon, setLampGlow } = world;
 
   function clampMin(m) {
     return Math.min(DAY_END_MIN - 0.001, Math.max(DAY_START_MIN, m));
@@ -95,6 +95,7 @@ export function createDayCycle(world, scene, opts = {}) {
 
     const lampI = lerp(a.lamp, b.lamp, t);
     for (const h of lampHeads) h.material.emissiveIntensity = lampI;
+    if (setLampGlow) setLampGlow(lampI); // the lamps pool warm light on the wet stones
 
     // Repaint the sky gradient (the fallback base) at most once per in-game
     // minute (cheap, throttled), cross-fade the painted day/dusk/night panels by
