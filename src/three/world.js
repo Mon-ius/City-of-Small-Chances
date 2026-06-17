@@ -1210,6 +1210,39 @@ export function buildWorld(scene) {
     billboards.push(craft); // main.js turns it to face the camera each frame
   }
 
+  // ── Harbour waterbirds (Batch 60): the quay had gulls (Batch 43) overhead and on
+  // the rails, but the wide water and the long sea-wall coping carried no other living
+  // creature — and a working port is alive with waterbirds. Three painted cutouts add
+  // them: a great CORMORANT hung out to dry with its wings half-spread, and a grey
+  // HERON standing sentinel, both PERCHED on the sea-wall coping (the Batch-43
+  // perched-gull idiom — feet on the image bottom, billboarded to face the camera, NO
+  // contact shadow), and a raft of three mallard DUCKS FLOATING on the sheltered near
+  // water (the Batch-54 near-craft idiom — waterline on the image bottom, sat on the
+  // water surface WL, billboarded, NO contact shadow). Coping top ≈0.91 (the perched
+  // gulls sit there), so each perched bird's feet rest at 0.91 and its plane centre is
+  // half its height above that. Placed in the long open coping/water gaps clear of the
+  // gulls (coping z −19/−6/3/12/25), the quay-edge gear (life-ring −22, fenders 0,
+  // ladder 10), the buoy line (−13) and the near craft (z −24/−1/18): the cormorant on
+  // the south coping by the working berth, the heron on the north-central coping, the
+  // ducks paddling the near water off the wall. Planes sized to each cutout's true
+  // aspect (cormorant ~square, heron tall, ducks wide). Low emissive, no glow.
+  const perchedBirds = [
+    // [file, x, y, z, w, h, emissive] — feet at coping top (0.91), centre = 0.91 + h/2.
+    ["PROP_Bird_Cormorant", -11.4, 1.33, -26, 0.85, 0.83, 0.16], // wings out to dry, south coping
+    ["PROP_Bird_Heron", -11.4, 1.49, 18, 0.66, 1.15, 0.16], // standing sentinel, north-central coping
+  ];
+  for (const [file, x, y, z, w, h, emissive] of perchedBirds) {
+    const bird = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive, alphaTest: 0.4 });
+    bird.position.set(x, y, z);
+    scene.add(bird);
+    billboards.push(bird); // main.js turns it to face the camera each frame
+  }
+  // The raft of mallards floats on the near water, waterline on the image bottom.
+  const ducks = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Bird_Ducks.png`, 1.3, 0.63, { emissive: 0.16, alphaTest: 0.4 });
+  ducks.position.set(-12.5, WL + 0.63 / 2, 6);
+  scene.add(ducks);
+  billboards.push(ducks); // main.js turns it to face the camera each frame
+
   // ── The far shore (Batch 45): close the empty horizon — the opposite bank of the bay.
   // A FIXED (NOT billboarded — a horizon must never turn) fog-blended band of painted hazy
   // distant land standing along the far-west edge of the water (x≈−79), facing the quay
