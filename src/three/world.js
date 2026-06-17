@@ -1250,6 +1250,39 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // ── The market's wares (Batch 52): the Old Harbour is a working dock AND a
+  // market — Mei's noodle-stall stands mid-street — but almost nothing on the quay
+  // reads as goods for sale; the palette runs grey timber and rust end to end. Three
+  // painted cutouts add the food-trade colour Mei's produce baskets don't: a
+  // fishmonger's slab of the morning's silver catch landed at the water's edge, a
+  // cheesemonger's stacked wheels and a baker's basket of golden loaves along the
+  // shopfront kerb. Same GROUND-PLANTED camera-facing-billboard idiom as the cargo and
+  // comforts, each on a soft contact-shadow blob; tucked into the gaps clear of the
+  // cargo (water-side z −24/−4/14), the building barrow (z 6) and the bench/pump
+  // (z −16/−28). The fish slab gets a touch more emissive (0.24) so the silver catch
+  // and crushed ice glint.
+  const wares = [
+    // [file, w, h, x, z, shadowR, emissive]
+    ["PROP_Market_FishSlab", 1.5, 0.7, -9.8, -12, 0.72, 0.24], // the morning catch on ice at the water's edge (img 2.13:1)
+    ["PROP_Market_Cheese", 1.15, 0.9, 6.8, 0, 0.56, 0.2], // a cheesemonger's stacked wheels by the shopfronts (img 1.28:1)
+    ["PROP_Market_Bread", 1.35, 0.73, 6.8, 11, 0.64, 0.2], // a baker's basket of loaves down the kerb (img 1.86:1)
+  ];
+  for (const [file, w, h, x, z, shadowR, emissive] of wares) {
+    const item = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive, alphaTest: 0.4 });
+    item.position.set(x, h / 2, z);
+    scene.add(item);
+    billboards.push(item); // main.js turns it to face the camera each frame
+
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(shadowR, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(x, 0.02, z);
+    blob.renderOrder = -1; // under the cobbles' specular, never over the wares
+    scene.add(blob);
+  }
+
   // ── Drifting clouds over the painted dome. tintClouds() lets the day cycle
   // multiply them with the horizon colour each minute (bright by day, warm at
   // dusk, sunk into the night sky after dark); main.js drifts + billboards them.
