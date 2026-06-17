@@ -1512,6 +1512,41 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // ── The working materials of the port (Batch 59): the quay now STORES (rope,
+  // nets, casks, anchor), WORKS (capstan, derrick, deals), feeds and rests its
+  // people (brazier, bench, pump) and sells (fish, cheese, bread) — but the three
+  // commonplace bulk materials a steam-and-sail port is actually heaped with were
+  // missing: COAL to fire the boats, TAR to caulk the hulls, SALT to cure the
+  // catch. Three painted cutouts add them as a south-quay stores corner, clustered
+  // on the open deck just inboard of the Batch-53 working berth (capstan −9.8,−30 ·
+  // derrick −10.1,−34) so the heavy-labour end of the harbour reads complete. Same
+  // GROUND-PLANTED camera-facing-billboard idiom as the cargo/comforts/wares/dockWork
+  // (pushed to `billboards`, base on the image bottom at y = h/2, each on a soft
+  // contact-shadow blob); planes sized to each cutout's true aspect (coal a low wide
+  // heap 1.59:1, the tar and salt casks tall 0.71/0.76:1). Honest dull palette —
+  // black coal, dull pitch, grey-white salt — so low emissive, no glow.
+  const workMaterials = [
+    // [file, w, h, x, z, shadowR, emissive]
+    ["PROP_Quay_CoalHeap", 1.6, 1.01, -4.2, -30.0, 0.85, 0.16], // the coaling point — fuel for the steam boats
+    ["PROP_Quay_TarBarrel", 0.82, 1.15, -2.5, -30.8, 0.4, 0.16], // a pitch cask for caulking the hulls
+    ["PROP_Quay_SaltBarrel", 0.86, 1.13, -5.7, -31.0, 0.44, 0.18], // coarse salt for curing the catch
+  ];
+  for (const [file, w, h, x, z, shadowR, emissive] of workMaterials) {
+    const item = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive, alphaTest: 0.4 });
+    item.position.set(x, h / 2, z);
+    scene.add(item);
+    billboards.push(item); // main.js turns it to face the camera each frame
+
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(shadowR, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(x, 0.02, z);
+    blob.renderOrder = -1; // under the cobbles' specular, never over the materials
+    scene.add(blob);
+  }
+
   // ── Drifting clouds over the painted dome. tintClouds() lets the day cycle
   // multiply them with the horizon colour each minute (bright by day, warm at
   // dusk, sunk into the night sky after dark); main.js drifts + billboards them.
