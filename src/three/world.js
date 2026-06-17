@@ -1283,6 +1283,42 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // ── The quay at work (Batch 53): the stones now hold everything a dock
+  // STORES — coiled rope, drying nets, a laid-up anchor, stacked casks, a
+  // barrow, benches, a pump, a brazier, market wares — but nothing that does
+  // its actual LABOUR. Three painted cutouts add the heavy working gear the
+  // port still lacked: a squat oak WARPING CAPSTAN that hauls a hull snug
+  // against the quay, a tall raked DERRICK post with its block-and-tackle hoist
+  // for swaying cargo up, and a landed STACK OF SAWN DEALS waiting to be carried
+  // off a timber boat. Same GROUND-PLANTED camera-facing-billboard idiom as the
+  // cargo/comforts/wares, each on a soft contact-shadow blob; the capstan and
+  // derrick sit together as one south-quay working berth on the open water deck
+  // (z −30/−34, clear south of the Batch-50 casks at −24), the deals down the
+  // long-open building kerb (z 18, north of the Batch-52 bread at 11). Plane
+  // sizes track each cutout's true aspect (the deals keyed low and flat). The
+  // whole grey-timber-and-rust palette blends with Batches 42/50/51/52; no glow.
+  const dockWork = [
+    // [file, w, h, x, z, shadowR, emissive]
+    ["PROP_Dock_Capstan", 0.88, 1.32, -9.8, -30, 0.46, 0.18], // a warping capstan to haul her in, far-south water deck (img 0.67:1)
+    ["PROP_Dock_Derrick", 0.64, 2.1, -10.1, -34, 0.34, 0.18], // a derrick hoist raked over the rail, the south corner (img 0.31:1)
+    ["PROP_Dock_Timber", 1.7, 0.465, 6.7, 18, 0.7, 0.18], // a stack of landed deals down the building kerb (img 3.66:1)
+  ];
+  for (const [file, w, h, x, z, shadowR, emissive] of dockWork) {
+    const item = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive, alphaTest: 0.4 });
+    item.position.set(x, h / 2, z);
+    scene.add(item);
+    billboards.push(item); // main.js turns it to face the camera each frame
+
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(shadowR, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(x, 0.02, z);
+    blob.renderOrder = -1; // under the cobbles' specular, never over the gear
+    scene.add(blob);
+  }
+
   // ── Drifting clouds over the painted dome. tintClouds() lets the day cycle
   // multiply them with the horizon colour each minute (bright by day, warm at
   // dusk, sunk into the night sky after dark); main.js drifts + billboards them.
