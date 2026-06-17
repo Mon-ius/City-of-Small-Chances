@@ -34,13 +34,13 @@ const AZ_SPAN = 0.82 * Math.PI; // swept by dusk
 // hour (lerped + normalised below, then cross-faded onto the dome via
 // world.setSkyBlend) — so the sky's mood tracks the same clock as the light.
 const KEYS = [
-  { min: 360,  sun: 0xffc59a, sunI: 0.5,  elev: 0.06, hemi: 0.42, amb: 0.11, top: 0x24344f, bot: 0xc98a64, fog: 0xb89a86, lamp: 0.55, sky: [0.15, 0.45, 0.40] }, // 06:00 dawn
-  { min: 540,  sun: 0xffe9cf, sunI: 1.7,  elev: 0.44, hemi: 0.78, amb: 0.17, top: 0x3f6aa3, bot: 0xbcc4cf, fog: 0xb9c2cc, lamp: 0.10, sky: [0.90, 0.10, 0.00] }, // 09:00 morning
-  { min: 720,  sun: 0xfff4e2, sunI: 2.3,  elev: 0.98, hemi: 0.98, amb: 0.21, top: 0x3f74c0, bot: 0xcfe0ee, fog: 0xcdd9e6, lamp: 0.0 , sky: [1.00, 0.00, 0.00] }, // 12:00 midday
-  { min: 1020, sun: 0xffd6a0, sunI: 1.5,  elev: 0.40, hemi: 0.70, amb: 0.16, top: 0x37567f, bot: 0xd6a473, fog: 0xc6a486, lamp: 0.14, sky: [0.78, 0.22, 0.00] }, // 17:00 afternoon
-  { min: 1140, sun: 0xff8a46, sunI: 0.75, elev: 0.05, hemi: 0.42, amb: 0.12, top: 0x2a3350, bot: 0xd07a45, fog: 0xb07a55, lamp: 0.5 , sky: [0.05, 0.95, 0.00] }, // 19:00 dusk
-  { min: 1290, sun: 0x9fb4e0, sunI: 0.06, elev:-0.10, hemi: 0.22, amb: 0.08, top: 0x0c1422, bot: 0x1b2740, fog: 0x16203a, lamp: 1.0 , sky: [0.00, 0.30, 0.70] }, // 21:30 night
-  { min: 1440, sun: 0x8fa6d8, sunI: 0.04, elev:-0.18, hemi: 0.18, amb: 0.07, top: 0x080f1a, bot: 0x131d31, fog: 0x101830, lamp: 1.0 , sky: [0.00, 0.00, 1.00] }, // 24:00 deep night
+  { min: 360,  sun: 0xffc59a, sunI: 0.5,  elev: 0.06, hemi: 0.42, amb: 0.11, top: 0x24344f, bot: 0xc98a64, fog: 0xb89a86, lamp: 0.55, mist: 0.85, sky: [0.15, 0.45, 0.40] }, // 06:00 dawn
+  { min: 540,  sun: 0xffe9cf, sunI: 1.7,  elev: 0.44, hemi: 0.78, amb: 0.17, top: 0x3f6aa3, bot: 0xbcc4cf, fog: 0xb9c2cc, lamp: 0.10, mist: 0.30, sky: [0.90, 0.10, 0.00] }, // 09:00 morning
+  { min: 720,  sun: 0xfff4e2, sunI: 2.3,  elev: 0.98, hemi: 0.98, amb: 0.21, top: 0x3f74c0, bot: 0xcfe0ee, fog: 0xcdd9e6, lamp: 0.0 , mist: 0.00, sky: [1.00, 0.00, 0.00] }, // 12:00 midday
+  { min: 1020, sun: 0xffd6a0, sunI: 1.5,  elev: 0.40, hemi: 0.70, amb: 0.16, top: 0x37567f, bot: 0xd6a473, fog: 0xc6a486, lamp: 0.14, mist: 0.08, sky: [0.78, 0.22, 0.00] }, // 17:00 afternoon
+  { min: 1140, sun: 0xff8a46, sunI: 0.75, elev: 0.05, hemi: 0.42, amb: 0.12, top: 0x2a3350, bot: 0xd07a45, fog: 0xb07a55, lamp: 0.5 , mist: 0.50, sky: [0.05, 0.95, 0.00] }, // 19:00 dusk
+  { min: 1290, sun: 0x9fb4e0, sunI: 0.06, elev:-0.10, hemi: 0.22, amb: 0.08, top: 0x0c1422, bot: 0x1b2740, fog: 0x16203a, lamp: 1.0 , mist: 0.22, sky: [0.00, 0.30, 0.70] }, // 21:30 night
+  { min: 1440, sun: 0x8fa6d8, sunI: 0.04, elev:-0.18, hemi: 0.18, amb: 0.07, top: 0x080f1a, bot: 0x131d31, fog: 0x101830, lamp: 1.0 , mist: 0.28, sky: [0.00, 0.00, 1.00] }, // 24:00 deep night
 ];
 
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -55,7 +55,7 @@ export function createDayCycle(world, scene, opts = {}) {
   for (const k of KEYS) { k.sunC = new THREE.Color(k.sun); k.topC = new THREE.Color(k.top); k.botC = new THREE.Color(k.bot); k.fogC = new THREE.Color(k.fog); }
   const _sun = new THREE.Color(), _top = new THREE.Color(), _bot = new THREE.Color(), _fog = new THREE.Color();
 
-  const { sun, hemi, ambient, lampHeads, paintSky, setSkyBlend, tintClouds, setMoon, setLampGlow, setWaterGlow, setBrazierGlow } = world;
+  const { sun, hemi, ambient, lampHeads, paintSky, setSkyBlend, tintClouds, setMoon, setLampGlow, setWaterGlow, setBrazierGlow, setWaterMist } = world;
 
   function clampMin(m) {
     return Math.min(DAY_END_MIN - 0.001, Math.max(DAY_START_MIN, m));
@@ -97,6 +97,10 @@ export function createDayCycle(world, scene, opts = {}) {
     for (const h of lampHeads) h.material.emissiveIntensity = lampI;
     if (setLampGlow) setLampGlow(lampI); // the lamps pool warm light on the wet stones
     if (setBrazierGlow) setBrazierGlow(lampI); // the brazier throws hot firelight on the cobbles
+
+    // Mist breathes on the water at the cool ends of the day (its own curve, not the
+    // lamp's): thick at dawn, a haze at dusk, burning off under bright midday.
+    if (setWaterMist) setWaterMist(lerp(a.mist, b.mist, t));
 
     // Repaint the sky gradient (the fallback base) at most once per in-game
     // minute (cheap, throttled), cross-fade the painted day/dusk/night panels by

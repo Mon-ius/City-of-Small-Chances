@@ -1355,6 +1355,47 @@ export function buildWorld(scene) {
     for (const s of waterGlows) s.material.opacity = Math.min(1, n * s.userData.glowBase);
   }
 
+  // ── Mist on the water (Batch 65): the last four batches lit the NIGHT (moon, lamp
+  // pools, water reflections, brazier fire); this one works the other end of the clock —
+  // the cool dawn and dusk. The water sat flat and clear at every hour, but a working
+  // harbour breathes mist at first light and a haze rising at dusk, burning off under
+  // bright midday. A row of soft low banks of sea-mist drift over the near water, each a
+  // camera-facing billboard (the cloud/boat idiom, so the soft card always reads) with
+  // NORMAL alpha blending (mist VEILS what's behind it — it is not additive light) and
+  // fog ON (it is atmosphere — it hazes into the distance and darkens with the night).
+  // One neutral texture, instanced low across the water; opacity rides a new day-cycle
+  // mist curve (setWaterMist, from daycycle.js) — thick at dawn, a haze at dusk, ~0 at
+  // bright midday, faint at deep night.
+  const waterMists = [];
+  const mistTex = _texLoader.load(`${FX_DIR}FX_Weather_WaterMist.png`);
+  mistTex.colorSpace = THREE.SRGBColorSpace;
+  const mistBanks = [
+    // [w, h, x, z, base] — wide low banks hugging the near/mid water, base on WL.
+    [8.5, 2.2, -18, -20, 0.5],
+    [9.0, 2.4, -24, -4, 0.55],
+    [8.0, 2.0, -20, 12, 0.5],
+    [9.5, 2.5, -30, 24, 0.6],
+    [8.0, 2.1, -16, 31, 0.48],
+  ];
+  for (const [w, h, x, z, base] of mistBanks) {
+    const mist = new THREE.Mesh(
+      new THREE.PlaneGeometry(w, h),
+      new THREE.MeshBasicMaterial({
+        map: mistTex, transparent: true, opacity: 0,
+        depthWrite: false, fog: true, color: new THREE.Color(0xdfe6ea),
+      }),
+    );
+    mist.position.set(x, WL + h / 2, z); // base of the bank on the water surface
+    mist.userData.mistBase = base;
+    scene.add(mist);
+    billboards.push(mist); // main.js turns the bank to face the camera each frame
+    waterMists.push(mist);
+  }
+  function setWaterMist(intensity) {
+    const n = Math.max(0, Math.min(1, intensity));
+    for (const m of waterMists) m.material.opacity = n * m.userData.mistBase;
+  }
+
   // ── The far shore (Batch 45): close the empty horizon — the opposite bank of the bay.
   // A FIXED (NOT billboarded — a horizon must never turn) fog-blended band of painted hazy
   // distant land standing along the far-west edge of the water (x≈−79), facing the quay
@@ -1753,7 +1794,7 @@ export function buildWorld(scene) {
   }
 
   const bounds = { minX: -10.5, maxX: 6.5, minZ: -34, maxZ: 34 };
-  return { bounds, citizens, billboards, clouds, lampHeads, lampGlows, waterGlows, brazierGlows, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow, setWaterGlow, setBrazierGlow };
+  return { bounds, citizens, billboards, clouds, lampHeads, lampGlows, waterGlows, brazierGlows, waterMists, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow, setWaterGlow, setBrazierGlow, setWaterMist };
 }
 
 // Wrapper so makeBuilding (which builds a Group) is added to the scene.
