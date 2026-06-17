@@ -979,6 +979,68 @@ export function buildWorld(scene) {
     scene.add(sign);
   }
 
+  // ── Shopfronts (Batch 56): the building row carried hanging shop signs high on the
+  // wall, but the ground floor under every sign was blank — no door to go in by, no
+  // light at building level, no shop goods. These three painted cutouts give the
+  // signed buildings their shopfront, mounted on the fronts under the matching sign:
+  // a weathered timber door flush on the wall (the Batch-9 harbourSigns idiom — FIXED
+  // FACADE cutout at yaw −π/2, base on the deck, NOT billboarded), a wrought-iron
+  // bracket lantern beside it lit STRONG emissive so its amber glass glows after dusk
+  // (the first warm light at building level — until now only the tall street lamps),
+  // and a ground-planted stack of retail crates at the threshold (the cargo idiom —
+  // billboarded with a soft contact-shadow blob). Doors sit under the Tavern (z2.25),
+  // Chandlery (z−7.5) and HarbourGate (z21.5) signs; the Tavern/Chandlery doors are
+  // already framed by the Batch-46 topiary tubs. Building fronts are at x≈9, so the
+  // door sits flush at x8.95, the lantern a touch proud at x8.7, the crates out on
+  // the deck at x8.0 — all clear of the walkable bounds (maxX 6.5).
+  const shopDoors = [
+    // [x, y, z] — Door 242×512 (h2.3, w1.09), base on deck (y = h/2), facing −x.
+    [8.95, 1.15, 2.25], // Tavern
+    [8.95, 1.15, -7.5], // Chandlery
+    [8.95, 1.15, 21.5], // HarbourGate
+  ];
+  for (const [x, y, z] of shopDoors) {
+    const door = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Shop_Door.png`, 1.09, 2.3, { emissive: 0.12, alphaTest: 0.4 });
+    door.position.set(x, y, z);
+    door.rotation.y = FACADE;
+    scene.add(door);
+  }
+  const shopLanterns = [
+    // [x, y, z] — Lantern 197×512 (h0.95, w0.37), mounted beside each door, amber glass
+    // lit strong emissive so it reads as a warm light source after dark.
+    [8.7, 2.55, 3.15], // beside the Tavern door
+    [8.7, 2.55, -6.6], // beside the Chandlery door
+    [8.7, 2.55, 22.4], // beside the HarbourGate door
+  ];
+  for (const [x, y, z] of shopLanterns) {
+    const lantern = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Shop_Lantern.png`, 0.37, 0.95, { emissive: 0.8, alphaTest: 0.4 });
+    lantern.position.set(x, y, z);
+    lantern.rotation.y = FACADE;
+    scene.add(lantern);
+  }
+  const shopCrates = [
+    // [x, z, shadowR] — Crates 512×472 (w1.2, h1.1), ground-planted billboard at a
+    // doorway threshold, on a soft contact-shadow blob. Placed at the two signed doors
+    // without topiary (HarbourGate, FerryStop) so nothing collides with the tubs.
+    [8.0, 20.5, 0.6], // by the HarbourGate door
+    [8.0, -16.3, 0.6], // by the FerryStop sign
+  ];
+  for (const [x, z, shadowR] of shopCrates) {
+    const crates = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Shop_Crates.png`, 1.2, 1.1, { emissive: 0.16, alphaTest: 0.4 });
+    crates.position.set(x, 0.55, z);
+    scene.add(crates);
+    billboards.push(crates); // main.js turns it to face the camera each frame
+
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(shadowR, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(x, 0.02, z);
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Seagulls (Batch 43): the harbour's defining creature, absent until now — a
   // port without gulls doesn't read as a port. Painted herring-gull cutouts perched
   // along the wet sea-wall top, on the lamp cross-arms, on the moored boat (one at
