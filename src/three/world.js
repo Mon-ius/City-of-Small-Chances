@@ -1017,6 +1017,30 @@ export function buildWorld(scene) {
     billboards.push(ship); // main.js turns it to face the camera each frame
   }
 
+  // ── Small craft on the near water (Batch 54): the bay carried traffic far out (the
+  // Batch-44 tall ship, trawler and barge at x≤−40) and one moored cabin-boat near the
+  // quay, but the wide band of near water between the sea-wall and that moored boat was
+  // bare. A working harbour is thick with the small craft that ferry between hull and
+  // shore — so these three painted cutouts float there: a clinker rowing dory, a small
+  // sailing dinghy with its tan sail furled, and a flat-bottomed harbour punt. Same idiom
+  // as the far vessels above (sit the painted waterline on the water surface WL, NO contact
+  // shadow — they float — and billboard each so its broadside always reads), just placed
+  // close in (x≈−13..−17, spread across z) so the player looking out over the wall sees a
+  // busy small-boat harbour. Clear of the moored boat at (−20,−6), the buoy line (−10.3,−13)
+  // and the far vessels. Plane sized to each cutout's true aspect so nothing distorts.
+  const nearCraft = [
+    // [file, w, h, x, z] — waterline (= image bottom) sits on WL; centre is h/2 above it.
+    ["PROP_Boat_Rowboat", 2.4, 0.79, -14, 18], // clinker rowing dory, north band
+    ["PROP_Boat_Punt", 2.7, 0.48, -13.5, -1], // flat-bottomed harbour punt, mid band near the wall
+    ["PROP_Boat_Dinghy", 1.6, 1.6, -16.5, -24], // furled-sail sailing dinghy, south band
+  ];
+  for (const [file, w, h, x, z] of nearCraft) {
+    const craft = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive: 0.2, alphaTest: 0.4 });
+    craft.position.set(x, WL + h / 2, z);
+    scene.add(craft);
+    billboards.push(craft); // main.js turns it to face the camera each frame
+  }
+
   // ── The far shore (Batch 45): close the empty horizon — the opposite bank of the bay.
   // A FIXED (NOT billboarded — a horizon must never turn) fog-blended band of painted hazy
   // distant land standing along the far-west edge of the water (x≈−79), facing the quay
