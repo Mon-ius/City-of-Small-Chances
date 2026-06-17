@@ -1041,6 +1041,39 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // ── The market grows (Batch 57): "Market Row" is core, and the player spawns
+  // (≈-3,16) right beside the harbour market — yet the live scene held only ONE
+  // vendor, Mei's noodle stall at (-5,4). One stall reads as a single shop, not a
+  // market; a market is the press of several pitches. This adds a SECOND vendor
+  // pitch on the open deck between the spawn and Mei's stall, so the player walks
+  // *into* a market: a costermonger's loaded two-wheeled handcart, a crock-seller's
+  // cluster of glazed earthenware jars, and a tall canvas parasol shading the pitch.
+  // All three are ground-planted camera-facing billboards (the Batch-50 cargo idiom
+  // — pushed to `billboards`, base on the image bottom, each on a soft contact-shadow
+  // blob), clustered east of the commuter patrol line (x-7) and clear of the stall
+  // goods and the 3D barrels (z2.6–3.5).
+  const marketPitch = [
+    // [file, w, h, x, z, shadowR, emissive] — base planted at y = h/2 on the deck.
+    ["PROP_Market_Parasol", 1.74, 2.6, -5.7, 11.4, 0.55, 0.18], // tall anchor of the pitch
+    ["PROP_Market_Cart", 2.05, 1.35, -6.4, 12.9, 0.95, 0.16], // the wide costermonger's barrow
+    ["PROP_Market_Crocks", 1.15, 0.91, -4.5, 12.0, 0.6, 0.16], // a huddle of glazed jars
+  ];
+  for (const [file, w, h, x, z, shadowR, emissive] of marketPitch) {
+    const item = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive, alphaTest: 0.4 });
+    item.position.set(x, h / 2, z);
+    scene.add(item);
+    billboards.push(item); // main.js turns it to face the camera each frame
+
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(shadowR, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(x, 0.02, z);
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Seagulls (Batch 43): the harbour's defining creature, absent until now — a
   // port without gulls doesn't read as a port. Painted herring-gull cutouts perched
   // along the wet sea-wall top, on the lamp cross-arms, on the moored boat (one at
