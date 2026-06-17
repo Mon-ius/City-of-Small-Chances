@@ -55,7 +55,7 @@ export function createDayCycle(world, scene, opts = {}) {
   for (const k of KEYS) { k.sunC = new THREE.Color(k.sun); k.topC = new THREE.Color(k.top); k.botC = new THREE.Color(k.bot); k.fogC = new THREE.Color(k.fog); }
   const _sun = new THREE.Color(), _top = new THREE.Color(), _bot = new THREE.Color(), _fog = new THREE.Color();
 
-  const { sun, hemi, ambient, lampHeads, paintSky, setSkyBlend, tintClouds } = world;
+  const { sun, hemi, ambient, lampHeads, paintSky, setSkyBlend, tintClouds, setMoon } = world;
 
   function clampMin(m) {
     return Math.min(DAY_END_MIN - 0.001, Math.max(DAY_START_MIN, m));
@@ -110,6 +110,7 @@ export function createDayCycle(world, scene, opts = {}) {
         const wn = lerp(a.sky[2], b.sky[2], t);
         const ws = wd + wk + wn || 1;
         setSkyBlend(wd / ws, wk / ws, wn / ws);
+        if (setMoon) setMoon(wn / ws); // moon rides the night-blend weight
       }
       if (tintClouds) tintClouds(_bot, sunI);
     }

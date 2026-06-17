@@ -398,6 +398,33 @@ export function buildWorld(scene) {
   }
   setOvercast(0); // clear until the weather cycle says otherwise
 
+  // ── The moon (Batch 61): a self-lit disc high over the water, faded in by the day
+  // cycle's NIGHT-blend weight so it is invisible by day, swells through dusk, hangs
+  // full at deep night and lingers faint at dawn — tracking the painted SKY_Atmos_Night
+  // panel it sits in front of. A plain MeshBasic plane (unlit, glows on its own map),
+  // placed far and high over the sea (west, where the night sky is most open), oriented
+  // to face the scene centre and DoubleSide so the player's small movement never edges
+  // it away. renderOrder 5 keeps it in front of the sky panels (1–4); the clouds tint to
+  // nothing at night, so moon-over-cloud never reads. fog:false (like the sky panels) so
+  // the distance haze never eats it. setMoon(wNight) is driven per in-game minute by the
+  // day cycle (the same weight that blends the painted night sky).
+  const moonTex = _texLoader.load(`${SKY_DIR}FX_Sky_Moon.png`);
+  moonTex.colorSpace = THREE.SRGBColorSpace;
+  const moon = new THREE.Mesh(
+    new THREE.PlaneGeometry(14, 14),
+    new THREE.MeshBasicMaterial({
+      map: moonTex, transparent: true, depthWrite: false, fog: false,
+      opacity: 0, side: THREE.DoubleSide,
+    }),
+  );
+  moon.position.set(-78, 135, -46);
+  moon.lookAt(0, 0, 0);
+  moon.renderOrder = 5;
+  scene.add(moon);
+  function setMoon(wNight) {
+    moon.material.opacity = Math.max(0, Math.min(1, wNight));
+  }
+
   scene.fog = new THREE.Fog(0x9a8a7a, 35, 150);
 
   // ── Lighting: cool sky fill + warm sun with soft shadows. The day cycle drives
@@ -1593,7 +1620,7 @@ export function buildWorld(scene) {
   }
 
   const bounds = { minX: -10.5, maxX: 6.5, minZ: -34, maxZ: 34 };
-  return { bounds, citizens, billboards, clouds, lampHeads, markers, sun, hemi, ambient, skyDome, paintSky, setSkyBlend, setOvercast, tintClouds };
+  return { bounds, citizens, billboards, clouds, lampHeads, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon };
 }
 
 // Wrapper so makeBuilding (which builds a Group) is added to the scene.
