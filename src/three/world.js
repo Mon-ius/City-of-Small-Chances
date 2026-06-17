@@ -1418,6 +1418,44 @@ export function buildWorld(scene) {
     scene.add(land);
   }
 
+  // ── The lighthouse shines (Batch 66): the far-shore lighthouse (above) closes the
+  // harbour mouth, but its lantern never lit — at night, a dark tower over dark water.
+  // Now that the night is richly lit (moon B61, lamp pools B62, water reflections B63,
+  // brazier fire B64) a working harbour mouth needs its guiding light. Hang ONE bright
+  // warm-white beacon flare at the lantern (additive, fog-off, self-lit MeshBasic), its
+  // opacity riding the night-blend weight (setBeacon, from daycycle.js) — dark by day,
+  // full at deep night, exactly as the moon and lamps. The lantern's world position is
+  // read off the PROP_Shore_Lighthouse sprite: that plane sits at (−79, 4.45, 44) rotated
+  // to face +x, so image-x→world-z (z = 44 − local_x) and image-y→world-y (y = 4.45 +
+  // local_y); the lantern sits at image-frac (≈0.81 from left, ≈0.07 from top) → world ≈
+  // (−79, 8.1, 28.5). The flare billboard sits just in front (x = −78.5) so it draws over
+  // the opaque shore plane.
+  const beaconGlows = [];
+  const beaconTex = _texLoader.load(`${FX_DIR}FX_Light_Beacon.png`);
+  beaconTex.colorSpace = THREE.SRGBColorSpace;
+  const beacon = new THREE.Mesh(
+    new THREE.PlaneGeometry(5.5, 5.5),
+    new THREE.MeshBasicMaterial({
+      map: beaconTex,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      fog: false,
+      color: new THREE.Color(0xfff0d0),
+    }),
+  );
+  beacon.position.set(-78.5, 8.1, 28.5); // at the lighthouse lantern, just in front of the shore
+  beacon.renderOrder = 5; // draws over the opaque shore band
+  beacon.userData.glowBase = 0.95;
+  scene.add(beacon);
+  billboards.push(beacon); // main.js turns the flare to face the camera each frame
+  beaconGlows.push(beacon);
+  function setBeacon(intensity) {
+    const n = Math.max(0, Math.min(1, intensity));
+    for (const b of beaconGlows) b.material.opacity = n * b.userData.glowBase;
+  }
+
   // ── Living green on the grey quay (Batch 46): the harbour is all stone, timber and
   // water — painted ground, gulls, vessels, a far shore — but not one growing thing.
   // These three painted plant cutouts dress the quay with green: clipped bay topiary in
@@ -1794,7 +1832,7 @@ export function buildWorld(scene) {
   }
 
   const bounds = { minX: -10.5, maxX: 6.5, minZ: -34, maxZ: 34 };
-  return { bounds, citizens, billboards, clouds, lampHeads, lampGlows, waterGlows, brazierGlows, waterMists, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow, setWaterGlow, setBrazierGlow, setWaterMist };
+  return { bounds, citizens, billboards, clouds, lampHeads, lampGlows, waterGlows, brazierGlows, waterMists, beaconGlows, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow, setWaterGlow, setBrazierGlow, setWaterMist, setBeacon };
 }
 
 // Wrapper so makeBuilding (which builds a Group) is added to the scene.
