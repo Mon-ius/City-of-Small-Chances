@@ -1305,6 +1305,56 @@ export function buildWorld(scene) {
   scene.add(ducks);
   billboards.push(ducks); // main.js turns it to face the camera each frame
 
+  // ── Light on the night water (Batch 63): the moon (Batch 61) and the warmed
+  // lamps (Batch 62) hang over the harbour, but the biggest surface in the scene —
+  // the water — stayed dead-flat and dark after dark, reflecting nothing. The quay
+  // camera sees the water EDGE-ON at a grazing angle, so a flat decal laid on the
+  // surface foreshortens to an invisible thread; a real light-path on rippled water
+  // reads instead as a SHIMMERING VERTICAL COLUMN climbing from the waterline toward
+  // its source. So these are camera-facing BILLBOARDS (the boat/duck idiom), not flat
+  // decals: one neutral pale-silver shimmer texture, tinted COOL for the open-water
+  // moonglade and WARM for the lamp-glints just past the sea-wall, base sat on the
+  // water (WL) so each rises off the surface. Additive + fog-off + self-lit (MeshBasic),
+  // opacity driven off the night-blend weight (setWaterGlow, from daycycle.js) — dark
+  // by day, brightening with the night exactly as the moon and lamps do.
+  const waterGlows = [];
+  const shimmerTex = _texLoader.load(`${FX_DIR}FX_Light_WaterShimmer.png`);
+  shimmerTex.colorSpace = THREE.SRGBColorSpace;
+  const shimmers = [
+    // [w, h, x, z, tint, base] — cool moonglades in the near-open west water, warm
+    // lamp-glints right past the sea-wall under the lamps. Kept close in (x≈−12..−18)
+    // and bright so the grazing-angle water actually catches the light.
+    [3.2, 2.6, -17, -10, 0xbcd2ff, 0.85], // broad moonglade under the moon, near-open water
+    [2.6, 2.2, -19, 4, 0xb6ccff, 0.78], // second moonglade, near-open water
+    [1.5, 1.9, -12, -26, 0xffd28a, 0.7], // warm lamp-glint just past the wall, south
+    [1.5, 1.9, -12, -12, 0xffd28a, 0.7], // warm lamp-glint, mid (off the central lamp)
+    [1.5, 1.9, -12, 16, 0xffd28a, 0.7], // warm lamp-glint, north
+  ];
+  for (const [w, h, x, z, tint, base] of shimmers) {
+    const shim = new THREE.Mesh(
+      new THREE.PlaneGeometry(w, h),
+      new THREE.MeshBasicMaterial({
+        map: shimmerTex,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        fog: false,
+        color: new THREE.Color(tint),
+      }),
+    );
+    shim.position.set(x, WL + h / 2, z); // base of the column on the water surface
+    shim.renderOrder = 1;
+    shim.userData.glowBase = base;
+    scene.add(shim);
+    billboards.push(shim); // main.js turns the column to face the camera each frame
+    waterGlows.push(shim);
+  }
+  function setWaterGlow(intensity) {
+    const n = Math.max(0, Math.min(1, intensity));
+    for (const s of waterGlows) s.material.opacity = Math.min(1, n * s.userData.glowBase);
+  }
+
   // ── The far shore (Batch 45): close the empty horizon — the opposite bank of the bay.
   // A FIXED (NOT billboarded — a horizon must never turn) fog-blended band of painted hazy
   // distant land standing along the far-west edge of the water (x≈−79), facing the quay
@@ -1655,7 +1705,7 @@ export function buildWorld(scene) {
   }
 
   const bounds = { minX: -10.5, maxX: 6.5, minZ: -34, maxZ: 34 };
-  return { bounds, citizens, billboards, clouds, lampHeads, lampGlows, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow };
+  return { bounds, citizens, billboards, clouds, lampHeads, lampGlows, waterGlows, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow, setWaterGlow };
 }
 
 // Wrapper so makeBuilding (which builds a Group) is added to the scene.
