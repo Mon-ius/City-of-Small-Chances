@@ -1041,6 +1041,56 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // ── The shopfronts come alive (Batch 58): Batch 56 gave the signed buildings a
+  // door, a lantern and crates at the threshold, but the wall *around* each door was
+  // still flat painted plaster — no window to look into, no awning over the glass,
+  // nothing growing at the sill. These three FIXED façade cutouts (the Batch-9/56
+  // idiom — `cutoutPlane` flat on the building front at `yaw = FACADE = −π/2`, NOT
+  // billboarded, no contact-shadow blob) finish three blank bays into proper dressed
+  // shopfronts: a small-paned glazed window flush on the wall, a faded striped awning
+  // proud of it (shading the glass), and a window flower box on the sill. Three bays
+  // dressed — left of the FerryStop sign (z−18.5), the tall Chandlery's blank side
+  // (z−10.2), and right of the Tavern door past its topiary (z4.9) — each clear of the
+  // doors, lanterns, topiary tubs and the high washing lines (y≈5–6.5).
+  const shopWindows = [
+    // [x, y, z] — Window 428×512 (w1.42, h1.7), flush on the front (x8.92), facing −x.
+    [8.92, 1.75, -18.5], // FerryStop bay
+    [8.92, 1.75, -10.2], // Chandlery blank side
+    [8.92, 1.75, 4.9], // Tavern bay
+  ];
+  for (const [x, y, z] of shopWindows) {
+    const win = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Shop_Window.png`, 1.42, 1.7, { emissive: 0.14, alphaTest: 0.4 });
+    win.position.set(x, y, z);
+    win.rotation.y = FACADE;
+    scene.add(win);
+  }
+  const shopAwnings = [
+    // [x, y, z] — Awning 512×267 (w2.2, h1.15), proud of the wall (x8.55) so it shades
+    // the window below; the painted mounting bar sits along the awning's top edge.
+    [8.55, 2.9, -18.5],
+    [8.55, 2.9, -10.2],
+    [8.55, 2.9, 4.9],
+  ];
+  for (const [x, y, z] of shopAwnings) {
+    const awn = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Shop_Awning.png`, 2.2, 1.15, { emissive: 0.16, alphaTest: 0.4 });
+    awn.position.set(x, y, z);
+    awn.rotation.y = FACADE;
+    scene.add(awn);
+  }
+  const shopFlowerBoxes = [
+    // [x, y, z] — FlowerBox 512×173 (w1.4, h0.47), on the sill under each window (x8.78),
+    // its trailing foliage hanging below — the only softening greenery at building level.
+    [8.78, 0.82, -18.5],
+    [8.78, 0.82, -10.2],
+    [8.78, 0.82, 4.9],
+  ];
+  for (const [x, y, z] of shopFlowerBoxes) {
+    const box = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Shop_FlowerBox.png`, 1.4, 0.47, { emissive: 0.16, alphaTest: 0.4 });
+    box.position.set(x, y, z);
+    box.rotation.y = FACADE;
+    scene.add(box);
+  }
+
   // ── The market grows (Batch 57): "Market Row" is core, and the player spawns
   // (≈-3,16) right beside the harbour market — yet the live scene held only ONE
   // vendor, Mei's noodle stall at (-5,4). One stall reads as a single shop, not a
