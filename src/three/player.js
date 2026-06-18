@@ -461,6 +461,12 @@ export function createFigure(look = "player", opts = {}) {
       armR.rotation.x = base + s * 0.8 + (moving ? 0 : -this._armBias);
       // Body bob: twice per stride when walking, a faint breath when idle.
       body.position.y = moving ? Math.abs(Math.sin(this._phase)) * 0.06 : Math.sin(this._phase) * 0.01;
+      // Walking lean — a moving citizen tips forward into its stride, a brisk one further
+      // than a laden trudge (capped at 1.78 m/s like the cadence). `body` pivots at the
+      // ground, so the torso and head carry forward while the boots stay planted. Gated to
+      // the patrol walkers (idlers in motion); the input-driven player is never an idler,
+      // so its run keeps the upright posture it always had.
+      body.rotation.x = (this._idler && moving) ? Math.min(speed, 1.78) * 0.045 : 0;
       // Standing weight-shift — idlers at rest rock their weight foot to foot on a slow
       // (~5–8s) cycle. `body` pivots at the ground, so this metronome lean barely stirs the
       // boots (~2mm) while the torso and head sway, reading as settling rather than sliding.
