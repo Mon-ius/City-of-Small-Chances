@@ -149,6 +149,7 @@ function start() {
   const clock = new THREE.Clock();
   let markerPhase = 0;
   let gullClock = 0; // seconds, drives the soaring gulls' wheel + wingbeat (Batch 70)
+  let smokeClock = 0; // seconds, drives the homes' chimney plumes (spr-021)
 
   function placeCamera() {
     const p = player.root.position;
@@ -252,6 +253,22 @@ function start() {
       const face = Math.atan2(camera.position.x - x, camera.position.z - z);
       gl.down.position.set(x, y, z); gl.down.rotation.y = face; gl.down.visible = !flapUp;
       gl.up.position.set(x, y, z);   gl.up.rotation.y = face;   gl.up.visible = flapUp;
+    }
+
+    // Smoke rises from the homes' chimneys (spr-021): each puff loops a lifecycle
+    // — rise, widen, drift on the wind, fade in then out. The puffs in a plume are
+    // phase-staggered, so the column always carries smoke at every height. Sprites
+    // self-billboard, so no facing math here.
+    smokeClock += dt;
+    for (const pl of world.smokePlumes) {
+      for (const pf of pl.puffs) {
+        let lt = (smokeClock * pf.speed + pf.phase) % 1; if (lt < 0) lt += 1;
+        pf.sprite.position.y = pl.mouthY + lt * 3.4;                               // rise
+        pf.sprite.position.x = pl.mouthX + Math.sin((smokeClock + pf.phase * 10) * pf.sway) * (0.15 + lt * 0.6); // drift, widening
+        const s = 0.4 + lt * 1.5;                                                  // grow as it thins
+        pf.sprite.scale.set(s, s, s);
+        pf.sprite.material.opacity = Math.sin(lt * Math.PI) * 0.42;                // fade in then out
+      }
     }
 
     // Bob the interaction markers so they catch the eye.

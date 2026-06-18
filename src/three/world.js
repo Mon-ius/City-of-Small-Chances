@@ -211,6 +211,58 @@ function shadowTexture() {
   return _shadowTex;
 }
 
+// A soft round smoke puff — a white radial-alpha canvas shared by every chimney
+// puff sprite (one texture upload). Each puff keeps its OWN material so its
+// opacity can fade independently as it rises and thins. Cf. shadowTexture above.
+let _smokeTex = null;
+function smokeTexture() {
+  if (_smokeTex) return _smokeTex;
+  const c = document.createElement("canvas");
+  c.width = c.height = 64;
+  const g = c.getContext("2d");
+  const grad = g.createRadialGradient(32, 32, 1, 32, 32, 31);
+  grad.addColorStop(0, "rgba(255,255,255,0.9)");
+  grad.addColorStop(0.5, "rgba(255,255,255,0.35)");
+  grad.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 64, 64);
+  _smokeTex = new THREE.CanvasTexture(c);
+  _smokeTex.colorSpace = THREE.SRGBColorSpace;
+  return _smokeTex;
+}
+
+// A brick chimney on a home's roof, plus a gentle plume of soft smoke. The puffs
+// are camera-facing sprites (one shared soft texture) that rise, widen, drift and
+// fade on a looped per-puff lifecycle — animated in main.js from a single clock.
+// The puffs are PHASE-staggered, so the column shows smoke at every height at
+// once and reads as a continuous plume even in a frozen frame. World-side only —
+// no player impact. Deterministic params seeded from the chimney's position + i
+// (no Math.random), so the same chimney always smokes the same way.
+function addChimneySmoke(scene, x, z, h, w, d, plumes) {
+  const cx = x - w * 0.12, cz = z + d * 0.16;
+  const roofTop = h + 0.3;
+  const stack = box(0.55, 1.1, 0.55, 0x6e5a48, { roughness: 1.0 }); // weathered brick
+  stack.position.set(cx, roofTop + 0.55, cz);
+  scene.add(stack);
+  const cap = box(0.64, 0.14, 0.64, 0x2a2622, { cast: false }); // dark sooted mouth
+  cap.position.set(cx, roofTop + 1.12, cz);
+  scene.add(cap);
+
+  const mouthY = roofTop + 1.2;
+  const tex = smokeTexture();
+  const puffs = [];
+  const N = 5;
+  for (let i = 0; i < N; i++) {
+    const mat = new THREE.SpriteMaterial({ map: tex, color: 0xb9bec8, transparent: true, depthWrite: false, opacity: 0 });
+    const sp = new THREE.Sprite(mat);
+    sp.position.set(cx, mouthY, cz);
+    scene.add(sp);
+    const seed = (((cx * 1.7 + cz * 2.3 + i * 0.37) % 1) + 1) % 1;
+    puffs.push({ sprite: sp, phase: i / N + seed * 0.12, speed: 0.06 + seed * 0.03, sway: 0.6 + seed * 0.5 });
+  }
+  plumes.push({ mouthX: cx, mouthY, mouthZ: cz, puffs });
+}
+
 function box(w, h, d, color, opts = {}) {
   const mat = new THREE.MeshStandardMaterial({
     color,
@@ -543,9 +595,16 @@ export function buildWorld(scene) {
     { w: 7, h: 9.5, d: 7.5, body: brickMat, roof: metalRoofMat },
     { w: 6, h: 6, d: 6.5, body: stuccoMat, roof: roofMat },
   ];
+  // Homes (clay/slate roofs) keep a lit hearth → their chimneys smoke; the metal
+  // warehouse roofs do not. A quiet sign the row is lived-in, not a stage flat.
+  const smokePlumes = [];
   let zCursor = -30;
   for (const f of facades) {
-    makeBuildingInto(scene, 9 + f.w / 2, zCursor + f.d / 2, f.w, f.h, f.d, f.body, windowMat, f.roof);
+    const bx = 9 + f.w / 2, bz = zCursor + f.d / 2;
+    makeBuildingInto(scene, bx, bz, f.w, f.h, f.d, f.body, windowMat, f.roof);
+    if (f.roof === roofMat || f.roof === slateRoofMat) {
+      addChimneySmoke(scene, bx, bz, f.h, f.w, f.d, smokePlumes);
+    }
     zCursor += f.d + 2.5;
   }
 
@@ -2000,7 +2059,7 @@ export function buildWorld(scene) {
   }
 
   const bounds = { minX: -10.5, maxX: 6.5, minZ: -34, maxZ: 34 };
-  return { bounds, citizens, locals, billboards, clouds, soaringGulls, lampHeads, lampGlows, waterGlows, sunGlitters, brazierGlows, waterMists, beaconGlows, boatLights, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow, setWindowGlow, setWaterGlow, setSunGlitter, setBrazierGlow, setWaterMist, setBeacon, setBoatLights };
+  return { bounds, citizens, locals, billboards, clouds, soaringGulls, smokePlumes, lampHeads, lampGlows, waterGlows, sunGlitters, brazierGlows, waterMists, beaconGlows, boatLights, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow, setWindowGlow, setWaterGlow, setSunGlitter, setBrazierGlow, setWaterMist, setBeacon, setBoatLights };
 }
 
 // Wrapper so makeBuilding (which builds a Group) is added to the scene.
