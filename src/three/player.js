@@ -441,6 +441,7 @@ export function createFigure(look = "player", opts = {}) {
     _stanceArmX: stanceArmX,
     _phase: seed * Math.PI * 2,
     _gazePhase: seed * Math.PI * 2.6,   // gaze sway, decorrelated from the breath
+    _swayPhase: seed * Math.PI * 1.7,   // weight-shift rock, decorrelated from both
     _idleRate: 1.7 + seed * 1.1,        // 1.7..2.8 — each idler breathes at its own pace
     _armBias: (seed - 0.5) * 0.16,      // a small, fixed asymmetric arm hang
     update(dt, speed = 0) {
@@ -460,6 +461,12 @@ export function createFigure(look = "player", opts = {}) {
       armR.rotation.x = base + s * 0.8 + (moving ? 0 : -this._armBias);
       // Body bob: twice per stride when walking, a faint breath when idle.
       body.position.y = moving ? Math.abs(Math.sin(this._phase)) * 0.06 : Math.sin(this._phase) * 0.01;
+      // Standing weight-shift — idlers at rest rock their weight foot to foot on a slow
+      // (~5–8s) cycle. `body` pivots at the ground, so this metronome lean barely stirs the
+      // boots (~2mm) while the torso and head sway, reading as settling rather than sliding.
+      body.rotation.z = (this._idler && !moving)
+        ? Math.sin(this._phase * 0.45 + this._swayPhase) * 0.025
+        : 0;
       // Wandering gaze — idlers at rest only. A figure on the move looks where it is
       // going (head level); the player keeps a level head too (never an idler).
       this.headPivot.rotation.y = (this._idler && !moving)
