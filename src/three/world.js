@@ -587,6 +587,63 @@ function buildPigeon(x, z, facing = 0, morph = 0, phase = 0) {
   };
 }
 
+// A herring gull perched on the sea-wall, a lamp arm, the boat or a rooftop (spr-026):
+// the perched/calling gull cutouts become real bodies. A white upright body, a grey
+// mantle saddle and folded wings with black tips, a short white neck, a head with a
+// dark eye and a yellow bill carrying the red gonydeal spot, on pink legs. Built facing
+// +x; a `calling` bird throws its head back to cry, a perched one just scans. The phase
+// is seeded from the perch position so no two move alike. The soaring/flying gulls stay
+// billboards (the distant cloud/gull idiom) — only the PERCHED flock turns real.
+function buildGull(x, z, baseY, facing = 0, calling = false) {
+  const root = new THREE.Group();
+  root.position.set(x, baseY, z);
+  root.rotation.y = facing;
+  const phase = x * 0.7 + z * 0.13;                 // deterministic per-perch offset
+  const white = new THREE.MeshStandardMaterial({ color: 0xeef0f2, roughness: 0.7, metalness: 0 });
+  const mantle = new THREE.MeshStandardMaterial({ color: 0x9aa6ad, roughness: 0.8, metalness: 0 }); // grey back/wings
+  const tipMat = new THREE.MeshStandardMaterial({ color: 0x2b2f33, roughness: 0.8, metalness: 0 }); // black wingtips/eye
+  const beakMat = new THREE.MeshStandardMaterial({ color: 0xe5b234, roughness: 0.5, metalness: 0 }); // yellow bill
+  const redMat = new THREE.MeshStandardMaterial({ color: 0xcc3322, roughness: 0.5, metalness: 0 });
+  const legMat = new THREE.MeshStandardMaterial({ color: 0xe6a6a0, roughness: 0.6, metalness: 0 });  // pink legs
+  const mk = (geo, mat, px, py, pz, parent = root) => { const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); m.castShadow = true; parent.add(m); return m; };
+
+  const legGeo = new THREE.CylinderGeometry(0.012, 0.011, 0.16, 6);
+  mk(legGeo, legMat, 0.0, 0.08, 0.035);
+  mk(legGeo, legMat, 0.0, 0.08, -0.035);
+
+  const body = mk(new THREE.SphereGeometry(0.12, 14, 12), white, 0, 0.24, 0);
+  body.scale.set(1.35, 1.5, 1.0); body.rotation.z = -0.2;          // upright, breast out
+  const saddle = mk(new THREE.SphereGeometry(0.1, 12, 10), mantle, -0.03, 0.33, 0); // grey mantle over the back
+  saddle.scale.set(1.15, 0.5, 0.95);
+  mk(new THREE.CapsuleGeometry(0.04, 0.18, 4, 8), mantle, -0.05, 0.27, 0.06).rotation.z = Math.PI / 2;  // folded wings
+  mk(new THREE.CapsuleGeometry(0.04, 0.18, 4, 8), mantle, -0.05, 0.27, -0.06).rotation.z = Math.PI / 2;
+  mk(new THREE.ConeGeometry(0.03, 0.09, 6), tipMat, -0.2, 0.25, 0.05).rotation.z = Math.PI / 2;          // black wingtips
+  mk(new THREE.ConeGeometry(0.03, 0.09, 6), tipMat, -0.2, 0.25, -0.05).rotation.z = Math.PI / 2;
+  mk(new THREE.BoxGeometry(0.1, 0.02, 0.09), white, -0.19, 0.26, 0);                                     // short tail
+
+  const headPivot = new THREE.Group(); headPivot.position.set(0.08, 0.36, 0); root.add(headPivot);
+  mk(new THREE.CapsuleGeometry(0.04, 0.05, 4, 8), white, 0.0, 0.0, 0, headPivot).rotation.z = -0.3;       // neck
+  mk(new THREE.SphereGeometry(0.055, 12, 10), white, 0.05, 0.05, 0, headPivot);                           // head
+  mk(new THREE.SphereGeometry(0.011, 6, 6), tipMat, 0.08, 0.075, 0.035, headPivot);                       // eye
+  mk(new THREE.SphereGeometry(0.011, 6, 6), tipMat, 0.08, 0.075, -0.035, headPivot);
+  mk(new THREE.CapsuleGeometry(0.015, 0.06, 4, 6), beakMat, 0.14, 0.04, 0, headPivot).rotation.z = Math.PI / 2; // bill
+  mk(new THREE.SphereGeometry(0.009, 6, 6), redMat, 0.185, 0.022, 0, headPivot);                          // red gonydeal spot
+
+  return {
+    root,
+    update(t) {
+      if (calling) {
+        const c = Math.max(0, Math.sin(t * 1.4 + phase));   // the long-call pulses
+        headPivot.rotation.z = 0.3 + c * 0.55;              // head thrown back to cry
+        headPivot.rotation.y = 0;
+      } else {
+        headPivot.rotation.z = 0;
+        headPivot.rotation.y = Math.sin(t * 0.4 + phase) * 0.55; // scan the harbour
+      }
+    },
+  };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -1497,41 +1554,37 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
-  // ── Seagulls (Batch 43): the harbour's defining creature, absent until now — a
-  // port without gulls doesn't read as a port. Painted herring-gull cutouts perched
-  // along the wet sea-wall top, on the lamp cross-arms, on the moored boat (one at
-  // the masthead, calling), on two rooftops, and a few soaring high over the water.
-  // Each is a camera-facing billboard (pushed to `billboards`, turned to face the
-  // camera every frame in main.js) just like the citizens; the perched birds sit ON
-  // their surface, the soarers hang high like the drifting clouds. No contact-shadow
-  // blob — gulls perch on rails and wing over water, never plant on the ground. Three
-  // poses (perched / calling / flying) repeat across the flock; the flyers ship ~2:1.
+  // ── Seagulls (Batch 43 → spr-026): the harbour's defining creature. The perched and
+  // calling gulls — along the wet sea-wall top, on the lamp cross-arms, on the moored boat
+  // (one at the masthead, calling), and on two rooftops — were camera-facing cutouts; now
+  // each is a REAL herring-gull body (buildGull above), the loop's own ask "real body
+  // instead of faced picture." They sit ON their perch with a FIXED facing and a small idle
+  // (perched birds scan, calling birds throw the head back to cry). baseY is the perch
+  // surface (the old cutout's bottom edge); no contact blob — gulls perch on rails, never
+  // plant on the ground. Only the SOARING gulls (wheeling high over the water) stay
+  // billboards — see soaringGulls just below — the legit distant-flying-bird idiom.
   const gulls = [
-    // [pose, x, y, z, w, h, emissive]
-    // Along the wet sea-wall top (wall top y≈0.9, x≈−11.4), set between the bollards.
-    ["Perched", -11.4, 1.16, -6, 0.5, 0.5, 0.16],
-    ["Calling", -11.4, 1.18, 3, 0.52, 0.52, 0.16],
-    ["Perched", -11.4, 1.16, 12, 0.5, 0.5, 0.16],
-    ["Perched", -11.4, 1.16, -19, 0.48, 0.48, 0.16],
-    ["Calling", -11.4, 1.18, 25, 0.52, 0.52, 0.16],
-    // On the lamp cross-arms (arm at y≈3.0, x≈−9.3; lamps sit at z∈{−28,−14,0,14,28}).
-    ["Perched", -9.25, 3.2, -14, 0.46, 0.46, 0.18],
-    ["Calling", -9.25, 3.22, 14, 0.46, 0.46, 0.18],
-    // On the moored boat, out over the water at (−20,·,−6): one on the gunwale, one
-    // up at the masthead crying over the harbour.
-    ["Perched", -19.8, 0.95, -2.5, 0.5, 0.5, 0.16],
-    ["Calling", -20.0, 5.75, -4.5, 0.44, 0.44, 0.2],
-    // On two harbour rooftops (front edge x≈9, roof top y≈h+0.3), high over the street.
-    ["Perched", 9.2, 9.05, -26.5, 0.5, 0.5, 0.2],
-    ["Calling", 9.2, 10.05, 12.25, 0.5, 0.5, 0.2],
-    // (The soarers used to live here as static "Flying" cutouts; Batch 70 lifts them
-    // out into a wheeling, flapping flock — see soaringGulls just below.)
+    // [calling, x, z, baseY, facing]
+    // Along the wet sea-wall top (wall top y≈0.91, x≈−11.4), set between the bollards.
+    [false, -11.4, -6, 0.91, 0.5],
+    [true, -11.4, 3, 0.91, 0.2],
+    [false, -11.4, 12, 0.91, -0.4],
+    [false, -11.4, -19, 0.91, 0.7],
+    [true, -11.4, 25, 0.91, 0.0],
+    // On the lamp cross-arms (arm top y≈2.97, x≈−9.25; lamps at z∈{−28,−14,0,14,28}).
+    [false, -9.25, -14, 2.97, 0.3],
+    [true, -9.25, 14, 2.97, -0.3],
+    // On the moored boat out over the water: one on the gunwale, one at the masthead crying.
+    [false, -19.8, -2.5, 0.7, 0.8],
+    [true, -20.0, -4.5, 5.53, 1.2],
+    // On two harbour rooftops (front edge x≈9), high over the street, facing the road (−x).
+    [false, 9.2, -26.5, 8.8, 2.6],
+    [true, 9.2, 12.25, 9.8, 2.6],
   ];
-  for (const [pose, x, y, z, w, h, emissive] of gulls) {
-    const gull = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Gull_${pose}.png`, w, h, { emissive, alphaTest: 0.4 });
-    gull.position.set(x, y, z);
-    scene.add(gull);
-    billboards.push(gull); // main.js turns it to face the camera each frame
+  for (const [calling, x, z, baseY, facing] of gulls) {
+    const gull = buildGull(x, z, baseY, facing, calling);
+    scene.add(gull.root);
+    critters.push(gull); // ticked from main.js's critter clock
   }
 
   // ── Wheeling gulls (Batch 70): the soaring gulls hung FROZEN in the sky like cloud
