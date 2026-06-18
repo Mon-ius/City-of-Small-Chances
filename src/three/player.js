@@ -82,6 +82,40 @@ const LOOKS = {
   Rafiq:         L(0x6a4a2e, 0x352a1e, SKIN.deep, HAIR.black,  0x241c14, 1.05),
 };
 
+// Headwear by role (spr-005): [type] or [type, feltColour]; buildHat turns it into
+// geometry on the crown. Bare-headed roles (vendor, musician, beggar, youth, child,
+// the player) are simply omitted, which itself reads as a class tell. Stamped onto the
+// LOOKS rows below so a look stays a single flat object the figure builder consumes.
+const ROLE_HAT = {
+  // Tall hats — the genteel & the officials.
+  Merchant: ["top"], Commuter: ["top", 0x21242c], Clerk: ["top", 0x21242c],
+  Dockmaster: ["top", 0x222a30], Doctor: ["top", 0x1a1b1f], TownCrier: ["top", 0x2a2520],
+  // Domed helmets — the law & the army.
+  Constable: ["helmet", 0x141821], Soldier: ["helmet", 0x20231a],
+  // Flat caps — the working men.
+  DockWorker: ["cap", 0x33302a], Porter: ["cap", 0x322c24], Fisher: ["cap", 0x222a30],
+  Coalman: ["cap", 0x15120f], Sailor: ["cap", 0x20242c], Lamplighter: ["cap", 0x2a2419],
+  Knifegrinder: ["cap", 0x2c241a], Tinker: ["cap", 0x33301f], Ferryman: ["cap", 0x222a2c],
+  Innkeeper: ["cap", 0x2e231b], Urchin: ["cap", 0x3a342a], Veteran: ["cap", 0x35372a],
+  Blacksmith: ["cap", 0x241c14], Sweep: ["cap", 0x161310], Elder: ["cap", 0x3a3b3e],
+  // Bonnets — the women of the town.
+  Lady: ["bonnet", 0x4a2c40], FlowerGirl: ["bonnet", 0x6a5560], Mother: ["bonnet", 0x44392c],
+  OldWoman: ["bonnet", 0x37333a], Widow: ["bonnet", 0x121116], Schoolmistress: ["bonnet", 0x2a2832],
+  // Kerchiefs — the quayside women at work.
+  Washerwoman: ["scarf", 0x7a6a4a], Fishwife: ["scarf", 0x8a4636],
+  // Wide brims — the weatherbeaten & the clergy.
+  Fisherman: ["brim", 0x6e5e2e], Priest: ["brim", 0x111215], Nun: ["brim", 0x18181c],
+  Baker: ["brim", 0xd8d2c4],
+  // Named locals.
+  Mei: ["scarf", 0x8a3526], Tomo: ["cap", 0x2a3038], Jun: ["cap", 0x223026], Rafiq: ["cap", 0x352a1e],
+};
+for (const [role, [type, colour]] of Object.entries(ROLE_HAT)) {
+  const lk = LOOKS[role];
+  if (!lk) continue;
+  lk.hat = type;
+  if (colour !== undefined) lk.hatColor = colour;
+}
+
 function resolveLook(look) {
   if (look && typeof look === "object") return look;
   return LOOKS[look] || PALETTES[look] || PALETTES.commuter;
@@ -143,6 +177,44 @@ function capsuleLimb(total, radius, material) {
 // camera framing and contact with the ground all stay exactly as before.
 const HIP_Y = 0.82;
 const SHOULDER_Y = 1.46;
+const HEAD_Y = SHOULDER_Y + 0.3;   // head centre
+const HEAD_TOP = HEAD_Y + 0.12;    // roughly where a hat rests on the crown
+
+const at = (m, x, y, z) => { m.position.set(x, y, z); return m; };
+
+// Per-role headwear (spr-005) — the single most legible role cue now that every body
+// shares one capsule silhouette. A few cheap primitives parented onto the crown: a
+// gentleman's top hat, a working flat cap, a woman's bonnet, a wide clergy/sun brim,
+// a domed constable helmet, a kerchief. Returns a Group, or null for the bare-headed.
+// `mat` is the caller's felt (a near-black by default) so colour still carries class.
+function buildHat(type, mat) {
+  const g = new THREE.Group();
+  if (type === "top") {                         // gentleman's tall hat
+    g.add(at(mesh(new THREE.CylinderGeometry(0.205, 0.205, 0.02, 20), mat), 0, HEAD_TOP + 0.005, 0));
+    g.add(at(mesh(new THREE.CylinderGeometry(0.125, 0.135, 0.24, 20), mat), 0, HEAD_TOP + 0.13, 0));
+  } else if (type === "cap") {                  // working man's flat cap: low dome + peak
+    const dome = mesh(new THREE.SphereGeometry(0.162, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), mat);
+    dome.scale.set(1.05, 0.7, 1.1); g.add(at(dome, 0, HEAD_TOP - 0.02, 0));
+    g.add(at(mesh(new THREE.BoxGeometry(0.21, 0.02, 0.11), mat), 0, HEAD_TOP - 0.05, 0.15));
+  } else if (type === "bonnet") {               // woman's bonnet: shell over back & crown
+    const shell = mesh(new THREE.SphereGeometry(0.172, 18, 14, 0, Math.PI * 2, 0, Math.PI * 0.62), mat);
+    shell.scale.set(1.02, 1.06, 1.12); shell.rotation.x = 0.16; g.add(at(shell, 0, HEAD_Y + 0.04, -0.02));
+  } else if (type === "brim") {                 // wide-brim sun / clergy hat
+    g.add(at(mesh(new THREE.CylinderGeometry(0.27, 0.27, 0.016, 22), mat), 0, HEAD_TOP - 0.01, 0));
+    const crown = mesh(new THREE.SphereGeometry(0.15, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), mat);
+    crown.scale.set(1, 0.78, 1); g.add(at(crown, 0, HEAD_TOP - 0.01, 0));
+  } else if (type === "helmet") {               // domed constable / garrison helmet
+    const dome = mesh(new THREE.SphereGeometry(0.166, 18, 14, 0, Math.PI * 2, 0, Math.PI * 0.64), mat);
+    dome.scale.set(1.02, 1.2, 1.02); g.add(at(dome, 0, HEAD_Y + 0.05, 0));
+    g.add(at(mesh(new THREE.SphereGeometry(0.028, 8, 8), mat), 0, HEAD_TOP + 0.16, 0));
+  } else if (type === "scarf") {                // quayside woman's headscarf / kerchief
+    const shell = mesh(new THREE.SphereGeometry(0.166, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.58), mat);
+    shell.scale.set(1.06, 0.98, 1.08); g.add(at(shell, 0, HEAD_Y + 0.03, -0.01));
+  } else {
+    return null;
+  }
+  return g;
+}
 
 // `look` is the appearance: "player" (the painted hero), a PALETTES key (the four
 // walking citizens), a LOOKS key (the 40 standing roles + 4 named locals), or a raw
@@ -202,6 +274,13 @@ export function createFigure(look = "player", opts = {}) {
   hair.scale.set(0.97, 1.05, 1.02);
   hair.position.y = SHOULDER_Y + 0.31;
   body.add(hair);
+
+  // Headwear — the clearest role tell now that every body shares one silhouette
+  // (spr-005). Sits on the crown and bobs with the body. The player stays bare-headed.
+  if (p.hat) {
+    const hat = buildHat(p.hat, flatMat(p.hatColor ?? 0x17140f, 0.72));
+    if (hat) body.add(hat);
+  }
 
   // Legs — capsules from the hip, each ending in a boot toed forward.
   function makeLeg(x) {
