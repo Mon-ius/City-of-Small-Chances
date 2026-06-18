@@ -484,6 +484,61 @@ function buildDuck(x, z, wl, facing = 0, drake = true, phase = 0) {
   };
 }
 
+// A cormorant perched with its wings half-spread to dry (spr-024) — the bird's
+// signature heraldic pose, because its feathers aren't waterproof. An oily near-black
+// body held upright, a snaky neck and hooked bill, a yellow gular throat, and two broad
+// feather fans splayed out and swept back. Built facing +x (bill forward); the wings
+// breathe open and shut a touch and the head turns as it dries. Replaces the last bird
+// billboard on the water (Batch 60 `PROP_Bird_Cormorant`).
+function buildCormorant(x, z, baseY, facing = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, baseY, z);
+  root.rotation.y = facing;
+  const bodyMat = new THREE.MeshStandardMaterial({ color: 0x24282b, roughness: 0.6, metalness: 0.2 });   // oily near-black
+  const wingMat = new THREE.MeshStandardMaterial({ color: 0x2f3437, roughness: 0.7, metalness: 0.12 });  // wings a touch lighter
+  const gularMat = new THREE.MeshStandardMaterial({ color: 0xc7a14a, roughness: 0.6, metalness: 0 });    // yellow throat
+  const beakMat = new THREE.MeshStandardMaterial({ color: 0x9a8a66, roughness: 0.5, metalness: 0 });     // horn bill
+  const dark = new THREE.MeshStandardMaterial({ color: 0x16191b, roughness: 0.8, metalness: 0 });
+  const mk = (geo, mat, px, py, pz, parent = root) => { const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); m.castShadow = true; parent.add(m); return m; };
+
+  const legGeo = new THREE.CylinderGeometry(0.018, 0.016, 0.2, 6);  // short legs set well back
+  mk(legGeo, dark, -0.04, 0.1, 0.06);
+  mk(legGeo, dark, -0.04, 0.1, -0.06);
+
+  const body = mk(new THREE.SphereGeometry(0.13, 14, 12), bodyMat, 0, 0.42, 0);
+  body.scale.set(1.15, 1.55, 0.95); body.rotation.z = -0.28;       // upright, breast lifted
+  mk(new THREE.ConeGeometry(0.055, 0.28, 6), bodyMat, -0.16, 0.2, 0).rotation.z = 0.9; // long tail down-back
+
+  const neck = new THREE.Group(); neck.position.set(0.06, 0.62, 0); root.add(neck);
+  mk(new THREE.CapsuleGeometry(0.035, 0.16, 4, 8), bodyMat, 0.0, 0.1, 0, neck).rotation.z = -0.15;        // neck column
+  mk(new THREE.SphereGeometry(0.06, 12, 10), bodyMat, 0.06, 0.24, 0, neck);                               // head
+  mk(new THREE.SphereGeometry(0.035, 8, 8), gularMat, 0.1, 0.2, 0, neck).scale.set(1, 0.8, 0.8);          // throat patch
+  mk(new THREE.CapsuleGeometry(0.016, 0.13, 4, 6), beakMat, 0.2, 0.24, 0, neck).rotation.z = Math.PI / 2; // straight bill
+  mk(new THREE.ConeGeometry(0.018, 0.04, 6), beakMat, 0.275, 0.225, 0, neck).rotation.z = -Math.PI / 2.2; // hooked tip
+
+  const wing = (sign) => {           // a wing group each side, lifted out and fanned back
+    const g = new THREE.Group();
+    g.position.set(-0.04, 0.5, sign * 0.07);
+    mk(new THREE.CapsuleGeometry(0.03, 0.34, 4, 8), wingMat, -0.05, 0, sign * 0.2, g).rotation.x = sign * Math.PI / 2; // leading edge
+    const blade = mk(new THREE.SphereGeometry(0.16, 12, 10), wingMat, -0.08, -0.02, sign * 0.27, g);      // feather fan
+    blade.scale.set(0.55, 0.16, 1.5);
+    g.rotation.x = sign * -0.55;     // lift the tips
+    g.rotation.y = sign * -0.5;      // sweep them back
+    root.add(g);
+    return g;
+  };
+  const wingL = wing(1), wingR = wing(-1);
+
+  return {
+    root,
+    update(t) {
+      const a = Math.sin(t * 0.5) * 0.08;            // a slow drying shuffle
+      wingL.rotation.x = -0.55 - a; wingR.rotation.x = 0.55 + a;
+      neck.rotation.y = Math.sin(t * 0.33 + 1) * 0.3; // the head turns as it dries
+    },
+  };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -1557,18 +1612,17 @@ export function buildWorld(scene) {
     for (const l of boatLights) l.material.opacity = n * l.userData.glowBase;
   }
 
-  // ── Harbour waterbirds (Batch 60 → spr-023): a working port is alive with waterbirds.
-  // The HERON sentinel and the raft of DUCKS were camera-facing billboards; spr-023
-  // rebuilds them as REAL bodies (buildHeron/buildDuck above) — same loop ask, "real body
-  // instead of faced picture" — perched/floating with a fixed facing and a small idle (the
-  // heron scans, the ducks bob and drift). The CORMORANT (wings half-spread to dry) keeps
-  // the billboard for now — outstretched wings are the trickiest pose to model; next pass.
-  // Coping top ≈0.91 (perched gulls sit there). All clear of the gulls, the quay-edge gear
-  // and the near craft, in the long open coping/water gaps off the sea-wall.
-  const cormorant = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Bird_Cormorant.png`, 0.85, 0.83, { emissive: 0.16, alphaTest: 0.4 });
-  cormorant.position.set(-11.4, 1.33, -26); // wings out to dry, south coping
-  scene.add(cormorant);
-  billboards.push(cormorant); // main.js turns it to face the camera each frame
+  // ── Harbour waterbirds (Batch 60 → spr-023/024): a working port is alive with waterbirds.
+  // The HERON sentinel, the raft of DUCKS and the wing-drying CORMORANT were all camera-facing
+  // billboards; spr-023/024 rebuild every one as a REAL body (buildHeron/buildDuck/buildCormorant
+  // above) — the loop's own ask, "real body instead of faced picture" — perched/floating with a
+  // fixed facing and a small idle (the heron scans, the ducks bob and drift, the cormorant's wings
+  // breathe as they dry). No bird billboards remain on the water. Coping top ≈0.91 (perched gulls
+  // sit there). All clear of the gulls, the quay-edge gear and the near craft, in the long open
+  // coping/water gaps off the sea-wall.
+  const cormorant = buildCormorant(-11.1, -26, 1.5, 0.4); // wings out to dry, perched on the mooring bollard (top y≈1.5)
+  scene.add(cormorant.root);
+  critters.push(cormorant);
 
   const heron = buildHeron(-11.4, 18, 0.91, 2.7); // standing sentinel, looking out over the water
   scene.add(heron.root);
