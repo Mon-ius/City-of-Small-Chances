@@ -240,20 +240,25 @@ function start() {
       c.mesh.rotation.y = Math.atan2(camera.position.x - x, camera.position.z - c.mesh.position.z);
     }
 
-    // Wheel the soaring gulls (Batch 70): each drifts along a slow Lissajous path over
-    // the water, beats its wings (swapping the down/up frame on a per-gull flap cycle),
-    // and turns to face the camera — so the sky finally moves with the gull cries on the
-    // audio bed instead of hanging frozen.
+    // Wheel the soaring gulls (Batch 70 → spr-027): each is now a real `buildSoaringGull`
+    // body drifting along a slow Lissajous path over the water. It turns to face its OWN
+    // heading (atan2 of the path velocity — no camera-facing) and beats both wings about
+    // their shoulder pivots, so the sky moves with the gull cries on the audio bed instead
+    // of hanging as frozen cards.
     gullClock += dt;
     for (const gl of world.soaringGulls) {
       const a = gullClock * gl.speed + gl.phase;
       const x = gl.x0 + gl.xAmp * Math.sin(a * 2);          // lateral sway (figure-eight)
       const y = gl.y0 + gl.yAmp * Math.sin(a * 0.8 + 1.3);  // gentle altitude bob
       const z = gl.z0 + gl.zAmp * Math.sin(a);              // primary glide along the quay
-      const flapUp = Math.sin((gullClock + gl.phase) * 7.0) > 0; // ~1.1 Hz lazy wingbeat
-      const face = Math.atan2(camera.position.x - x, camera.position.z - z);
-      gl.down.position.set(x, y, z); gl.down.rotation.y = face; gl.down.visible = !flapUp;
-      gl.up.position.set(x, y, z);   gl.up.rotation.y = face;   gl.up.visible = flapUp;
+      const vx = gl.xAmp * Math.cos(a * 2) * 2 * gl.speed;  // path velocity → heading
+      const vz = gl.zAmp * Math.cos(a) * gl.speed;
+      const heading = Math.atan2(-vz, vx); // body nose is local +x → Ry maps +x to (cos,−sin)
+      const flap = Math.sin((gullClock + gl.phase) * 7.0) * 0.5; // ~1.1 Hz lazy wingbeat
+      gl.root.position.set(x, y, z);
+      gl.root.rotation.y = heading;
+      gl.leftWing.rotation.x = -0.15 - flap;
+      gl.rightWing.rotation.x = 0.15 + flap;
     }
 
     // Smoke rises from the homes' chimneys (spr-021): each puff loops a lifecycle

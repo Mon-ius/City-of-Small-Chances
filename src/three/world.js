@@ -644,6 +644,42 @@ function buildGull(x, z, baseY, facing = 0, calling = false) {
   };
 }
 
+// A gull on the wing, gliding high over the water (spr-027) — the last bird billboards
+// (the soaring cutout pairs) become real bodies. A streamlined white fuselage, a grey
+// back, a small head + yellow bill, a fanned tail, and two long swept wings (grey with
+// dark primaries) on shoulder PIVOTS so main.js can beat them. Built facing +x = flight
+// forward; main.js drives the wheel path, points the body along its velocity (so it banks
+// through the turns instead of facing the camera) and flaps the wings. Returns the wing
+// pivots so the caller owns the wingbeat. No legs — they're tucked up in flight.
+function buildSoaringGull() {
+  const root = new THREE.Group();
+  const white = new THREE.MeshStandardMaterial({ color: 0xeef0f2, roughness: 0.7, metalness: 0 });
+  const grey = new THREE.MeshStandardMaterial({ color: 0x9aa6ad, roughness: 0.8, metalness: 0 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x33383d, roughness: 0.8, metalness: 0 }); // black primaries
+  const beakMat = new THREE.MeshStandardMaterial({ color: 0xe5b234, roughness: 0.5, metalness: 0 });
+  const mk = (geo, mat, px, py, pz, parent = root) => { const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); m.castShadow = true; parent.add(m); return m; };
+
+  const body = mk(new THREE.SphereGeometry(0.13, 14, 12), white, 0, 0, 0); body.scale.set(1.9, 0.6, 0.55);  // streamlined fuselage
+  const back = mk(new THREE.SphereGeometry(0.1, 12, 10), grey, -0.02, 0.045, 0); back.scale.set(1.7, 0.35, 0.5); // grey mantle on top
+  mk(new THREE.SphereGeometry(0.06, 10, 8), white, 0.22, 0.02, 0);                                    // head
+  mk(new THREE.ConeGeometry(0.02, 0.07, 5), beakMat, 0.31, 0.01, 0).rotation.z = -Math.PI / 2;        // bill
+  mk(new THREE.BoxGeometry(0.16, 0.02, 0.15), white, -0.27, 0.01, 0);                                 // fanned tail
+  mk(new THREE.BoxGeometry(0.04, 0.022, 0.15), grey, -0.35, 0.01, 0);                                 // grey tail edge
+
+  const mkWing = (sign) => {
+    const piv = new THREE.Group();
+    piv.position.set(-0.02, 0.02, sign * 0.06);
+    root.add(piv);
+    const inner = mk(new THREE.SphereGeometry(0.12, 10, 8), grey, -0.03, 0, sign * 0.28, piv); inner.scale.set(0.7, 0.12, 2.6); // long grey blade
+    const outer = mk(new THREE.SphereGeometry(0.1, 8, 6), dark, -0.12, 0, sign * 0.55, piv); outer.scale.set(0.5, 0.1, 1.7);    // dark swept primaries
+    piv.rotation.x = sign * -0.15; // resting dihedral (a shallow V); main.js overwrites this with the wingbeat
+    return piv;
+  };
+  const leftWing = mkWing(1);
+  const rightWing = mkWing(-1);
+  return { root, leftWing, rightWing };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -1587,37 +1623,28 @@ export function buildWorld(scene) {
     critters.push(gull); // ticked from main.js's critter clock
   }
 
-  // ── Wheeling gulls (Batch 70): the soaring gulls hung FROZEN in the sky like cloud
-  // cards even as the audio bed cries with gulls on the wing. Now each soarer carries
-  // TWO wing frames — PROP_Gull_Flying (down-glide) and the new PROP_Gull_FlyingUp
-  // (up-stroke) — and drifts along a slow Lissajous path over the water, flapping as it
-  // goes. main.js wheels the path, swaps the wing frame on a per-gull flap cycle, and
-  // turns the card to face the camera (so the broadside always reads). The two frames
-  // share the same 384×192 canvas so the swap doesn't make the bird jump. No contact
-  // shadow, no day-cycle hook — gulls wheel by day and dusk the same (the audio already
-  // thins the cries at night). Tracked in its own array, NOT in `billboards`, because the
-  // soaring update faces them itself.
+  // ── Wheeling gulls (Batch 70 → spr-027): the soaring gulls were the LAST bird
+  // billboards — two camera-facing cutout frames (PROP_Gull_Flying / _FlyingUp) swapped
+  // for a fake flap. Now each soarer is a real `buildSoaringGull()` body — a flattened
+  // pearl-grey gull with two pivoting wings — that drifts along a slow Lissajous path over
+  // the water. main.js wheels the path, turns the body to face its own heading (atan2 of
+  // the path velocity — NO camera-facing), and beats the wings about their shoulder
+  // pivots. No contact shadow, no day-cycle hook — gulls wheel by day and dusk the same
+  // (the audio already thins the cries at night). Tracked in its own array, NOT in
+  // `billboards` nor `critters`: the soaring update owns its heading + wingbeat directly.
   const soaringGulls = [];
   const soarers = [
-    // [x0, y0, z0, w, h, zAmp, xAmp, yAmp, speed, phase] — wheel about (x0,y0,z0)
-    [-25, 9, -2, 1.4, 0.7, 16, 4.5, 0.8, 0.10, 0.0],
-    [-18, 11, 9, 1.2, 0.6, 14, 3.5, 0.7, 0.13, 1.7],
-    [-30, 13, -15, 1.5, 0.75, 18, 5.0, 0.9, 0.08, 3.1],
-    [4, 14, -4, 1.1, 0.55, 12, 3.0, 0.6, 0.15, 4.6],
+    // [x0, y0, z0, zAmp, xAmp, yAmp, speed, phase] — wheel about (x0,y0,z0)
+    [-25, 9, -2, 16, 4.5, 0.8, 0.10, 0.0],
+    [-18, 11, 9, 14, 3.5, 0.7, 0.13, 1.7],
+    [-30, 13, -15, 18, 5.0, 0.9, 0.08, 3.1],
+    [4, 14, -4, 12, 3.0, 0.6, 0.15, 4.6],
   ];
-  for (const [x0, y0, z0, w, h, zAmp, xAmp, yAmp, speed, phase] of soarers) {
-    // down-glide is the wide 2:1 frame (w×h); the up-stroke is the square 1:1 frame
-    // (PROP_Gull_FlyingUp, 384×384) so its raised wings aren't squashed — same width so
-    // the wingspan reads consistent, and both centred on the body so the flap only lifts
-    // the wings, never jumps the bird.
-    const down = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Gull_Flying.png`, w, h, { emissive: 0.22, alphaTest: 0.4 });
-    const up = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Gull_FlyingUp.png`, w, w, { emissive: 0.22, alphaTest: 0.4 });
-    down.position.set(x0, y0, z0);
-    up.position.set(x0, y0, z0);
-    up.visible = false; // start mid-glide on the down-frame
-    scene.add(down);
-    scene.add(up);
-    soaringGulls.push({ down, up, x0, y0, z0, zAmp, xAmp, yAmp, speed, phase });
+  for (const [x0, y0, z0, zAmp, xAmp, yAmp, speed, phase] of soarers) {
+    const g = buildSoaringGull();
+    g.root.position.set(x0, y0, z0);
+    scene.add(g.root);
+    soaringGulls.push({ root: g.root, leftWing: g.leftWing, rightWing: g.rightWing, x0, y0, z0, zAmp, xAmp, yAmp, speed, phase });
   }
 
   // ── Vessels on the water (Batch 44): the wide sea west of the quay carried just one
