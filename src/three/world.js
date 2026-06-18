@@ -1402,6 +1402,54 @@ export function buildWorld(scene) {
     for (const s of waterGlows) s.material.opacity = Math.min(1, n * s.userData.glowBase);
   }
 
+  // ── The sun on the water (Batch 68): the moonglades above light the NIGHT water, but
+  // by DAY — when the player is most often out — the wide bay sat flat and dead under
+  // bright sun. Real water dazzles with broken sun-glitter. This is the daytime
+  // counterpart to the moonglades: bright white-gold specular sparkle dancing on the
+  // rippled water, instanced across the open west water as camera-facing billboards (the
+  // SAME grazing-angle trick — the water is seen EDGE-ON, so a flat decal foreshortens to
+  // nothing; a sun-path reads as a shimmering column climbing from the waterline). Self-
+  // lit MeshBasic, AdditiveBlending, fog off; opacity rides the DAY-blend weight
+  // (setSunGlitter, from daycycle.js) — dazzling at midday, fading at dawn/dusk, ~0 at
+  // night (exactly the inverse of the moonglades). Placed in the open water clear of the
+  // moonglade spots (−17,−10 / −19,4) so day and dusk never stack on the same column.
+  const sunGlitters = [];
+  const glitterTex = _texLoader.load(`${FX_DIR}FX_Light_SunGlitter.png`);
+  glitterTex.colorSpace = THREE.SRGBColorSpace;
+  const glitters = [
+    // [w, h, x, z, base] — bright warm-white sun-paths down the open west water. High base
+    // so the bright sparkle cores clip toward white (dazzle) against the already-bright day
+    // water — additive light reads far less here than the moonglades do on dark night water.
+    [3.2, 3.2, -15, -16, 0.95],
+    [2.8, 2.9, -18, -2, 0.9],
+    [3.2, 3.2, -16, 14, 0.95],
+    [2.6, 2.7, -20, 26, 0.85],
+  ];
+  for (const [w, h, x, z, base] of glitters) {
+    const glit = new THREE.Mesh(
+      new THREE.PlaneGeometry(w, h),
+      new THREE.MeshBasicMaterial({
+        map: glitterTex,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        fog: false,
+        color: new THREE.Color(0xfff2dc),
+      }),
+    );
+    glit.position.set(x, WL + h / 2, z); // base of the column on the water surface
+    glit.renderOrder = 1;
+    glit.userData.glowBase = base;
+    scene.add(glit);
+    billboards.push(glit); // main.js turns the column to face the camera each frame
+    sunGlitters.push(glit);
+  }
+  function setSunGlitter(intensity) {
+    const n = Math.max(0, Math.min(1, intensity));
+    for (const s of sunGlitters) s.material.opacity = Math.min(1, n * s.userData.glowBase);
+  }
+
   // ── Mist on the water (Batch 65): the last four batches lit the NIGHT (moon, lamp
   // pools, water reflections, brazier fire); this one works the other end of the clock —
   // the cool dawn and dusk. The water sat flat and clear at every hour, but a working
@@ -1879,7 +1927,7 @@ export function buildWorld(scene) {
   }
 
   const bounds = { minX: -10.5, maxX: 6.5, minZ: -34, maxZ: 34 };
-  return { bounds, citizens, billboards, clouds, lampHeads, lampGlows, waterGlows, brazierGlows, waterMists, beaconGlows, boatLights, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow, setWaterGlow, setBrazierGlow, setWaterMist, setBeacon, setBoatLights };
+  return { bounds, citizens, billboards, clouds, lampHeads, lampGlows, waterGlows, sunGlitters, brazierGlows, waterMists, beaconGlows, boatLights, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow, setWaterGlow, setSunGlitter, setBrazierGlow, setWaterMist, setBeacon, setBoatLights };
 }
 
 // Wrapper so makeBuilding (which builds a Group) is added to the scene.
