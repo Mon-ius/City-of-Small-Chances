@@ -293,12 +293,14 @@ function buildProp(type) {
     handle.rotation.x = -0.55; g.add(at(handle, 0.27, 1.0, 0.17));        // top toward the hand
     const bowl = mesh(new THREE.SphereGeometry(0.075, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), steel);
     bowl.scale.set(1, 0.7, 1); g.add(at(bowl, 0.33, 0.76, 0.31));         // shallow cup, mouth up
+    g.userData.grip = [0.27, 1.0, 0.17]; g.userData.anim = "stir";        // worked at the hand (spr-019)
   } else if (type === "wrench") {                 // a quay mechanic's spanner, held at the side
     const steel = flatMat(0x6b7178, 0.42);
     const shaft = mesh(new THREE.BoxGeometry(0.035, 0.34, 0.022), steel);
     shaft.rotation.x = 0.12; g.add(at(shaft, 0.3, 0.82, 0.12));
     const jaw = mesh(new THREE.TorusGeometry(0.052, 0.017, 6, 14, Math.PI * 1.35), steel); // open C-jaw
     jaw.rotation.z = -0.4; g.add(at(jaw, 0.3, 1.0, 0.13));
+    g.userData.grip = [0.3, 0.9, 0.12]; g.userData.anim = "turn";         // cranked at the shaft (spr-019)
   } else {
     return null;
   }
@@ -385,9 +387,26 @@ export function createFigure(look = "player", opts = {}) {
   }
 
   // Carried prop — a trade tell in the hands (spr-006). Rides the breath, not the swing.
+  // A worked tool (one with a userData.grip) hangs from a pivot at the grip so it can be
+  // stirred or cranked about the hand without the whole tool swinging from the feet (spr-019).
+  let propPivot = null, propAnim = null;
   if (p.prop) {
     const prop = buildProp(p.prop);
-    if (prop) { prop.name = "prop:" + p.prop; body.add(prop); }
+    if (prop) {
+      prop.name = "prop:" + p.prop;
+      if (prop.userData.grip) {
+        const [gx, gy, gz] = prop.userData.grip;
+        const pivot = new THREE.Group();
+        pivot.name = prop.name;
+        pivot.position.set(gx, gy, gz);     // pivot sits at the hand
+        prop.position.set(-gx, -gy, -gz);   // counter-offset → meshes stay exactly where they were
+        pivot.add(prop);
+        body.add(pivot);
+        propPivot = pivot; propAnim = prop.userData.anim || null;
+      } else {
+        body.add(prop);
+      }
+    }
   }
 
   // Limb girth tracks build, but gently (0.7 + 0.3·build) — a smith's legs thicken,
@@ -462,6 +481,8 @@ export function createFigure(look = "player", opts = {}) {
     _build: build,                      // mass proxy — drives the stride heft (spr-017)
     _fidgety: idler && !p.prop,         // empty-handed idlers fidget; the laden don't (spr-018)
     _fidgetPhase: seed * Math.PI * 3.3, // fidget clock, decorrelated from breath/gaze/sway
+    _propPivot: propPivot,              // a worked tool's hand-pivot, or null (spr-019)
+    _propAnim: propAnim,                // "stir" | "turn" | null
     update(dt, speed = 0) {
       const moving = speed > 0.05;
       // Stride cadence scales with pace (sqrt so it eases off), so a laden trudge steps
@@ -514,6 +535,17 @@ export function createFigure(look = "player", opts = {}) {
         : 0;
       armR.rotation.x += -fidget * 0.85;          // right forearm rises toward the chest
       this.headPivot.rotation.x = -fidget * 0.16; // and the head dips to glance at it
+      // Worked tools (spr-019) — the named tradesfolk keep their hands busy at their post.
+      // The tool pivots at the grip, so only its head sweeps; the figure stays planted.
+      if (this._propPivot) {
+        const t = this._phase;
+        if (this._propAnim === "stir") {            // Mei works her ladle round the pot
+          this._propPivot.rotation.x = Math.sin(t * 1.1) * 0.20;
+          this._propPivot.rotation.z = Math.cos(t * 1.1) * 0.20;
+        } else if (this._propAnim === "turn") {     // Tomo cranks his spanner on a fitting
+          this._propPivot.rotation.x = Math.sin(t * 1.6) * 0.28;
+        }
+      }
     },
   };
   return figure;
