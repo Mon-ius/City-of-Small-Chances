@@ -150,6 +150,7 @@ function start() {
   let markerPhase = 0;
   let gullClock = 0; // seconds, drives the soaring gulls' wheel + wingbeat (Batch 70)
   let smokeClock = 0; // seconds, drives the homes' chimney plumes (spr-021)
+  let critterClock = 0; // seconds, drives the real-body dog/cat idle (spr-022)
 
   function placeCamera() {
     const p = player.root.position;
@@ -270,6 +271,11 @@ function start() {
         pf.sprite.material.opacity = Math.sin(lt * Math.PI) * 0.42;                // fade in then out
       }
     }
+
+    // The harbour animals breathe (spr-022): the real-body dog and cat run their own
+    // small idle — the dog wags and sniffs, the cat flicks its tail and watches the water.
+    critterClock += dt;
+    for (const c of world.critters) c.update(critterClock);
 
     // Bob the interaction markers so they catch the eye.
     markerPhase += dt * 2.2;

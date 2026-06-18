@@ -339,6 +339,87 @@ function makeLamp(x, z, metalMat) {
   return { group: g, head };
 }
 
+// ── Real-body harbour animals (spr-022) ────────────────────────────────────────
+// The loop's own ask — "real body instead of faced picture with fake 3D" — applied
+// to the cobble animals: the stray dog and the quay cat were camera-facing
+// billboards; here they become real rounded geometry in the figure aesthetic
+// (smooth capsules/spheres), with a FIXED facing like the citizen figures (no
+// billboarding) and a small idle. Each returns { root, update(t) } collected into
+// world.critters and ticked from main.js's critter clock (deterministic — no
+// Math.random). Pigeons (tiny ground clusters) stay flat; a real-body flock is
+// overkill and they read fine.
+
+// A stray dog hoping for scraps: a tan body on four legs, a snouted head with
+// drooping ears, and a tail that wags from the hip. Built facing +x in local space;
+// root.rotation.y aims it.
+function buildDog(x, z, facing = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, 0, z);
+  root.rotation.y = facing;
+  const coat = new THREE.MeshStandardMaterial({ color: 0x8a6440, roughness: 0.85, metalness: 0 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x5c4329, roughness: 0.9, metalness: 0 });
+  const mk = (geo, mat, px, py, pz) => { const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); m.castShadow = true; root.add(m); return m; };
+
+  const body = mk(new THREE.CapsuleGeometry(0.13, 0.34, 6, 12), coat, 0, 0.42, 0);
+  body.rotation.z = Math.PI / 2;                                  // lie the capsule along X
+  mk(new THREE.CapsuleGeometry(0.075, 0.12, 5, 10), coat, 0.26, 0.5, 0).rotation.z = Math.PI / 2.6; // neck, rising
+  const head = mk(new THREE.SphereGeometry(0.12, 14, 12), coat, 0.41, 0.57, 0);
+  mk(new THREE.CapsuleGeometry(0.05, 0.1, 5, 10), coat, 0.53, 0.53, 0).rotation.z = Math.PI / 2; // snout
+  mk(new THREE.SphereGeometry(0.03, 8, 8), dark, 0.6, 0.54, 0);   // wet nose
+  const earGeo = new THREE.CapsuleGeometry(0.025, 0.07, 4, 8);
+  mk(earGeo, dark, 0.36, 0.61, 0.085).rotation.x = 0.5;           // drooping ears
+  mk(earGeo, dark, 0.36, 0.61, -0.085).rotation.x = -0.5;
+
+  const legGeo = new THREE.CylinderGeometry(0.035, 0.03, 0.34, 8);
+  for (const [lx, lz] of [[0.19, 0.1], [0.19, -0.1], [-0.17, 0.1], [-0.17, -0.1]]) mk(legGeo, coat, lx, 0.17, lz);
+
+  const tailPivot = new THREE.Group(); tailPivot.position.set(-0.3, 0.52, 0); root.add(tailPivot);
+  const tail = new THREE.Mesh(new THREE.CapsuleGeometry(0.028, 0.2, 4, 8), coat);
+  tail.position.set(-0.07, 0.06, 0); tail.rotation.z = -0.8; tail.castShadow = true; tailPivot.add(tail);
+
+  return {
+    root,
+    update(t) {
+      tailPivot.rotation.y = Math.sin(t * 8) * 0.5;              // a hopeful wag
+      head.position.y = 0.57 + Math.sin(t * 1.3) * 0.02;         // the odd sniff for scraps
+    },
+  };
+}
+
+// A quay cat settled in a 'loaf' on the sea-wall: a squashed body, a round head with
+// pricked ears, and a long tail laid along the coping that flicks at the tip. Faces
+// the water; head turns slowly to watch it.
+function buildCat(x, z, baseY, facing = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, baseY, z);
+  root.rotation.y = facing;
+  const fur = new THREE.MeshStandardMaterial({ color: 0x6f7378, roughness: 0.9, metalness: 0 });
+  const pale = new THREE.MeshStandardMaterial({ color: 0xb9bcc0, roughness: 0.9, metalness: 0 });
+  const mk = (geo, mat, px, py, pz) => { const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); m.castShadow = true; root.add(m); return m; };
+
+  const body = mk(new THREE.SphereGeometry(0.13, 16, 12), fur, 0, 0.11, 0);
+  body.scale.set(1.5, 0.85, 1.0);                                // the loaf
+  mk(new THREE.SphereGeometry(0.075, 10, 8), fur, 0.13, 0.07, 0).scale.set(1, 0.7, 1.4); // tucked front paws
+  const headPivot = new THREE.Group(); headPivot.position.set(0.17, 0.2, 0); root.add(headPivot);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.085, 14, 12), fur); head.castShadow = true; headPivot.add(head);
+  const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), pale); muzzle.position.set(0.06, -0.02, 0); muzzle.scale.set(0.7, 0.7, 0.9); headPivot.add(muzzle);
+  const earGeo = new THREE.ConeGeometry(0.035, 0.07, 6);
+  const earL = new THREE.Mesh(earGeo, fur); earL.position.set(-0.01, 0.08, 0.05); earL.rotation.x = -0.2; headPivot.add(earL);
+  const earR = new THREE.Mesh(earGeo, fur); earR.position.set(-0.01, 0.08, -0.05); earR.rotation.x = 0.2; headPivot.add(earR);
+
+  const tailPivot = new THREE.Group(); tailPivot.position.set(-0.16, 0.1, 0.02); root.add(tailPivot);
+  const tail = new THREE.Mesh(new THREE.CapsuleGeometry(0.022, 0.26, 4, 8), fur);
+  tail.position.set(-0.1, 0.02, 0.08); tail.rotation.z = 1.4; tail.rotation.y = 0.5; tail.castShadow = true; tailPivot.add(tail);
+
+  return {
+    root,
+    update(t) {
+      tailPivot.rotation.y = 0.3 + Math.sin(t * 2.2) * 0.28;     // a slow tail flick
+      headPivot.rotation.y = Math.sin(t * 0.5) * 0.3;            // watching the water
+    },
+  };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -1710,19 +1791,30 @@ export function buildWorld(scene) {
     scene.add(line);
   }
 
-  // ── Life on the cobbles (Batch 48): the gulls gave the harbour life in the air and the
-  // citizens give it people, but the quay kept no animals at the player's own eye level.
-  // A sparse scatter of camera-facing animal billboards (the citizen/gull idiom) puts a
-  // little life underfoot: the quay cat settled on the sea-wall coping watching the water
-  // (perched on a surface, so no contact-shadow blob — like the gulls), a stray dock dog
-  // hoping for scraps by Mei's stall, and two clusters of pigeons working the cobbles
-  // (ground-planted, each with a soft contact-shadow blob). `baseY` is the surface the
-  // animal sits on (0 = the deck, 0.9 = the sea-wall top); the plane centre is half its
-  // height above that. Kept clear of the interactables, the named cast and the spawn.
+  // ── Life on the cobbles (Batch 48 → spr-022): the quay kept no animals at the player's
+  // own eye level. The dog and cat began as camera-facing billboards; spr-022 rebuilds
+  // them as REAL rounded bodies (buildDog/buildCat above) — the loop's own ask, "real body
+  // instead of faced picture with fake 3D" — with a fixed facing and a small idle (the dog
+  // wags and sniffs, the cat flicks its tail and watches the water). The PIGEONS stay
+  // flat billboards: tiny ground clusters where a real-body flock is overkill and a cutout
+  // reads fine. `baseY` is the surface the animal sits on (0 = deck, 0.9 = sea-wall top).
+  const critters = [];
+  const dog = buildDog(-7.0, 5.5, 0.4);   // a stray by Mei's stall, turned toward the scraps
+  const cat = buildCat(-11.1, 9, 0.9, 3.0); // on the sea-wall coping, looking out over the water
+  scene.add(dog.root); scene.add(cat.root);
+  critters.push(dog, cat);
+  // the dog stands on the deck → a soft contact-shadow blob (the cat is perched, like the gulls — none)
+  const dogBlob = new THREE.Mesh(
+    new THREE.CircleGeometry(0.42, 16),
+    new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+  );
+  dogBlob.rotation.x = -Math.PI / 2;
+  dogBlob.position.set(-7.0, 0.02, 5.5);
+  dogBlob.renderOrder = -1;
+  scene.add(dogBlob);
+
   const animals = [
-    // [file, w, h, x, z, baseY, shadowR] — shadowR 0 = perched on a surface, no blob.
-    ["PROP_Animal_Cat", 0.28, 0.55, -11.1, 9, 0.9, 0], // the quay cat on the sea-wall coping
-    ["PROP_Animal_Dog", 0.85, 0.85, -7.0, 5.5, 0, 0.42], // a stray by Mei's noodle stall
+    // [file, w, h, x, z, baseY, shadowR] — the pigeons keep the billboard idiom; shadowR 0 = no blob.
     ["PROP_Animal_Pigeons", 0.84, 0.4, -2.5, 6.0, 0, 0.34], // pecking the cobbles near the stall
     ["PROP_Animal_Pigeons", 0.78, 0.37, 1.5, 14, 0, 0.32], // a second group out on the quay
   ];
@@ -2059,7 +2151,7 @@ export function buildWorld(scene) {
   }
 
   const bounds = { minX: -10.5, maxX: 6.5, minZ: -34, maxZ: 34 };
-  return { bounds, citizens, locals, billboards, clouds, soaringGulls, smokePlumes, lampHeads, lampGlows, waterGlows, sunGlitters, brazierGlows, waterMists, beaconGlows, boatLights, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow, setWindowGlow, setWaterGlow, setSunGlitter, setBrazierGlow, setWaterMist, setBeacon, setBoatLights };
+  return { bounds, citizens, locals, billboards, clouds, soaringGulls, smokePlumes, critters, lampHeads, lampGlows, waterGlows, sunGlitters, brazierGlows, waterMists, beaconGlows, boatLights, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow, setWindowGlow, setWaterGlow, setSunGlitter, setBrazierGlow, setWaterMist, setBeacon, setBoatLights };
 }
 
 // Wrapper so makeBuilding (which builds a Group) is added to the scene.
