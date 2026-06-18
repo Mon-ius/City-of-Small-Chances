@@ -992,12 +992,16 @@ export function buildWorld(scene) {
     { name: "Jun",   x: 3.0,  z: -7,   yaw: Math.PI / 2 },   // the dispatcher, facing the board + parked bike (5,−6)
     { name: "Rafiq", x: 4.7,  z: -12,  yaw: -Math.PI / 2 - 0.3 }, // the foreman, facing the loading at the north end
   ];
+  // The named cast are also collected here (with their home heading) so the frame loop
+  // can turn them to face the player when you come close, then ease them back to work.
+  const locals = [];
   for (const p of namedLocals) {
     const seed = (((p.x * 12.9 + p.z * 7.3) % 1) + 1) % 1;
     const fig = createFigure(p.name, { castShadow: false, seed });
     fig.root.position.set(p.x, 0, p.z);
     scene.add(fig.root);
     citizens.push(makeStanding(fig, p.yaw));
+    locals.push({ fig, x: p.x, z: p.z, homeYaw: p.yaw });
     const blob = new THREE.Mesh(
       new THREE.CircleGeometry(0.5, 16),
       new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.55 }),
@@ -1990,7 +1994,7 @@ export function buildWorld(scene) {
   }
 
   const bounds = { minX: -10.5, maxX: 6.5, minZ: -34, maxZ: 34 };
-  return { bounds, citizens, billboards, clouds, soaringGulls, lampHeads, lampGlows, waterGlows, sunGlitters, brazierGlows, waterMists, beaconGlows, boatLights, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow, setWaterGlow, setSunGlitter, setBrazierGlow, setWaterMist, setBeacon, setBoatLights };
+  return { bounds, citizens, locals, billboards, clouds, soaringGulls, lampHeads, lampGlows, waterGlows, sunGlitters, brazierGlows, waterMists, beaconGlows, boatLights, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow, setWaterGlow, setSunGlitter, setBrazierGlow, setWaterMist, setBeacon, setBoatLights };
 }
 
 // Wrapper so makeBuilding (which builds a Group) is added to the scene.

@@ -212,6 +212,17 @@ function start() {
 
     for (const c of world.citizens) c.update(dt);
 
+    // The named cast notice you: come within a few metres and each turns from its work
+    // to face you (easing round, not snapping), then drifts back to its home heading once
+    // you move off. makeStanding leaves root.rotation.y free, so this owns it cleanly.
+    const pp = player.root.position;
+    for (const L of world.locals) {
+      const dx = pp.x - L.x, dz = pp.z - L.z;
+      const target = dx * dx + dz * dz < 12.25 ? Math.atan2(dx, dz) : L.homeYaw; // 3.5 m
+      const d = Math.atan2(Math.sin(target - L.fig.root.rotation.y), Math.cos(target - L.fig.root.rotation.y));
+      L.fig.root.rotation.y += d * Math.min(1, dt * 4);
+    }
+
     // Turn each painted citizen billboard to face the camera (cylindrical: only
     // around Y, so the figures stay upright as the camera orbits and pitches).
     for (const b of world.billboards) {
