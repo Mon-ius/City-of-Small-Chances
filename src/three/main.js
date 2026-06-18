@@ -148,6 +148,7 @@ function start() {
   const lookAt = new THREE.Vector3();
   const clock = new THREE.Clock();
   let markerPhase = 0;
+  let gullClock = 0; // seconds, drives the soaring gulls' wheel + wingbeat (Batch 70)
 
   function placeCamera() {
     const p = player.root.position;
@@ -224,6 +225,22 @@ function start() {
       if (x > c.wrap) x -= c.wrap * 2;
       c.mesh.position.x = x;
       c.mesh.rotation.y = Math.atan2(camera.position.x - x, camera.position.z - c.mesh.position.z);
+    }
+
+    // Wheel the soaring gulls (Batch 70): each drifts along a slow Lissajous path over
+    // the water, beats its wings (swapping the down/up frame on a per-gull flap cycle),
+    // and turns to face the camera — so the sky finally moves with the gull cries on the
+    // audio bed instead of hanging frozen.
+    gullClock += dt;
+    for (const gl of world.soaringGulls) {
+      const a = gullClock * gl.speed + gl.phase;
+      const x = gl.x0 + gl.xAmp * Math.sin(a * 2);          // lateral sway (figure-eight)
+      const y = gl.y0 + gl.yAmp * Math.sin(a * 0.8 + 1.3);  // gentle altitude bob
+      const z = gl.z0 + gl.zAmp * Math.sin(a);              // primary glide along the quay
+      const flapUp = Math.sin((gullClock + gl.phase) * 7.0) > 0; // ~1.1 Hz lazy wingbeat
+      const face = Math.atan2(camera.position.x - x, camera.position.z - z);
+      gl.down.position.set(x, y, z); gl.down.rotation.y = face; gl.down.visible = !flapUp;
+      gl.up.position.set(x, y, z);   gl.up.rotation.y = face;   gl.up.visible = flapUp;
     }
 
     // Bob the interaction markers so they catch the eye.

@@ -1213,17 +1213,47 @@ export function buildWorld(scene) {
     // On two harbour rooftops (front edge x≈9, roof top y≈h+0.3), high over the street.
     ["Perched", 9.2, 9.05, -26.5, 0.5, 0.5, 0.2],
     ["Calling", 9.2, 10.05, 12.25, 0.5, 0.5, 0.2],
-    // Soaring high over the water and the quay — a static glide reads like the clouds.
-    ["Flying", -25, 9, -2, 1.4, 0.7, 0.22],
-    ["Flying", -18, 11, 9, 1.2, 0.6, 0.22],
-    ["Flying", -30, 13, -15, 1.5, 0.75, 0.22],
-    ["Flying", 4, 14, -4, 1.1, 0.55, 0.22],
+    // (The soarers used to live here as static "Flying" cutouts; Batch 70 lifts them
+    // out into a wheeling, flapping flock — see soaringGulls just below.)
   ];
   for (const [pose, x, y, z, w, h, emissive] of gulls) {
     const gull = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Gull_${pose}.png`, w, h, { emissive, alphaTest: 0.4 });
     gull.position.set(x, y, z);
     scene.add(gull);
     billboards.push(gull); // main.js turns it to face the camera each frame
+  }
+
+  // ── Wheeling gulls (Batch 70): the soaring gulls hung FROZEN in the sky like cloud
+  // cards even as the audio bed cries with gulls on the wing. Now each soarer carries
+  // TWO wing frames — PROP_Gull_Flying (down-glide) and the new PROP_Gull_FlyingUp
+  // (up-stroke) — and drifts along a slow Lissajous path over the water, flapping as it
+  // goes. main.js wheels the path, swaps the wing frame on a per-gull flap cycle, and
+  // turns the card to face the camera (so the broadside always reads). The two frames
+  // share the same 384×192 canvas so the swap doesn't make the bird jump. No contact
+  // shadow, no day-cycle hook — gulls wheel by day and dusk the same (the audio already
+  // thins the cries at night). Tracked in its own array, NOT in `billboards`, because the
+  // soaring update faces them itself.
+  const soaringGulls = [];
+  const soarers = [
+    // [x0, y0, z0, w, h, zAmp, xAmp, yAmp, speed, phase] — wheel about (x0,y0,z0)
+    [-25, 9, -2, 1.4, 0.7, 16, 4.5, 0.8, 0.10, 0.0],
+    [-18, 11, 9, 1.2, 0.6, 14, 3.5, 0.7, 0.13, 1.7],
+    [-30, 13, -15, 1.5, 0.75, 18, 5.0, 0.9, 0.08, 3.1],
+    [4, 14, -4, 1.1, 0.55, 12, 3.0, 0.6, 0.15, 4.6],
+  ];
+  for (const [x0, y0, z0, w, h, zAmp, xAmp, yAmp, speed, phase] of soarers) {
+    // down-glide is the wide 2:1 frame (w×h); the up-stroke is the square 1:1 frame
+    // (PROP_Gull_FlyingUp, 384×384) so its raised wings aren't squashed — same width so
+    // the wingspan reads consistent, and both centred on the body so the flap only lifts
+    // the wings, never jumps the bird.
+    const down = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Gull_Flying.png`, w, h, { emissive: 0.22, alphaTest: 0.4 });
+    const up = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Gull_FlyingUp.png`, w, w, { emissive: 0.22, alphaTest: 0.4 });
+    down.position.set(x0, y0, z0);
+    up.position.set(x0, y0, z0);
+    up.visible = false; // start mid-glide on the down-frame
+    scene.add(down);
+    scene.add(up);
+    soaringGulls.push({ down, up, x0, y0, z0, zAmp, xAmp, yAmp, speed, phase });
   }
 
   // ── Vessels on the water (Batch 44): the wide sea west of the quay carried just one
@@ -1967,7 +1997,7 @@ export function buildWorld(scene) {
   }
 
   const bounds = { minX: -10.5, maxX: 6.5, minZ: -34, maxZ: 34 };
-  return { bounds, citizens, billboards, clouds, lampHeads, lampGlows, waterGlows, sunGlitters, brazierGlows, waterMists, beaconGlows, boatLights, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow, setWaterGlow, setSunGlitter, setBrazierGlow, setWaterMist, setBeacon, setBoatLights };
+  return { bounds, citizens, billboards, clouds, soaringGulls, lampHeads, lampGlows, waterGlows, sunGlitters, brazierGlows, waterMists, beaconGlows, boatLights, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow, setWaterGlow, setSunGlitter, setBrazierGlow, setWaterMist, setBeacon, setBoatLights };
 }
 
 // Wrapper so makeBuilding (which builds a Group) is added to the scene.
