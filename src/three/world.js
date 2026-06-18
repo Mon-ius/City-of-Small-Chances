@@ -864,19 +864,19 @@ export function buildWorld(scene) {
     { role: "DockWorker",   x:  2.0, z: -11 },
     { role: "Elder",        x: -2.0, z: -24 },
     { role: "Commuter",     x: -5.0, z:  28 },
-    { role: "Youth",        x:  3.0, z:  10 },
-    { role: "MarketVendor", x: -7.5, z:   8 },
+    { role: "Youth",        x:  3.6, z:  10.4, face: [4.3, 11] },   // NE knot (spr-009)
+    { role: "MarketVendor", x: -7.2, z:   8.9, face: [-7.3, 10.3] },  // W knot (spr-009)
     { role: "DockWorker",   x: -9.0, z:  22 },
     { role: "Commuter",     x:  1.0, z: -28 },
     // Batch 26 (spr-002): six more roles broaden the port's range of age & class —
     // a child underfoot, a sailor off a boat, a sack-hauling porter, an uptown clerk,
     // a washerwoman at her basket, an old woman on her cane. Placed clear of the
     // interactables (vendor −5,4 · board 5,−6), the named cast and the spawn.
-    { role: "Child",        x:  3.6, z:  13 },
+    { role: "Child",        x:  3.9, z:  12.2, face: [4.3, 11] },   // NE knot (spr-009)
     { role: "Sailor",       x: -9.5, z:  -3 },
-    { role: "Porter",       x: -6.5, z: -20 },
+    { role: "Porter",       x: -7.3, z: -20, face: [-9.2, -20] },  // S pair, two sacks (spr-009)
     { role: "Clerk",        x: -3.2, z:  24 },
-    { role: "Washerwoman",  x: -9.0, z:  12 },
+    { role: "Washerwoman",  x: -8.4, z:  11.2, face: [-7.3, 10.3] },  // W knot (spr-009)
     { role: "OldWoman",     x: -7.4, z:   1 },
     // Batch 28 (spr-002): six more that span the book's class spectrum — the harbour
     // is "City of Small Chances", so the quay should hold the whole society, from the
@@ -912,7 +912,7 @@ export function buildWorld(scene) {
     { role: "Doctor",       x:  -6.0, z: -12 },
     { role: "Lamplighter",  x:  -6.0, z:  -3 },
     { role: "Urchin",       x:   1.5, z:   4 },
-    { role: "Innkeeper",    x:  -5.5, z:  11 },
+    { role: "Innkeeper",    x:  -6.3, z:  10.8, face: [-7.3, 10.3] },  // W knot (spr-009)
     { role: "Ferryman",     x:   6.0, z: -20 },
     // Batch 34 (spr-002): six more trades and the family life of the port — the smith
     // at his hammer, the baker with his bread, the itinerant tinker laden with pots, a
@@ -922,9 +922,9 @@ export function buildWorld(scene) {
     // and each other. (30 → 36 standing crowd, toward the 40-NPC EA target.)
     { role: "Blacksmith",   x:  -9.5, z:  30 },
     { role: "Baker",        x:   4.5, z:  18 },
-    { role: "Tinker",       x: -10.0, z: -20 },
+    { role: "Tinker",       x: -9.2, z: -20, face: [-7.3, -20] },  // S pair, two sacks (spr-009)
     { role: "Mother",       x:   0.5, z:  30 },
-    { role: "Soldier",      x:   6.0, z:  10 },
+    { role: "Soldier",      x:   5.3, z:  10.5, face: [4.3, 11] },  // NE knot (spr-009)
     { role: "Coalman",      x:  -8.0, z: -24 },
     // Batch 35 (spr-002): the last four, landing the roster on the book's full 40
     // citizen variants — the schoolmistress with her slate, the knife-grinder at his
@@ -944,9 +944,13 @@ export function buildWorld(scene) {
     const fig = createFigure(c.role, { castShadow: false, seed });
     fig.root.position.set(c.x, 0, c.z);
     scene.add(fig.root);
-    // Face roughly toward the water (−x) with a deterministic per-figure spread, so the
-    // crowd doesn't stand in lockstep (no Math.random — keeps headless renders stable).
-    const yaw = -Math.PI / 2 + (((c.x * 12.9 + c.z * 7.3) % 1.6) - 0.8);
+    // Face the water (−x) with a deterministic per-figure spread — unless the figure
+    // belongs to a conversational cluster (spr-009), in which case it turns to face the
+    // group's centre `c.face`, so a few knots of people read as standing and talking
+    // rather than a grid all staring at the harbour. (No Math.random — renders stay stable.)
+    const yaw = c.face
+      ? Math.atan2(c.face[0] - c.x, c.face[1] - c.z)
+      : -Math.PI / 2 + (((c.x * 12.9 + c.z * 7.3) % 1.6) - 0.8);
     citizens.push(makeStanding(fig, yaw));
 
     const blob = new THREE.Mesh(
