@@ -938,7 +938,10 @@ export function buildWorld(scene) {
     { role: "Widow",          x: -10.0, z: 16 },
   ];
   for (const c of crowd) {
-    const fig = createFigure(c.role, { castShadow: false });
+    // A deterministic 0..1 seed per figure (no Math.random — keeps headless renders
+    // stable) desyncs each idler's breathing/stance inside createFigure.
+    const seed = (((c.x * 12.9 + c.z * 7.3) % 1) + 1) % 1;
+    const fig = createFigure(c.role, { castShadow: false, seed });
     fig.root.position.set(c.x, 0, c.z);
     scene.add(fig.root);
     // Face roughly toward the water (−x) with a deterministic per-figure spread, so the
@@ -972,7 +975,8 @@ export function buildWorld(scene) {
     { name: "Rafiq", x: 4.7,  z: -12,  yaw: -Math.PI / 2 - 0.3 }, // the foreman, facing the loading at the north end
   ];
   for (const p of namedLocals) {
-    const fig = createFigure(p.name, { castShadow: false });
+    const seed = (((p.x * 12.9 + p.z * 7.3) % 1) + 1) % 1;
+    const fig = createFigure(p.name, { castShadow: false, seed });
     fig.root.position.set(p.x, 0, p.z);
     scene.add(fig.root);
     citizens.push(makeStanding(fig, p.yaw));

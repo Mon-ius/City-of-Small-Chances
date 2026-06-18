@@ -116,6 +116,20 @@ for (const [role, [type, colour]] of Object.entries(ROLE_HAT)) {
   if (colour !== undefined) lk.hatColor = colour;
 }
 
+// Carried props by role (spr-006) — a second trade tell, in the hands rather than on the
+// head. Stamped onto the LOOKS rows like the hats; buildProp turns the keyword into held
+// geometry. Most roles carry nothing (the empty-handed are the majority of any crowd).
+const ROLE_PROP = {
+  Elder: "cane", Veteran: "cane", Beggar: "cane", OldWoman: "cane",
+  Lamplighter: "pole", Ferryman: "staff", Fisherman: "staff",
+  Fishwife: "basket", FlowerGirl: "basket", MarketVendor: "basket",
+  Priest: "book", Clerk: "book", Schoolmistress: "book", Nun: "book",
+  Porter: "sack", Coalman: "sack", Tinker: "sack",
+};
+for (const [role, prop] of Object.entries(ROLE_PROP)) {
+  if (LOOKS[role]) LOOKS[role].prop = prop;
+}
+
 function resolveLook(look) {
   if (look && typeof look === "object") return look;
   return LOOKS[look] || PALETTES[look] || PALETTES.commuter;
@@ -216,6 +230,48 @@ function buildHat(type, mat) {
   return g;
 }
 
+// A few carried role props (spr-006): cheap held geometry that names a trade at sight —
+// a cane, a lamplighter's pole, a market basket, a ledger, a porter's sack, a ferryman's
+// staff. Built in body-local space and added to `body`, so a prop rides the breath but
+// not the arm-swing — right for a standing figure resting the item against itself or the
+// ground. Returns a Group, or null. Props are dark/wood/wicker, lit like the rest.
+const woodMat = () => flatMat(0x5a4326, 0.7);
+const wickerMat = () => flatMat(0xb08544, 0.82);
+function buildProp(type) {
+  const g = new THREE.Group();
+  if (type === "cane") {                         // a walking cane to the ground
+    const shaft = mesh(new THREE.CylinderGeometry(0.017, 0.02, 0.95, 8), woodMat());
+    shaft.rotation.x = -0.07; g.add(at(shaft, 0.33, 0.49, 0.12));
+    g.add(at(mesh(new THREE.SphereGeometry(0.034, 10, 8), woodMat()), 0.32, 0.97, 0.1));
+  } else if (type === "pole") {                  // lamplighter's long pole, lamp above head
+    const shaft = mesh(new THREE.CylinderGeometry(0.02, 0.02, 2.0, 8), woodMat());
+    shaft.rotation.x = -0.14; g.add(at(shaft, 0.3, 1.15, 0.18));
+    g.add(at(mesh(new THREE.SphereGeometry(0.05, 10, 8), flatMat(0xd9a13a, 0.45)), 0.36, 2.08, -0.02));
+  } else if (type === "staff") {                 // ferryman's oar / boat-staff with a blade
+    const shaft = mesh(new THREE.CylinderGeometry(0.022, 0.022, 1.7, 8), woodMat());
+    shaft.rotation.x = 0.2; g.add(at(shaft, 0.32, 0.92, 0.16));
+    const blade = mesh(new THREE.BoxGeometry(0.12, 0.34, 0.02), woodMat());
+    blade.rotation.x = 0.2; g.add(at(blade, 0.28, 0.16, 0.33));
+  } else if (type === "basket") {                // market basket carried at the waist
+    const bowl = mesh(new THREE.CylinderGeometry(0.17, 0.13, 0.18, 14, 1, true), wickerMat());
+    g.add(at(bowl, 0, 0.98, 0.30));
+    g.add(at(mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.02, 14), wickerMat()), 0, 0.89, 0.30));
+    const handle = mesh(new THREE.TorusGeometry(0.11, 0.012, 6, 14, Math.PI), wickerMat());
+    g.add(at(handle, 0, 1.07, 0.30));
+  } else if (type === "book") {                  // a clerk's ledger / cleric's book at the chest
+    const bk = mesh(new THREE.BoxGeometry(0.16, 0.2, 0.05), flatMat(0x4a2e22, 0.6));
+    bk.rotation.x = -0.5; g.add(at(bk, -0.02, 1.27, 0.23));
+  } else if (type === "sack") {                  // a porter's sack hoisted on the shoulder
+    // Pale hemp (not the coat brown — a same-colour sack vanishes into the porter's coat),
+    // sat high beside the shoulder and a touch forward so it reads from the front.
+    const s = mesh(new THREE.SphereGeometry(0.2, 12, 10), flatMat(0x9c8a5f, 0.92));
+    s.scale.set(0.96, 1.3, 0.85); s.rotation.z = 0.26; g.add(at(s, 0.25, 1.68, 0.02));
+  } else {
+    return null;
+  }
+  return g;
+}
+
 // `look` is the appearance: "player" (the painted hero), a PALETTES key (the four
 // walking citizens), a LOOKS key (the 40 standing roles + 4 named locals), or a raw
 // look object. `opts.castShadow:false` skips real shadow casting (the standing crowd
@@ -282,6 +338,12 @@ export function createFigure(look = "player", opts = {}) {
     if (hat) body.add(hat);
   }
 
+  // Carried prop — a trade tell in the hands (spr-006). Rides the breath, not the swing.
+  if (p.prop) {
+    const prop = buildProp(p.prop);
+    if (prop) body.add(prop);
+  }
+
   // Legs — capsules from the hip, each ending in a boot toed forward.
   function makeLeg(x) {
     const pivot = new THREE.Object3D();
@@ -317,21 +379,28 @@ export function createFigure(look = "player", opts = {}) {
   // The standing crowd opts out of real shadows (it carries a contact-blob instead).
   if (opts.castShadow === false) root.traverse((o) => { if (o.isMesh) o.castShadow = false; });
 
+  // Idle-pose variety (spr-006): a per-figure seed (0..1, passed deterministically by the
+  // caller) desyncs the standing crowd so they no longer breathe and shift as one body —
+  // a staggered starting phase, a slightly different idle rate, and a faint asymmetric arm
+  // hang. Walkers and the player leave seed at 0, keeping their original motion exactly.
+  const seed = opts.seed ?? 0;
   const figure = {
     root,
     body,
     legL, legR, armL, armR,
-    _phase: 0,
+    _phase: seed * Math.PI * 2,
+    _idleRate: 1.7 + seed * 1.1,      // 1.7..2.8 — each idler breathes at its own pace
+    _armBias: (seed - 0.5) * 0.16,    // a small, fixed asymmetric arm hang
     update(dt, speed = 0) {
       const moving = speed > 0.05;
       // Stride frequency scales with speed; amplitude eases in when moving.
-      this._phase += dt * (moving ? 7.5 : 2.2);
-      const amp = moving ? 0.7 : 0.04;
+      this._phase += dt * (moving ? 7.5 : this._idleRate);
+      const amp = moving ? 0.7 : 0.045;
       const s = Math.sin(this._phase) * amp;
       legL.rotation.x = s;
       legR.rotation.x = -s;
-      armL.rotation.x = -s * 0.8;
-      armR.rotation.x = s * 0.8;
+      armL.rotation.x = -s * 0.8 + (moving ? 0 : this._armBias);
+      armR.rotation.x = s * 0.8 + (moving ? 0 : -this._armBias);
       // Body bob: twice per stride when walking, a faint breath when idle.
       body.position.y = moving ? Math.abs(Math.sin(this._phase)) * 0.06 : Math.sin(this._phase) * 0.01;
     },
