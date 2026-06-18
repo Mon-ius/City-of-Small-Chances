@@ -2015,16 +2015,26 @@ function makeStanding(fig, yaw) {
 function makePatrol(fig, z0, z1, index = 0, pace) {
   let dir = 1;
   const speed = pace ?? 1.05 + ((index * 0.37) % 0.6);
+  let yaw = 0; // eased heading — turns over ~0.5s instead of snapping 180° at each end
   return {
     fig,
     speed, // exposed for diagnostics — the per-role ground tempo
     update(dt) {
-      let z = fig.root.position.z + dir * speed * dt;
+      // Ease the facing toward the travel heading (0 going +z, π going −z) along the
+      // shortest arc, so the end-of-lane turn is a pivot, not a one-frame flip.
+      const target = dir > 0 ? 0 : Math.PI;
+      const d = Math.atan2(Math.sin(target - yaw), Math.cos(target - yaw));
+      yaw += d * Math.min(1, dt * 6);
+      fig.root.rotation.y = yaw;
+      // While still swinging round (heading not yet caught up) the figure crawls and its
+      // legs shuffle — it plants and pivots at the bollard rather than moonwalking back.
+      const turning = Math.abs(d) > 0.15;
+      const v = turning ? speed * 0.15 : speed;
+      let z = fig.root.position.z + dir * v * dt;
       if (z > z1) { z = z1; dir = -1; }
       else if (z < z0) { z = z0; dir = 1; }
       fig.root.position.z = z;
-      fig.root.rotation.y = dir > 0 ? 0 : Math.PI;
-      fig.update(dt, speed);
+      fig.update(dt, turning ? speed * 0.3 : speed);
     },
   };
 }
