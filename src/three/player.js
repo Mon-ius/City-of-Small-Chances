@@ -445,8 +445,11 @@ export function createFigure(look = "player", opts = {}) {
     _armBias: (seed - 0.5) * 0.16,      // a small, fixed asymmetric arm hang
     update(dt, speed = 0) {
       const moving = speed > 0.05;
-      // Stride frequency scales with speed; amplitude eases in when moving.
-      this._phase += dt * (moving ? 7.5 : this._idleRate);
+      // Stride cadence scales with pace (sqrt so it eases off), so a laden trudge steps
+      // slower than a brisk stride. Capped at 1.78 m/s where the curve passes through the
+      // old fixed 7.5 — the player runs faster than that, so the hero's gait is unchanged.
+      const cadence = moving ? 4.7 + 2.1 * Math.sqrt(Math.min(speed, 1.78)) : this._idleRate;
+      this._phase += dt * cadence;
       const amp = moving ? 0.7 : 0.045;
       const s = Math.sin(this._phase) * amp;
       legL.rotation.x = s;

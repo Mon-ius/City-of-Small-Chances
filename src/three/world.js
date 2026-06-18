@@ -845,21 +845,24 @@ export function buildWorld(scene) {
   // arms swing. Lanes are clearance-checked against the standing crowd; speeds + a per-
   // walker stride seed keep them from marching in lockstep (no Math.random — stable renders).
   const citizens = [];
+  // `pace` is the walker's ground speed (m/s) — its own per-role tempo. A laden porter or
+  // coalman trudges; a commuter, clerk or doctor on a call strides. player.js couples the
+  // step cadence to this so the slow ones visibly step heavier, not just glide more slowly.
   const roster = [
-    { kind: "Merchant",  x: -5,   z: 6,   span: 3 },
-    { kind: "Porter",    x: 2,    z: -14, span: 10 },
-    { kind: "Commuter",  x: -7,   z: -2,  span: 14 },
-    { kind: "Constable", x: 4,    z: 18,  span: 6 },
-    { kind: "Coalman",   x: 0.5,  z: -14, span: 20 },
-    { kind: "Clerk",     x: -3,   z: 0,   span: 12 },
-    { kind: "Doctor",    x: -6.5, z: 25,  span: 10 },
+    { kind: "Merchant",  x: -5,   z: 6,   span: 3,  pace: 1.15 }, // unhurried, surveying his goods
+    { kind: "Porter",    x: 2,    z: -14, span: 10, pace: 0.85 }, // laden — a heavy trudge
+    { kind: "Commuter",  x: -7,   z: -2,  span: 14, pace: 1.7  }, // somewhere to be, briskly
+    { kind: "Constable", x: 4,    z: 18,  span: 6,  pace: 1.1  }, // a measured patrol
+    { kind: "Coalman",   x: 0.5,  z: -14, span: 20, pace: 0.9  }, // heavy sacks — slow going
+    { kind: "Clerk",     x: -3,   z: 0,   span: 12, pace: 1.6  }, // purposeful, ledger in hand
+    { kind: "Doctor",    x: -6.5, z: 25,  span: 10, pace: 1.75 }, // on a call — the quickest
   ];
   roster.forEach((r, i) => {
     const seed = (i + 0.5) / roster.length; // a stable stride-phase offset, 0..1
     const fig = createFigure(r.kind, { seed });
     fig.root.position.set(r.x, 0, r.z - r.span / 2);
     scene.add(fig.root);
-    citizens.push(makePatrol(fig, r.z - r.span / 2, r.z + r.span / 2, i));
+    citizens.push(makePatrol(fig, r.z - r.span / 2, r.z + r.span / 2, i, r.pace));
   });
 
   // ── A standing crowd of real, rounded citizen bodies milling along the quay (spr-004,
@@ -2007,12 +2010,14 @@ function makeStanding(fig, yaw) {
 }
 
 // A citizen that walks back and forth between two z values, facing its direction.
-// Speed is derived from the index so renders stay deterministic (no Math.random).
-function makePatrol(fig, z0, z1, index = 0) {
+// `pace` is the per-role ground speed (see the roster); it falls back to the old
+// index-derived spread so renders stay deterministic (no Math.random) if omitted.
+function makePatrol(fig, z0, z1, index = 0, pace) {
   let dir = 1;
-  const speed = 1.05 + ((index * 0.37) % 0.6);
+  const speed = pace ?? 1.05 + ((index * 0.37) % 0.6);
   return {
     fig,
+    speed, // exposed for diagnostics — the per-role ground tempo
     update(dt) {
       let z = fig.root.position.z + dir * speed * dt;
       if (z > z1) { z = z1; dir = -1; }
