@@ -338,29 +338,35 @@ export function createFigure(look = "player", opts = {}) {
     body.add(sh);
   }
 
-  // Neck + head (a faintly egg-shaped sphere) + a hair cap that leaves the face open.
+  // Neck stays on the torso; head, hair and hat ride a head pivot at the base of the
+  // neck so an idle figure can slowly turn its gaze (spr-008) without the body following.
   const neck = mesh(new THREE.CylinderGeometry(0.058, 0.07, 0.12, 12), skinMat);
   neck.position.y = SHOULDER_Y + 0.07;
   body.add(neck);
 
+  const headBaseY = SHOULDER_Y + 0.18;          // pivot sits at the base of the neck
+  const headPivot = new THREE.Group();
+  headPivot.position.y = headBaseY;
+  body.add(headPivot);
+
   const head = mesh(new THREE.SphereGeometry(0.145, 20, 18), skinMat);
   head.scale.set(0.92, 1.08, 1.0);
-  head.position.y = SHOULDER_Y + 0.3;
-  body.add(head);
+  head.position.y = SHOULDER_Y + 0.3 - headBaseY;
+  headPivot.add(head);
 
   const hair = mesh(
     new THREE.SphereGeometry(0.153, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.6),
     hairMat,
   );
   hair.scale.set(0.97, 1.05, 1.02);
-  hair.position.y = SHOULDER_Y + 0.31;
-  body.add(hair);
+  hair.position.y = SHOULDER_Y + 0.31 - headBaseY;
+  headPivot.add(hair);
 
   // Headwear — the clearest role tell now that every body shares one silhouette
-  // (spr-005). Sits on the crown and bobs with the body. The player stays bare-headed.
+  // (spr-005). Rides the head pivot so it turns with the gaze. Player stays bare-headed.
   if (p.hat) {
     const hat = buildHat(p.hat, flatMat(p.hatColor ?? 0x17140f, 0.72));
-    if (hat) body.add(hat);
+    if (hat) { hat.position.y -= headBaseY; headPivot.add(hat); }
   }
 
   // Carried prop — a trade tell in the hands (spr-006). Rides the breath, not the swing.
@@ -374,6 +380,18 @@ export function createFigure(look = "player", opts = {}) {
   const legR0 = 0.088 * (0.7 + 0.3 * build);
   const armR0 = 0.06 * build;
 
+  // Idle stance (spr-008): the standing crowd (seed > 0) rests in one of three poses —
+  // arms at the side, hands clasped in front, or hands held behind the back — so they no
+  // longer all stand to attention. Prop-carriers keep arms at the side so the held item
+  // reads clean. Walkers and the player (seed 0) are always stance 0, i.e. unchanged.
+  const seed = opts.seed ?? 0;
+  const idler = seed > 0;
+  let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
+  if (p.prop) stance = 0;
+  const stanceArmX = stance === 1 ? -0.5 : stance === 2 ? 0.45 : 0;   // pitch the upper arm
+  const armZL = stance === 1 ? -0.3 : 0.09;   // the clasped pose rolls the shoulders inward
+  const armZR = stance === 1 ? 0.3 : -0.09;   // so the two hands meet in front of the body
+
   // Legs — capsules from the hip, each ending in a boot toed forward.
   function makeLeg(x) {
     const pivot = new THREE.Object3D();
@@ -384,12 +402,12 @@ export function createFigure(look = "player", opts = {}) {
     pivot.add(boot);
     return pivot;
   }
-  // Arms — slimmer capsules from the shoulder, each ending in a hand; angled a touch
-  // outward so they clear the torso through the stride.
-  function makeArm(x) {
+  // Arms — slimmer capsules from the shoulder, each ending in a hand; the shoulder roll
+  // (rz) angles them out for a normal hang or inward for the clasped stance.
+  function makeArm(x, rz) {
     const pivot = new THREE.Object3D();
     pivot.position.set(x, SHOULDER_Y, 0);
-    pivot.rotation.z = x < 0 ? 0.09 : -0.09;
+    pivot.rotation.z = rz;
     pivot.add(capsuleLimb(0.62, armR0, coatMat));
     const hand = mesh(new THREE.SphereGeometry(0.055 * build, 12, 10), skinMat);
     hand.position.y = -0.6;
@@ -399,8 +417,8 @@ export function createFigure(look = "player", opts = {}) {
 
   const legL = makeLeg(-0.1 * spread);
   const legR = makeLeg(0.1 * spread);
-  const armL = makeArm(-0.27 * spread);
-  const armR = makeArm(0.27 * spread);
+  const armL = makeArm(-0.27 * spread, armZL);
+  const armR = makeArm(0.27 * spread, armZR);
   body.add(legL, legR, armL, armR);
 
   // Per-role stature: scale about the root origin (y=0 ground), so feet stay planted
@@ -409,18 +427,22 @@ export function createFigure(look = "player", opts = {}) {
   // The standing crowd opts out of real shadows (it carries a contact-blob instead).
   if (opts.castShadow === false) root.traverse((o) => { if (o.isMesh) o.castShadow = false; });
 
-  // Idle-pose variety (spr-006): a per-figure seed (0..1, passed deterministically by the
+  // Idle-pose variety (spr-006/008): the per-figure seed (0..1, deterministic from the
   // caller) desyncs the standing crowd so they no longer breathe and shift as one body —
-  // a staggered starting phase, a slightly different idle rate, and a faint asymmetric arm
-  // hang. Walkers and the player leave seed at 0, keeping their original motion exactly.
-  const seed = opts.seed ?? 0;
+  // a staggered breath phase, its own idle rate, a faint asymmetric arm hang, a resting
+  // stance (set above) and now a slow wandering gaze. The gaze turns only the head pivot,
+  // only for idlers; walkers and the player leave seed at 0 and keep their motion exactly.
   const figure = {
     root,
     body,
+    headPivot,
     legL, legR, armL, armR,
+    _idler: idler,
+    _stanceArmX: stanceArmX,
     _phase: seed * Math.PI * 2,
-    _idleRate: 1.7 + seed * 1.1,      // 1.7..2.8 — each idler breathes at its own pace
-    _armBias: (seed - 0.5) * 0.16,    // a small, fixed asymmetric arm hang
+    _gazePhase: seed * Math.PI * 2.6,   // gaze sway, decorrelated from the breath
+    _idleRate: 1.7 + seed * 1.1,        // 1.7..2.8 — each idler breathes at its own pace
+    _armBias: (seed - 0.5) * 0.16,      // a small, fixed asymmetric arm hang
     update(dt, speed = 0) {
       const moving = speed > 0.05;
       // Stride frequency scales with speed; amplitude eases in when moving.
@@ -429,10 +451,14 @@ export function createFigure(look = "player", opts = {}) {
       const s = Math.sin(this._phase) * amp;
       legL.rotation.x = s;
       legR.rotation.x = -s;
-      armL.rotation.x = -s * 0.8 + (moving ? 0 : this._armBias);
-      armR.rotation.x = s * 0.8 + (moving ? 0 : -this._armBias);
+      // Arms swing for the walk, or sway gently around the resting stance when idle.
+      const base = moving ? 0 : this._stanceArmX;
+      armL.rotation.x = base - s * 0.8 + (moving ? 0 : this._armBias);
+      armR.rotation.x = base + s * 0.8 + (moving ? 0 : -this._armBias);
       // Body bob: twice per stride when walking, a faint breath when idle.
       body.position.y = moving ? Math.abs(Math.sin(this._phase)) * 0.06 : Math.sin(this._phase) * 0.01;
+      // Wandering gaze — idlers only, so the player and walkers keep a level head.
+      if (this._idler) this.headPivot.rotation.y = Math.sin(this._phase * 0.37 + this._gazePhase) * 0.4;
     },
   };
   return figure;
