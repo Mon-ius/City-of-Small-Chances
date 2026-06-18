@@ -147,6 +147,11 @@ function start() {
   const move = new THREE.Vector3();
   const lookAt = new THREE.Vector3();
   const clock = new THREE.Clock();
+  // Reusable for the soaring gulls' yaw+bank composition (spr-029).
+  const _gullUp = new THREE.Vector3(0, 1, 0);
+  const _gullNose = new THREE.Vector3();
+  const _gullYaw = new THREE.Quaternion();
+  const _gullRoll = new THREE.Quaternion();
   let markerPhase = 0;
   let gullClock = 0; // seconds, drives the soaring gulls' wheel + wingbeat (Batch 70)
   let smokeClock = 0; // seconds, drives the homes' chimney plumes (spr-021)
@@ -240,28 +245,35 @@ function start() {
       c.mesh.rotation.y = Math.atan2(camera.position.x - x, camera.position.z - c.mesh.position.z);
     }
 
-    // Wheel the soaring gulls (Batch 70 → spr-027 → spr-028): each is a real
-    // `buildSoaringGull` body drifting a slow Lissajous path over the water. It turns to
-    // face its OWN heading (atan2 of the path velocity — no camera-facing). spr-028: a real
-    // gull doesn't flap like a metronome — it beats its wings to CLIMB and sets them to
-    // GLIDE on the way down. `effort = max(0, cos(0.8a+1.3))` is exactly the climbing half
-    // of the altitude bob (1 at peak climb, 0 through the descent, self-normalised per
-    // gull), so the wingbeat swells while gaining height and the wings settle into a steady
-    // shallow-V glide while losing it.
+    // Wheel the soaring gulls (Batch 70 → spr-027 → spr-028 → spr-029): each is a real
+    // `buildSoaringGull` body drifting a slow Lissajous path over the water, facing its OWN
+    // heading (atan2 of the path velocity — no camera-facing). spr-028: it beats its wings to
+    // CLIMB and sets them to GLIDE on the way down (`effort` = the climbing half of the
+    // altitude bob). spr-029: it also BANKS into its turns — bank ∝ the signed horizontal
+    // path curvature `vx·az − vz·ax`, which is ~0 mid-glide (flying straight) and peaks with
+    // opposite signs at the two turn-arounds. Roll is composed as a quaternion (yaw about
+    // world-up, THEN roll about the world-space nose axis) so heading and bank live on
+    // separate axes — no Euler-order ambiguity, and `buildSoaringGull` stays untouched.
     gullClock += dt;
     for (const gl of world.soaringGulls) {
       const a = gullClock * gl.speed + gl.phase;
       const x = gl.x0 + gl.xAmp * Math.sin(a * 2);          // lateral sway (figure-eight)
       const y = gl.y0 + gl.yAmp * Math.sin(a * 0.8 + 1.3);  // gentle altitude bob
       const z = gl.z0 + gl.zAmp * Math.sin(a);              // primary glide along the quay
-      const vx = gl.xAmp * Math.cos(a * 2) * 2 * gl.speed;  // path velocity → heading
+      const vx = gl.xAmp * Math.cos(a * 2) * 2 * gl.speed;  // path velocity
       const vz = gl.zAmp * Math.cos(a) * gl.speed;
+      const ax = -gl.xAmp * Math.sin(a * 2) * 4 * gl.speed * gl.speed; // path acceleration
+      const az = -gl.zAmp * Math.sin(a) * gl.speed * gl.speed;
       const heading = Math.atan2(-vz, vx); // body nose is local +x → Ry maps +x to (cos,−sin)
+      const bank = Math.max(-0.5, Math.min(0.5, (vx * az - vz * ax) * 2.0)); // lean into the turn
       const effort = Math.max(0, Math.cos(a * 0.8 + 1.3));  // 1 climbing, 0 gliding down
       const beat = Math.sin((gullClock + gl.phase) * 7.0) * (0.06 + effort * 0.5); // flap to climb
       const dihedral = 0.15 + (1 - effort) * 0.12;          // wings held in a steeper V to glide
       gl.root.position.set(x, y, z);
-      gl.root.rotation.y = heading;
+      _gullNose.set(Math.cos(heading), 0, -Math.sin(heading)); // nose dir after yaw
+      _gullYaw.setFromAxisAngle(_gullUp, heading);
+      _gullRoll.setFromAxisAngle(_gullNose, bank);
+      gl.root.quaternion.copy(_gullRoll).multiply(_gullYaw); // yaw first, then roll about the nose
       gl.leftWing.rotation.x = -dihedral - beat;
       gl.rightWing.rotation.x = dihedral + beat;
     }
