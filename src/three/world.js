@@ -346,8 +346,8 @@ function makeLamp(x, z, metalMat) {
 // (smooth capsules/spheres), with a FIXED facing like the citizen figures (no
 // billboarding) and a small idle. Each returns { root, update(t) } collected into
 // world.critters and ticked from main.js's critter clock (deterministic — no
-// Math.random). Pigeons (tiny ground clusters) stay flat; a real-body flock is
-// overkill and they read fine.
+// Math.random). spr-025 extends this to the pigeon clusters too (buildPigeon) —
+// a real-body flock of peckers replaces the last ground-animal cutouts.
 
 // A stray dog hoping for scraps: a tan body on four legs, a snouted head with
 // drooping ears, and a tail that wags from the hip. Built facing +x in local space;
@@ -535,6 +535,54 @@ function buildCormorant(x, z, baseY, facing = 0) {
       const a = Math.sin(t * 0.5) * 0.08;            // a slow drying shuffle
       wingL.rotation.x = -0.55 - a; wingR.rotation.x = 0.55 + a;
       neck.rotation.y = Math.sin(t * 0.33 + 1) * 0.3; // the head turns as it dries
+    },
+  };
+}
+
+// A feral pigeon pecking the cobbles (spr-025) — the last ground-animal billboards
+// (the cluster cutouts) become real little bodies. A plump body, folded wings, a flat
+// fanned tail, a short neck with an iridescent sheen, a small head + beak on a pivot.
+// `morph` picks blue-grey / brown-checker / pale plumage. Built facing +x. The head
+// jerks down in quick pecks and turns to look around between them; pink feet on the stone.
+function buildPigeon(x, z, facing = 0, morph = 0, phase = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, 0, z);
+  root.rotation.y = facing;
+  const coats = [
+    { body: 0x8d929b, head: 0x5e646c, wing: 0x6f757d }, // blue-grey
+    { body: 0x9a8a74, head: 0x6f5f4c, wing: 0x7d6e58 }, // brown checker
+    { body: 0xb8bcc2, head: 0x8a8f96, wing: 0x9aa0a6 }, // pale
+  ];
+  const c = coats[morph % coats.length];
+  const bodyMat = new THREE.MeshStandardMaterial({ color: c.body, roughness: 0.85, metalness: 0.05 });
+  const headMat = new THREE.MeshStandardMaterial({ color: c.head, roughness: 0.8, metalness: 0.05 });
+  const wingMat = new THREE.MeshStandardMaterial({ color: c.wing, roughness: 0.85, metalness: 0 });
+  const sheenMat = new THREE.MeshStandardMaterial({ color: 0x4f7d6a, roughness: 0.5, metalness: 0.35 }); // neck iridescence
+  const beakMat = new THREE.MeshStandardMaterial({ color: 0x3a3833, roughness: 0.6, metalness: 0 });
+  const legMat = new THREE.MeshStandardMaterial({ color: 0xc0675a, roughness: 0.6, metalness: 0 });   // pink feet
+  const mk = (geo, mat, px, py, pz, parent = root) => { const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); m.castShadow = true; parent.add(m); return m; };
+
+  const legGeo = new THREE.CylinderGeometry(0.006, 0.006, 0.06, 5);
+  mk(legGeo, legMat, 0.01, 0.03, 0.025);
+  mk(legGeo, legMat, 0.01, 0.03, -0.025);
+
+  const body = mk(new THREE.SphereGeometry(0.075, 12, 10), bodyMat, 0, 0.095, 0);
+  body.scale.set(1.5, 1.0, 0.95); body.rotation.z = 0.12;          // plump, breast up
+  mk(new THREE.CapsuleGeometry(0.025, 0.085, 4, 6), wingMat, -0.01, 0.105, 0.052).rotation.z = Math.PI / 2;  // folded wings
+  mk(new THREE.CapsuleGeometry(0.025, 0.085, 4, 6), wingMat, -0.01, 0.105, -0.052).rotation.z = Math.PI / 2;
+  mk(new THREE.BoxGeometry(0.12, 0.012, 0.07), bodyMat, -0.12, 0.105, 0).rotation.z = 0.22;             // flat fanned tail
+
+  const headPivot = new THREE.Group(); headPivot.position.set(0.09, 0.15, 0); root.add(headPivot);
+  mk(new THREE.CapsuleGeometry(0.022, 0.04, 4, 6), sheenMat, 0, -0.02, 0, headPivot).rotation.z = -0.4;  // iridescent neck
+  mk(new THREE.SphereGeometry(0.04, 10, 8), headMat, 0.03, 0.03, 0, headPivot);                          // head
+  mk(new THREE.ConeGeometry(0.012, 0.035, 5), beakMat, 0.075, 0.022, 0, headPivot).rotation.z = -Math.PI / 2; // beak
+
+  return {
+    root,
+    update(t) {
+      const p = Math.max(0, Math.sin(t * 1.6 + phase) - 0.55) / 0.45; // quick downward pecks, mostly head-up
+      headPivot.rotation.z = -p * 1.3;                                // dip the beak to the stone
+      headPivot.rotation.y = (1 - p) * Math.sin(t * 0.5 + phase) * 0.5; // glance about between pecks
     },
   };
 }
@@ -1928,26 +1976,34 @@ export function buildWorld(scene) {
   dogBlob.renderOrder = -1;
   scene.add(dogBlob);
 
-  const animals = [
-    // [file, w, h, x, z, baseY, shadowR] — the pigeons keep the billboard idiom; shadowR 0 = no blob.
-    ["PROP_Animal_Pigeons", 0.84, 0.4, -2.5, 6.0, 0, 0.34], // pecking the cobbles near the stall
-    ["PROP_Animal_Pigeons", 0.78, 0.37, 1.5, 14, 0, 0.32], // a second group out on the quay
+  // ── Pigeons on the cobbles (Batch 48 → spr-025): the two pigeon CLUSTER cutouts were
+  // the last ground-animal billboards; now each is a small flock of REAL pecking bodies
+  // (buildPigeon above) — the loop's own ask, "real body instead of faced picture." Each
+  // bird has its own scatter spot, heading, plumage morph and peck phase (deterministic, no
+  // Math.random) so the flock never pecks in lockstep. A soft contact blob grounds each group.
+  const pigeonFlocks = [
+    // [cx, cz] cluster centre, then [dx, dz, facing, morph, phase] per bird (offsets in world units)
+    [-2.5, 6.0, [
+      [0, 0, 0.6, 0, 0.0], [0.35, 0.35, 2.4, 1, 1.3], [-0.35, 0.25, -1.1, 2, 2.6], [0.1, -0.4, 1.8, 0, 3.9],
+    ]],
+    [1.5, 14.0, [
+      [0, 0, 2.0, 1, 0.7], [0.35, 0.3, -0.5, 0, 2.0], [-0.3, -0.3, 3.0, 2, 3.3],
+    ]],
   ];
-  for (const [file, w, h, x, z, baseY, shadowR] of animals) {
-    const animal = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive: 0.16, alphaTest: 0.4 });
-    animal.position.set(x, baseY + h / 2, z);
-    scene.add(animal);
-    billboards.push(animal); // main.js turns it to face the camera each frame
-    if (shadowR > 0) {
-      const blob = new THREE.Mesh(
-        new THREE.CircleGeometry(shadowR, 16),
-        new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
-      );
-      blob.rotation.x = -Math.PI / 2;
-      blob.position.set(x, 0.02, z);
-      blob.renderOrder = -1; // under the cobbles' specular, never over the animal
-      scene.add(blob);
+  for (const [cx, cz, birds] of pigeonFlocks) {
+    for (const [dx, dz, facing, morph, phase] of birds) {
+      const pigeon = buildPigeon(cx + dx, cz + dz, facing, morph, phase);
+      scene.add(pigeon.root);
+      critters.push(pigeon);
     }
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 18),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.38 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(cx, 0.02, cz);
+    blob.renderOrder = -1; // under the cobbles' specular, never over the birds
+    scene.add(blob);
   }
 
   // ── Smoke from the chimneys (Batch 49): the sky over the rooftops was the emptiest
