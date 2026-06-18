@@ -125,6 +125,9 @@ const ROLE_PROP = {
   Fishwife: "basket", FlowerGirl: "basket", MarketVendor: "basket",
   Priest: "book", Clerk: "book", Schoolmistress: "book", Nun: "book",
   Porter: "sack", Coalman: "sack", Tinker: "sack",
+  // The named cast carry their own trade tells (spr-016). Rafiq the foreman stays
+  // empty-handed so he keeps a foreman's clasped/behind-the-back idle stance.
+  Mei: "ladle", Tomo: "wrench", Jun: "book",
 };
 for (const [role, prop] of Object.entries(ROLE_PROP)) {
   if (LOOKS[role]) LOOKS[role].prop = prop;
@@ -284,6 +287,18 @@ function buildProp(type) {
     // sat high beside the shoulder and a touch forward so it reads from the front.
     const s = mesh(new THREE.SphereGeometry(0.2, 12, 10), flatMat(0x9c8a5f, 0.92));
     s.scale.set(0.96, 1.3, 0.85); s.rotation.z = 0.26; g.add(at(s, 0.25, 1.68, 0.02));
+  } else if (type === "ladle") {                 // a noodle-seller's ladle, lifted at the hip
+    const steel = flatMat(0x9aa0a8, 0.4);
+    const handle = mesh(new THREE.CylinderGeometry(0.012, 0.014, 0.52, 8), woodMat());
+    handle.rotation.x = -0.55; g.add(at(handle, 0.27, 1.0, 0.17));        // top toward the hand
+    const bowl = mesh(new THREE.SphereGeometry(0.075, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), steel);
+    bowl.scale.set(1, 0.7, 1); g.add(at(bowl, 0.33, 0.76, 0.31));         // shallow cup, mouth up
+  } else if (type === "wrench") {                 // a quay mechanic's spanner, held at the side
+    const steel = flatMat(0x6b7178, 0.42);
+    const shaft = mesh(new THREE.BoxGeometry(0.035, 0.34, 0.022), steel);
+    shaft.rotation.x = 0.12; g.add(at(shaft, 0.3, 0.82, 0.12));
+    const jaw = mesh(new THREE.TorusGeometry(0.052, 0.017, 6, 14, Math.PI * 1.35), steel); // open C-jaw
+    jaw.rotation.z = -0.4; g.add(at(jaw, 0.3, 1.0, 0.13));
   } else {
     return null;
   }
@@ -372,7 +387,7 @@ export function createFigure(look = "player", opts = {}) {
   // Carried prop — a trade tell in the hands (spr-006). Rides the breath, not the swing.
   if (p.prop) {
     const prop = buildProp(p.prop);
-    if (prop) body.add(prop);
+    if (prop) { prop.name = "prop:" + p.prop; body.add(prop); }
   }
 
   // Limb girth tracks build, but gently (0.7 + 0.3·build) — a smith's legs thicken,
