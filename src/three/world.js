@@ -1694,6 +1694,46 @@ export function buildWorld(scene) {
     billboards.push(plume); // main.js turns it to face the camera each frame
   }
 
+  // ── Steam off the noodle pot (Batch 69): Mei's stall (built mid-street, far above) has
+  // carried a "steaming noodle bowl" on the counter since Batch 17, but the bowl never
+  // actually steamed. This hangs that steam — a soft pale-white wisp rising and curling off
+  // the hot pot, the Batch-49 luminance-alpha plume idiom (RGBA, alpha = brightness, so the
+  // vapour stays truly soft) scaled down to a kitchen wisp and billboarded so its shape
+  // always reads. (Lives down here, with the other plumes, because `billboards` is only
+  // declared after the stall is built.) The noodle bowl sits at stall-local (0.55,1.2,0.42)
+  // → world (−4.45, ~1.5 top, 4.42); the wisp's base sits at the bowl and rises. Unlike the
+  // rooftop woodsmoke (high in the empty sky, depthTest OFF so it draws over the far sky
+  // dome), this is at COUNTER height in the thick of the scene, so depthTest stays ON and
+  // depthWrite OFF — props and people standing in front of the stall correctly occlude it.
+  // Subtle emissive carries the pale vapour across the whole day cycle without glowing. A
+  // living touch on the harbour's heart, by day and night.
+  {
+    const steamMap = _texLoader.load(`${FX_DIR}FX_Smoke_NoodleSteam.png`);
+    steamMap.colorSpace = THREE.SRGBColorSpace;
+    steamMap.anisotropy = 8;
+    const steamMat = new THREE.MeshStandardMaterial({
+      map: steamMap,
+      transparent: true,
+      opacity: 0.78, // faint kitchen vapour, not a solid sheet
+      depthWrite: false, // true vapour — nothing reads its depth
+      depthTest: true, // at counter height: props/people in front occlude it
+      side: THREE.DoubleSide,
+      roughness: 1,
+      metalness: 0,
+      emissive: 0xffffff,
+      emissiveMap: steamMap,
+      emissiveIntensity: 0.7, // carries the pale wisp day → night without glowing
+    });
+    const steamH = 1.5;
+    const steam = new THREE.Mesh(new THREE.PlaneGeometry(0.85, steamH), steamMat);
+    // bowl world position (stall at −5,0,4 + local 0.55,1.2,0.42); base of the wisp at the
+    // bowl top (~1.5), so the plane centre is half its height above that.
+    steam.position.set(-5 + 0.55, 1.5 + steamH / 2, 4 + 0.42);
+    steam.renderOrder = 3;
+    scene.add(steam);
+    billboards.push(steam); // main.js turns the wisp to face the camera each frame
+  }
+
   // ── The working cargo of the port (Batch 50): the quay is dressed for life — a cat, a
   // dog, pigeons, washing, planters — far more than for work. There are crates and sacks
   // by the stall, but none of the heavy freight a port actually handles. Three painted
