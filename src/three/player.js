@@ -459,6 +459,7 @@ export function createFigure(look = "player", opts = {}) {
     _swayPhase: seed * Math.PI * 1.7,   // weight-shift rock, decorrelated from both
     _idleRate: 1.7 + seed * 1.1,        // 1.7..2.8 — each idler breathes at its own pace
     _armBias: (seed - 0.5) * 0.16,      // a small, fixed asymmetric arm hang
+    _build: build,                      // mass proxy — drives the stride heft (spr-017)
     update(dt, speed = 0) {
       const moving = speed > 0.05;
       // Stride cadence scales with pace (sqrt so it eases off), so a laden trudge steps
@@ -466,7 +467,13 @@ export function createFigure(look = "player", opts = {}) {
       // old fixed 7.5 — the player runs faster than that, so the hero's gait is unchanged.
       const cadence = moving ? 4.7 + 2.1 * Math.sqrt(Math.min(speed, 1.78)) : this._idleRate;
       this._phase += dt * cadence;
-      const amp = moving ? 0.7 : 0.045;
+      // Stride heft (spr-017) — a broad, heavy-set frame plants a deeper, more laboured
+      // step: it bobs lower and swings a little longer than a slight one, reading as a
+      // laden trudge against a light quick walk. Centred on build=1 (the player and the
+      // default crowd) so the curves pass through the old fixed 0.7/0.06 amplitudes and
+      // the hero's gait stays byte-for-byte unchanged.
+      const heft = 1 + (this._build - 1) * 0.7;       // 1.24 → 1.17, 0.94 → 0.96, 1 → 1
+      const amp = moving ? 0.7 * (1 + (heft - 1) * 0.5) : 0.045;
       const s = Math.sin(this._phase) * amp;
       legL.rotation.x = s;
       legR.rotation.x = -s;
@@ -474,8 +481,9 @@ export function createFigure(look = "player", opts = {}) {
       const base = moving ? 0 : this._stanceArmX;
       armL.rotation.x = base - s * 0.8 + (moving ? 0 : this._armBias);
       armR.rotation.x = base + s * 0.8 + (moving ? 0 : -this._armBias);
-      // Body bob: twice per stride when walking, a faint breath when idle.
-      body.position.y = moving ? Math.abs(Math.sin(this._phase)) * 0.06 : Math.sin(this._phase) * 0.01;
+      // Body bob: twice per stride when walking, a faint breath when idle. The walking
+      // bob deepens with heft, so a laden frame lumbers where a slight one skims (spr-017).
+      body.position.y = moving ? Math.abs(Math.sin(this._phase)) * 0.06 * heft : Math.sin(this._phase) * 0.01;
       // Walking lean — a moving citizen tips forward into its stride, a brisk one further
       // than a laden trudge (capped at 1.78 m/s like the cadence). `body` pivots at the
       // ground, so the torso and head carry forward while the boots stay planted. Gated to
