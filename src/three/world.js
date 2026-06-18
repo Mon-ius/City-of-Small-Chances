@@ -5,8 +5,9 @@
 // everything is geometry + materials so it renders the instant the module does.
 //
 // buildWorld(scene) returns the play-area bounds (for clamping the player), an
-// array of ambient citizens that patrol the quay, and a set of painted citizen
-// billboards (camera-facing sprite quads) the frame loop turns to face the camera.
+// array of ambient citizens — both walkers and the standing crowd, all real rounded
+// bodies — and a set of camera-facing billboards (props, birds, boats, water FX) the
+// frame loop turns to face the camera.
 
 import * as THREE from "three";
 import { createFigure } from "./player.js";
@@ -27,7 +28,6 @@ const COLORS = {
 // per the glTF convention Three.js samples (roughness←G, metalness←B). Relative
 // path keeps it working under the GitHub Pages project sub-path.
 const TEX_DIR = "./assets/textures/harbour/";
-const SPRITE_DIR = "./assets/sprites/citizens/";
 const SIGNAGE_DIR = "./assets/sprites/signage/";
 const SKY_DIR = "./assets/sprites/sky/";
 const PROP_SPRITE_DIR = "./assets/sprites/props/";
@@ -98,41 +98,6 @@ function windowPlane(winW, winH, cell, material) {
   const m = new THREE.Mesh(geo, material);
   m.rotation.y = -Math.PI / 2;
   return m;
-}
-
-// ── Citizen billboards (Batch 3): painted full-body cutouts with transparent
-// alpha, generated with GPT-Image-2 and chroma-keyed. Each is a single upright
-// quad turned to face the camera every frame (cylindrical billboarding, done in
-// main.js) so the painted figure always reads front-on. The albedo carries warm
-// dusk shading already; we light it lightly and floor it with a touch of emissive
-// so it neither flickers as you orbit nor goes black after dark.
-function spritePlane(map, height) {
-  map.colorSpace = THREE.SRGBColorSpace;
-  map.anisotropy = 8;
-  const mat = new THREE.MeshStandardMaterial({
-    map,
-    transparent: true,
-    alphaTest: 0.5,
-    side: THREE.DoubleSide,
-    roughness: 1,
-    metalness: 0,
-    emissive: 0xffffff,
-    emissiveMap: map,
-    emissiveIntensity: 0.28,
-  });
-  const w = height * 0.5; // sprites ship 512×1024 (1:2)
-  const plane = new THREE.Mesh(new THREE.PlaneGeometry(w, height), mat);
-  plane.position.y = height / 2; // feet on the ground
-  plane.castShadow = false;      // a camera-facing plane casts a bad rotating shadow
-  return plane;
-}
-function citizenSprite(role, height = 1.85) {
-  return spritePlane(_texLoader.load(`${SPRITE_DIR}CHAR_Harbour_Citizen_${role}_albedo.png`), height);
-}
-// The named major NPCs (Batch 22, spr-003): full-body sprites painted to match
-// each character's talk-panel portrait, same billboard treatment as the citizens.
-function npcSprite(name, height = 1.85) {
-  return spritePlane(_texLoader.load(`${SPRITE_DIR}CHAR_NPC_${name}_albedo.png`), height);
 }
 
 // ── Painted alpha-cutout plane (Batch 6 signage & decals): chroma-keyed art on a
@@ -886,10 +851,12 @@ export function buildWorld(scene) {
     citizens.push(makePatrol(fig, r.z - r.span / 2, r.z + r.span / 2, i));
   });
 
-  // ── A standing crowd of painted citizen billboards milling along the quay.
-  // Static positions (these figures watch the water and loiter rather than walk —
-  // a walking flat sprite reads badly); main.js turns each to face the camera.
-  // Placed clear of the interactables (vendor −5,4 · board 5,−6) and the spawn.
+  // ── A standing crowd of real, rounded citizen bodies milling along the quay (spr-004,
+  // up from the old flat camera-facing billboards). Each is the shared figure builder
+  // dressed in a per-role LOOKS palette, standing on its patch watching the water and
+  // breathing the idle gait. Static positions (they loiter rather than walk — a walking
+  // body in a fixed spot reads odd); placed clear of the interactables (vendor −5,4 ·
+  // board 5,−6) and the spawn. `billboards` still backs the props/birds/clouds below.
   const billboards = [];
   const shadowTex = shadowTexture();
   const crowd = [
@@ -971,10 +938,13 @@ export function buildWorld(scene) {
     { role: "Widow",          x: -10.0, z: 16 },
   ];
   for (const c of crowd) {
-    const plane = citizenSprite(c.role);
-    plane.position.set(c.x, plane.position.y, c.z);
-    scene.add(plane);
-    billboards.push(plane);
+    const fig = createFigure(c.role, { castShadow: false });
+    fig.root.position.set(c.x, 0, c.z);
+    scene.add(fig.root);
+    // Face roughly toward the water (−x) with a deterministic per-figure spread, so the
+    // crowd doesn't stand in lockstep (no Math.random — keeps headless renders stable).
+    const yaw = -Math.PI / 2 + (((c.x * 12.9 + c.z * 7.3) % 1.6) - 0.8);
+    citizens.push(makeStanding(fig, yaw));
 
     const blob = new THREE.Mesh(
       new THREE.CircleGeometry(0.5, 16),
@@ -993,18 +963,19 @@ export function buildWorld(scene) {
   // north. (Clara and Ava belong to uptown and the tenements — ship-ready until those
   // districts become walkable.) Same camera-facing billboard + contact-shadow treatment
   // as the ambient crowd, so the people you meet in the talk panel are the same people
-  // you pass on the quay. Placed clear of the interactables and the spawn.
+  // you pass on the quay. Now real rounded bodies (spr-004) dressed to their role, each
+  // turned to where their work faces. Placed clear of the interactables and the spawn.
   const namedLocals = [
-    { name: "Mei", x: -5.0, z: 3.1 },   // behind her stall counter (stall at −5,4)
-    { name: "Tomo", x: -8.8, z: -7 },   // the quay mechanic, water-side at his patch
-    { name: "Jun", x: 3.0, z: -7 },     // the dispatcher near the board + parked bike
-    { name: "Rafiq", x: 4.7, z: -12 },  // the foreman with the dock gang, north end
+    { name: "Mei",   x: -5.0, z: 3.1,  yaw: 0 },             // behind her counter, facing her customers (stall −5,4)
+    { name: "Tomo",  x: -8.8, z: -7,   yaw: -Math.PI / 2 },  // the quay mechanic, facing the water at his patch
+    { name: "Jun",   x: 3.0,  z: -7,   yaw: Math.PI / 2 },   // the dispatcher, facing the board + parked bike (5,−6)
+    { name: "Rafiq", x: 4.7,  z: -12,  yaw: -Math.PI / 2 - 0.3 }, // the foreman, facing the loading at the north end
   ];
   for (const p of namedLocals) {
-    const plane = npcSprite(p.name);
-    plane.position.set(p.x, plane.position.y, p.z);
-    scene.add(plane);
-    billboards.push(plane);
+    const fig = createFigure(p.name, { castShadow: false });
+    fig.root.position.set(p.x, 0, p.z);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, p.yaw));
     const blob = new THREE.Mesh(
       new THREE.CircleGeometry(0.5, 16),
       new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.55 }),
@@ -2003,6 +1974,17 @@ export function buildWorld(scene) {
 // Wrapper so makeBuilding (which builds a Group) is added to the scene.
 function makeBuildingInto(scene, x, z, w, h, d, bodyMat, windowMat, roofMat) {
   scene.add(makeBuilding(x, z, w, h, d, bodyMat, windowMat, roofMat));
+}
+
+// A citizen who stands and watches the water rather than walking — faced at a fixed
+// yaw and just breathing (the idle gait, speed 0). Shares the citizens' update contract
+// so main.js animates the standing crowd through the same loop as the walkers.
+function makeStanding(fig, yaw) {
+  fig.root.rotation.y = yaw;
+  return {
+    fig,
+    update(dt) { fig.update(dt, 0); },
+  };
 }
 
 // A citizen that walks back and forth between two z values, facing its direction.

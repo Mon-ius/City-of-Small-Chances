@@ -16,6 +16,77 @@ const PALETTES = {
   elder:    { coat: 0x7d7f88, legs: 0x303338, skin: 0xd8b48f, hair: 0xb9bcc4, shoe: 0x1b1c1f },
 };
 
+// ── The standing cast's looks (spr-004). The four walking citizens keep the five
+// PALETTES above; the 40 standing roles + 4 named locals each get a muted period
+// palette so the quay reads as a whole society — a constable in navy, a priest in
+// cassock black, a lady in plum, a soot-black sweep, children scaled down — rather
+// than forty identical bodies. A look is { coat, legs, skin, hair, shoe, scale };
+// `resolveLook` accepts a look object, a LOOKS key, a PALETTES key, or falls back to
+// commuter. Shared skin/hair tones keep the table terse and the crowd coherent.
+const SKIN = { pale: 0xe7c3a0, fair: 0xdcb78f, warm: 0xd0a070, tan: 0xc28a5a, deep: 0xab754a };
+const HAIR = { black: 0x161210, brown: 0x33241a, grey: 0x9b9a96, white: 0xcfcfca, sandy: 0x6e5436, auburn: 0x4a2a1c };
+
+// L(coat, legs, skin, hair, shoe?, scale?) — terse row builder for the table below.
+function L(coat, legs, skin, hair, shoe = 0x1a1713, scale = 1) {
+  return { coat, legs, skin, hair, shoe, scale };
+}
+
+const LOOKS = {
+  // Quayside trades & the working poor.
+  Fisher:        L(0x37618a, 0x2b3540, SKIN.tan,  HAIR.brown,  0x20262c),
+  DockWorker:    L(0x6a5d49, 0x39342b, SKIN.warm, HAIR.black,  0x241f18, 1.04),
+  MarketVendor:  L(0xb5462f, 0x3a2d24, SKIN.warm, HAIR.black),
+  Sailor:        L(0x2a3b66, 0x6f7682, SKIN.tan,  HAIR.brown,  0x20242c),
+  Porter:        L(0x6b5a44, 0x342d24, SKIN.warm, HAIR.black,  0x231d16, 1.05),
+  Washerwoman:   L(0x86736a, 0x4a4038, SKIN.warm, HAIR.grey,   0x2a241f, 0.95),
+  Fisherman:     L(0x8a7a3e, 0x3a3424, SKIN.tan,  HAIR.grey,   0x2b2619),
+  Fishwife:      L(0x9a5240, 0x46352c, SKIN.tan,  HAIR.brown,  0x2a221c, 0.96),
+  Ferryman:      L(0x3a5560, 0x2a3236, SKIN.tan,  HAIR.grey,   0x20262a, 1.02),
+  Lamplighter:   L(0x4a4030, 0x2e2920, SKIN.warm, HAIR.black,  0x201c15),
+  Innkeeper:     L(0x7a4a3a, 0x3a2d26, SKIN.warm, HAIR.grey,   0x281f18, 1.05),
+  Blacksmith:    L(0x4d3526, 0x2e241c, SKIN.deep, HAIR.black,  0x1f1812, 1.06),
+  Baker:         L(0xcfc6b4, 0x8c8576, SKIN.warm, HAIR.brown,  0x4a4338),
+  Tinker:        L(0x6a5a3a, 0x3a3226, SKIN.tan,  HAIR.grey,   0x2a2419),
+  Knifegrinder:  L(0x5a4a38, 0x342c22, SKIN.warm, HAIR.grey,   0x241e16),
+  Coalman:       L(0x2a2622, 0x201d19, SKIN.deep, HAIR.black,  0x16130f, 1.04),
+  Sweep:         L(0x26231f, 0x201d1a, SKIN.tan,  HAIR.black,  0x14110d, 0.95),
+  Dockmaster:    L(0x394a5a, 0x262d34, SKIN.pale, HAIR.grey,   0x20242a, 1.02),
+  // The genteel & the official.
+  Merchant:      L(0x35302c, 0x2a2622, SKIN.pale, HAIR.grey,   0x1d1915, 1.02),
+  Lady:          L(0x6d3b5e, 0x4a2c40, SKIN.pale, HAIR.brown,  0x2a1f26, 0.97),
+  Constable:     L(0x1f2a44, 0x1b2236, SKIN.fair, HAIR.black,  0x14161f, 1.03),
+  Clerk:         L(0x33384a, 0x23262f, SKIN.pale, HAIR.brown,  0x191b22),
+  Priest:        L(0x16171c, 0x141418, SKIN.pale, HAIR.grey,   0x0f1013, 1.01),
+  Doctor:        L(0x2c2f34, 0x222428, SKIN.pale, HAIR.brown,  0x17181b),
+  Nun:           L(0x1c1c20, 0x18181c, SKIN.pale, HAIR.black,  0x121215, 0.98),
+  Schoolmistress:L(0x3a3548, 0x2a2832, SKIN.pale, HAIR.brown,  0x1d1c24, 0.96),
+  Soldier:       L(0x7c2b24, 0x2a2d3a, SKIN.fair, HAIR.brown,  0x161820, 1.03),
+  Veteran:       L(0x4a4d3a, 0x2e3026, SKIN.warm, HAIR.grey,   0x1f201a),
+  TownCrier:     L(0x9a4632, 0x33302a, SKIN.fair, HAIR.grey,   0x23201b, 1.02),
+  Musician:      L(0x7a5a2e, 0x3a3026, SKIN.warm, HAIR.brown,  0x261f17),
+  // The hard-pressed, the old, the young.
+  Beggar:        L(0x6b6258, 0x44403a, SKIN.tan,  HAIR.grey,   0x2a2620, 0.96),
+  Widow:         L(0x1c1b1f, 0x18171b, SKIN.pale, HAIR.grey,   0x121116, 0.94),
+  OldWoman:      L(0x5d5560, 0x37333a, SKIN.pale, HAIR.white,  0x232026, 0.90),
+  Elder:         L(0x7d7f88, 0x303338, SKIN.pale, HAIR.white,  0x1b1c1f, 0.97),
+  Mother:        L(0x7e6a52, 0x44392c, SKIN.fair, HAIR.brown,  0x2a241c, 0.97),
+  Commuter:      L(0x4b6c9a, 0x222831, SKIN.pale, HAIR.brown,  0x14161b),
+  Youth:         L(0x5a8a6b, 0x2e3640, SKIN.fair, HAIR.sandy,  0x1c1f24, 0.92),
+  FlowerGirl:    L(0xb07a86, 0x52414a, SKIN.fair, HAIR.auburn, 0x2c232a, 0.80),
+  Child:         L(0x9c7b3f, 0x47402f, SKIN.fair, HAIR.brown,  0x2a2519, 0.70),
+  Urchin:        L(0x6f6450, 0x423b30, SKIN.tan,  HAIR.brown,  0x281f18, 0.68),
+  // The named locals you also meet in the talk panel (Batch 22) — dressed to their role.
+  Mei:           L(0xb5462f, 0x3a2d24, 0xe2b98f, HAIR.black,   0x281712, 0.97),
+  Tomo:          L(0x39434f, 0x2a3038, SKIN.warm, HAIR.black,  0x1c1f24),
+  Jun:           L(0x3a6b4b, 0x2a3228, SKIN.fair, HAIR.black,  0x1a2018, 0.98),
+  Rafiq:         L(0x6a4a2e, 0x352a1e, SKIN.deep, HAIR.black,  0x241c14, 1.05),
+};
+
+function resolveLook(look) {
+  if (look && typeof look === "object") return look;
+  return LOOKS[look] || PALETTES[look] || PALETTES.commuter;
+}
+
 // spr-001 — the player (and ONLY the player) is dressed in painted PBR cloth & skin
 // instead of flat block colour; the rounded geometry hero stays geometry, these maps
 // just skin its surfaces. Each material STARTS as the flat palette colour (exactly the
@@ -73,17 +144,21 @@ function capsuleLimb(total, radius, material) {
 const HIP_Y = 0.82;
 const SHOULDER_Y = 1.46;
 
-export function createFigure(kind = "player") {
-  const p = PALETTES[kind] ?? PALETTES.commuter;
+// `look` is the appearance: "player" (the painted hero), a PALETTES key (the four
+// walking citizens), a LOOKS key (the 40 standing roles + 4 named locals), or a raw
+// look object. `opts.castShadow:false` skips real shadow casting (the standing crowd
+// uses cheap contact-blobs instead, so 44 extra bodies don't bloat the shadow map).
+export function createFigure(look = "player", opts = {}) {
+  const p = resolveLook(look);
   const root = new THREE.Group();
   const body = new THREE.Group(); // bobs vertically without moving the root
   root.add(body);
 
-  // Only the hero is painted (spr-001); ambient citizens stay flat block colour —
+  // Only the hero is painted (spr-001); every other body stays flat block colour —
   // lighter to draw, and visually distinct so the player reads apart from the crowd.
   // One shared material per garment family (coat → torso + arms, trouser → pelvis +
   // legs, skin → head + neck + hands) keeps it to three texture uploads per figure.
-  const dressed = kind === "player";
+  const dressed = look === "player";
   const coatMat = dressed ? playerSkin("Coat", p.coat) : flatMat(p.coat);
   const trouserMat = dressed ? playerSkin("Trouser", p.legs) : flatMat(p.legs);
   const skinMat = dressed ? playerSkin("Skin", p.skin) : flatMat(p.skin, 0.78);
@@ -156,6 +231,12 @@ export function createFigure(kind = "player") {
   const armL = makeArm(-0.27);
   const armR = makeArm(0.27);
   body.add(legL, legR, armL, armR);
+
+  // Per-role stature: scale about the root origin (y=0 ground), so feet stay planted
+  // and only the height changes — a child reads small, a smith broad-and-tall.
+  if (p.scale && p.scale !== 1) root.scale.setScalar(p.scale);
+  // The standing crowd opts out of real shadows (it carries a contact-blob instead).
+  if (opts.castShadow === false) root.traverse((o) => { if (o.isMesh) o.castShadow = false; });
 
   const figure = {
     root,
