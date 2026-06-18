@@ -460,6 +460,8 @@ export function createFigure(look = "player", opts = {}) {
     _idleRate: 1.7 + seed * 1.1,        // 1.7..2.8 — each idler breathes at its own pace
     _armBias: (seed - 0.5) * 0.16,      // a small, fixed asymmetric arm hang
     _build: build,                      // mass proxy — drives the stride heft (spr-017)
+    _fidgety: idler && !p.prop,         // empty-handed idlers fidget; the laden don't (spr-018)
+    _fidgetPhase: seed * Math.PI * 3.3, // fidget clock, decorrelated from breath/gaze/sway
     update(dt, speed = 0) {
       const moving = speed > 0.05;
       // Stride cadence scales with pace (sqrt so it eases off), so a laden trudge steps
@@ -501,6 +503,17 @@ export function createFigure(look = "player", opts = {}) {
       this.headPivot.rotation.y = (this._idler && !moving)
         ? Math.sin(this._phase * 0.37 + this._gazePhase) * 0.4
         : 0;
+      // Occasional idle fidget (spr-018) — every ~20s an empty-handed resting figure
+      // lifts a hand to check a pocket-watch or adjust a collar, then lets it fall, head
+      // dipping to glance at it. A low duty-cycle pulse (only the top sliver of a slow
+      // sine, above 0.85) keeps it sparse: a couple of the crowd at any moment, never the
+      // whole square at once. Seed-staggered, idlers only — the player never fidgets, so
+      // armR/headPivot get += 0 / = 0 and the hero stays byte-for-byte unchanged.
+      const fidget = (this._fidgety && !moving)
+        ? Math.max(0, Math.sin(this._phase * 0.13 + this._fidgetPhase) - 0.9) / 0.1
+        : 0;
+      armR.rotation.x += -fidget * 0.85;          // right forearm rises toward the chest
+      this.headPivot.rotation.x = -fidget * 0.16; // and the head dips to glance at it
     },
   };
   return figure;
