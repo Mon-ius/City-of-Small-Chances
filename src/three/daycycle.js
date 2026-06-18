@@ -55,7 +55,7 @@ export function createDayCycle(world, scene, opts = {}) {
   for (const k of KEYS) { k.sunC = new THREE.Color(k.sun); k.topC = new THREE.Color(k.top); k.botC = new THREE.Color(k.bot); k.fogC = new THREE.Color(k.fog); }
   const _sun = new THREE.Color(), _top = new THREE.Color(), _bot = new THREE.Color(), _fog = new THREE.Color();
 
-  const { sun, hemi, ambient, lampHeads, paintSky, setSkyBlend, tintClouds, setMoon, setLampGlow, setWaterGlow, setSunGlitter, setBrazierGlow, setWaterMist, setBeacon, setBoatLights } = world;
+  const { sun, hemi, ambient, lampHeads, paintSky, setSkyBlend, tintClouds, setMoon, setLampGlow, setWindowGlow, setWaterGlow, setSunGlitter, setBrazierGlow, setWaterMist, setBeacon, setBoatLights } = world;
 
   function clampMin(m) {
     return Math.min(DAY_END_MIN - 0.001, Math.max(DAY_START_MIN, m));
@@ -96,6 +96,7 @@ export function createDayCycle(world, scene, opts = {}) {
     const lampI = lerp(a.lamp, b.lamp, t);
     for (const h of lampHeads) h.material.emissiveIntensity = lampI;
     if (setLampGlow) setLampGlow(lampI); // the lamps pool warm light on the wet stones
+    if (setWindowGlow) setWindowGlow(lampI); // the town's windows warm up with the lamps at dusk
     if (setBrazierGlow) setBrazierGlow(lampI); // the brazier throws hot firelight on the cobbles
 
     // Mist breathes on the water at the cool ends of the day (its own curve, not the

@@ -590,6 +590,12 @@ export function buildWorld(scene) {
     const o = Math.max(0, Math.min(0.85, intensity * 0.85));
     for (const p of lampGlows) p.material.opacity = o;
   }
+  // Lit window panes ride the same dusk ramp as the lamps (spr-020): near-invisible
+  // against a sunlit facade by day, warm after dark, so the town's windows visibly come
+  // on as evening falls. One shared atlas material → one assignment lights every building.
+  function setWindowGlow(intensity) {
+    windowMat.emissiveIntensity = 0.05 + Math.max(0, Math.min(1, intensity)) * 1.1;
+  }
 
   // ── A market stall with a striped awning, mid-street.
   const stall = new THREE.Group();
@@ -1994,7 +2000,7 @@ export function buildWorld(scene) {
   }
 
   const bounds = { minX: -10.5, maxX: 6.5, minZ: -34, maxZ: 34 };
-  return { bounds, citizens, locals, billboards, clouds, soaringGulls, lampHeads, lampGlows, waterGlows, sunGlitters, brazierGlows, waterMists, beaconGlows, boatLights, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow, setWaterGlow, setSunGlitter, setBrazierGlow, setWaterMist, setBeacon, setBoatLights };
+  return { bounds, citizens, locals, billboards, clouds, soaringGulls, lampHeads, lampGlows, waterGlows, sunGlitters, brazierGlows, waterMists, beaconGlows, boatLights, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow, setWindowGlow, setWaterGlow, setSunGlitter, setBrazierGlow, setWaterMist, setBeacon, setBoatLights };
 }
 
 // Wrapper so makeBuilding (which builds a Group) is added to the scene.
