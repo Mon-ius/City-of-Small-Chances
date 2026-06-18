@@ -1272,6 +1272,53 @@ export function buildWorld(scene) {
     billboards.push(craft); // main.js turns it to face the camera each frame
   }
 
+  // ── The boats light their lanterns (Batch 67): the moored vessels (the far tall ship,
+  // trawler and barge, the near dory/punt/dinghy above) sit dark over the water at night,
+  // while the quay lamps (B62), the brazier (B64) and the far lighthouse (B66) all light
+  // up — a working harbour shows its boats' running lanterns after dark. Hang a small warm
+  // AMBER lantern glow on the vessels (additive, fog-off, self-lit MeshBasic, NO star-
+  // glints — an oil lantern, not the navigation beacon), each a camera-facing billboard so
+  // the soft halo always reads; opacity rides the night-blend weight (setBoatLights, from
+  // daycycle.js) — dark by day, full at deep night, exactly as the moon, lamps and beacon.
+  // Placed at each hull so the warm points scatter a constellation of running lights across
+  // the dark bay: a stern lantern high on the tall ship, a cabin lantern on the trawler, a
+  // bow lantern on the near dory and the dinghy. Far lanterns sized larger so they read at
+  // distance; near ones small and close. Clear of the moonglades (B63) and mist banks (B65).
+  const boatLights = [];
+  const lanternTex = _texLoader.load(`${FX_DIR}FX_Light_BoatLantern.png`);
+  lanternTex.colorSpace = THREE.SRGBColorSpace;
+  const lanterns = [
+    // [x, y, z, size, base] — warm running lights hung at each hull.
+    [-59, 4.6, -19, 2.8, 0.9], // tall ship stern lantern (far, large to read at distance)
+    [-43.5, 2.2, 28, 1.7, 0.85], // trawler cabin lantern
+    [-14, 0.7, 18, 0.7, 0.8], // near dory bow lantern
+    [-16.5, 0.85, -24, 0.7, 0.8], // near dinghy lantern
+  ];
+  for (const [x, y, z, size, base] of lanterns) {
+    const lantern = new THREE.Mesh(
+      new THREE.PlaneGeometry(size, size),
+      new THREE.MeshBasicMaterial({
+        map: lanternTex,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        fog: false,
+        color: new THREE.Color(0xffb860),
+      }),
+    );
+    lantern.position.set(x, y, z);
+    lantern.renderOrder = 4;
+    lantern.userData.glowBase = base;
+    scene.add(lantern);
+    billboards.push(lantern); // main.js turns each lantern to face the camera each frame
+    boatLights.push(lantern);
+  }
+  function setBoatLights(intensity) {
+    const n = Math.max(0, Math.min(1, intensity));
+    for (const l of boatLights) l.material.opacity = n * l.userData.glowBase;
+  }
+
   // ── Harbour waterbirds (Batch 60): the quay had gulls (Batch 43) overhead and on
   // the rails, but the wide water and the long sea-wall coping carried no other living
   // creature — and a working port is alive with waterbirds. Three painted cutouts add
@@ -1832,7 +1879,7 @@ export function buildWorld(scene) {
   }
 
   const bounds = { minX: -10.5, maxX: 6.5, minZ: -34, maxZ: 34 };
-  return { bounds, citizens, billboards, clouds, lampHeads, lampGlows, waterGlows, brazierGlows, waterMists, beaconGlows, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow, setWaterGlow, setBrazierGlow, setWaterMist, setBeacon };
+  return { bounds, citizens, billboards, clouds, lampHeads, lampGlows, waterGlows, brazierGlows, waterMists, beaconGlows, boatLights, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow, setWaterGlow, setBrazierGlow, setWaterMist, setBeacon, setBoatLights };
 }
 
 // Wrapper so makeBuilding (which builds a Group) is added to the scene.

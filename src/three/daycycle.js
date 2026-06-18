@@ -55,7 +55,7 @@ export function createDayCycle(world, scene, opts = {}) {
   for (const k of KEYS) { k.sunC = new THREE.Color(k.sun); k.topC = new THREE.Color(k.top); k.botC = new THREE.Color(k.bot); k.fogC = new THREE.Color(k.fog); }
   const _sun = new THREE.Color(), _top = new THREE.Color(), _bot = new THREE.Color(), _fog = new THREE.Color();
 
-  const { sun, hemi, ambient, lampHeads, paintSky, setSkyBlend, tintClouds, setMoon, setLampGlow, setWaterGlow, setBrazierGlow, setWaterMist, setBeacon } = world;
+  const { sun, hemi, ambient, lampHeads, paintSky, setSkyBlend, tintClouds, setMoon, setLampGlow, setWaterGlow, setBrazierGlow, setWaterMist, setBeacon, setBoatLights } = world;
 
   function clampMin(m) {
     return Math.min(DAY_END_MIN - 0.001, Math.max(DAY_START_MIN, m));
@@ -119,6 +119,7 @@ export function createDayCycle(world, scene, opts = {}) {
         if (setMoon) setMoon(wn / ws); // moon rides the night-blend weight
         if (setWaterGlow) setWaterGlow(wn / ws); // reflections catch the moon/lamps on the water
         if (setBeacon) setBeacon(wn / ws); // the lighthouse lantern shines across the bay at night
+        if (setBoatLights) setBoatLights(wn / ws); // the moored boats carry warm running lanterns
       }
       if (tintClouds) tintClouds(_bot, sunI);
     }
