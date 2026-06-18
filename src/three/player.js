@@ -457,8 +457,11 @@ export function createFigure(look = "player", opts = {}) {
       armR.rotation.x = base + s * 0.8 + (moving ? 0 : -this._armBias);
       // Body bob: twice per stride when walking, a faint breath when idle.
       body.position.y = moving ? Math.abs(Math.sin(this._phase)) * 0.06 : Math.sin(this._phase) * 0.01;
-      // Wandering gaze — idlers only, so the player and walkers keep a level head.
-      if (this._idler) this.headPivot.rotation.y = Math.sin(this._phase * 0.37 + this._gazePhase) * 0.4;
+      // Wandering gaze — idlers at rest only. A figure on the move looks where it is
+      // going (head level); the player keeps a level head too (never an idler).
+      this.headPivot.rotation.y = (this._idler && !moving)
+        ? Math.sin(this._phase * 0.37 + this._gazePhase) * 0.4
+        : 0;
     },
   };
   return figure;

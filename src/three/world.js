@@ -836,16 +836,27 @@ export function buildWorld(scene) {
     markers.push(m);
   }
 
-  // ── Ambient citizens patrolling the quay.
+  // ── Ambient citizens walking the quay (spr-010). No longer plain palette bodies — each
+  // is a fully-dressed role so the people in motion carry the same hats, builds and trade
+  // props as the standing crowd: a top-hatted merchant browsing the stall, a broad porter
+  // hauling a shoulder sack, a striding commuter, the constable on his beat, a coal-heaver
+  // the length of the south quay, a clerk crossing with his ledger, a doctor on a call up
+  // north. Props are all shoulder/chest/hat (never a ground cane), so they read while the
+  // arms swing. Lanes are clearance-checked against the standing crowd; speeds + a per-
+  // walker stride seed keep them from marching in lockstep (no Math.random — stable renders).
   const citizens = [];
   const roster = [
-    { kind: "vendor", x: -5, z: 6, span: 3 },
-    { kind: "worker", x: 2, z: -14, span: 10 },
-    { kind: "commuter", x: -7, z: -2, span: 14 },
-    { kind: "elder", x: 4, z: 18, span: 6 },
+    { kind: "Merchant",  x: -5,   z: 6,   span: 3 },
+    { kind: "Porter",    x: 2,    z: -14, span: 10 },
+    { kind: "Commuter",  x: -7,   z: -2,  span: 14 },
+    { kind: "Constable", x: 4,    z: 18,  span: 6 },
+    { kind: "Coalman",   x: 0.5,  z: -14, span: 20 },
+    { kind: "Clerk",     x: -3,   z: 0,   span: 12 },
+    { kind: "Doctor",    x: -6.5, z: 25,  span: 10 },
   ];
   roster.forEach((r, i) => {
-    const fig = createFigure(r.kind);
+    const seed = (i + 0.5) / roster.length; // a stable stride-phase offset, 0..1
+    const fig = createFigure(r.kind, { seed });
     fig.root.position.set(r.x, 0, r.z - r.span / 2);
     scene.add(fig.root);
     citizens.push(makePatrol(fig, r.z - r.span / 2, r.z + r.span / 2, i));
