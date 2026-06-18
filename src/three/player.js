@@ -130,6 +130,24 @@ for (const [role, prop] of Object.entries(ROLE_PROP)) {
   if (LOOKS[role]) LOOKS[role].prop = prop;
 }
 
+// Per-role body build (spr-007): girth & breadth, separate from the uniform `scale`
+// (height). >1 reads burly — the men of muscle and the well-fed; <1 reads slight — the
+// young, the frail, the genteel-thin. Default 1. Stamped onto the LOOKS rows; a body
+// without an entry keeps the ordinary frame.
+const ROLE_BUILD = {
+  // Broad, heavy-set.
+  Blacksmith: 1.3, Porter: 1.24, Coalman: 1.2, Innkeeper: 1.22, Tinker: 1.12,
+  DockWorker: 1.14, Ferryman: 1.1, Fisherman: 1.08, Constable: 1.12, Soldier: 1.1,
+  Sailor: 1.06, Veteran: 1.05, Dockmaster: 1.06, Merchant: 1.08,
+  // Slight, narrow.
+  Child: 0.9, Urchin: 0.86, FlowerGirl: 0.84, Youth: 0.92, Lady: 0.9, Beggar: 0.9,
+  OldWoman: 0.88, Widow: 0.9, Elder: 0.92, Clerk: 0.94, Schoolmistress: 0.92,
+  Nun: 0.94, Washerwoman: 0.96, Mei: 0.94,
+};
+for (const [role, build] of Object.entries(ROLE_BUILD)) {
+  if (LOOKS[role]) LOOKS[role].build = build;
+}
+
 function resolveLook(look) {
   if (look && typeof look === "object") return look;
   return LOOKS[look] || PALETTES[look] || PALETTES.commuter;
@@ -293,23 +311,30 @@ export function createFigure(look = "player", opts = {}) {
   const hairMat = flatMat(p.hair, 0.7);
   const shoeMat = flatMat(p.shoe, 0.6);
 
+  // Per-role build (spr-007): girth & breadth, separate from the uniform `scale`
+  // (height). >1 reads burly — the men of muscle and the well-fed; <1 reads slight —
+  // the young, the frail, the genteel-thin. `spread` widens the shoulder/limb stance
+  // with the body so a broad frame plants its arms wider, not just thicker.
+  const build = p.build ?? 1;
+  const spread = 0.55 + 0.45 * build;
+
   // Torso — a capsule flattened front-to-back and broadened at the shoulders so the
   // silhouette reads as a chest, not a barrel.
   const torso = mesh(new THREE.CapsuleGeometry(0.19, 0.4, 6, 18), coatMat);
-  torso.scale.set(1.16, 1.0, 0.66);
+  torso.scale.set(1.16 * build, 1.0, 0.66 * build);
   torso.position.y = HIP_Y + 0.34;
   body.add(torso);
 
   // Pelvis — a smaller flattened capsule bridging hips to torso.
   const pelvis = mesh(new THREE.CapsuleGeometry(0.155, 0.12, 5, 16), trouserMat);
-  pelvis.scale.set(1.12, 1.0, 0.72);
+  pelvis.scale.set(1.12 * build, 1.0, 0.72 * build);
   pelvis.position.y = HIP_Y + 0.05;
   body.add(pelvis);
 
   // Rounded shoulders smooth the arm-to-torso join.
   for (const sx of [-0.24, 0.24]) {
-    const sh = mesh(new THREE.SphereGeometry(0.1, 14, 12), coatMat);
-    sh.position.set(sx, SHOULDER_Y, 0);
+    const sh = mesh(new THREE.SphereGeometry(0.1 * build, 14, 12), coatMat);
+    sh.position.set(sx * spread, SHOULDER_Y, 0);
     body.add(sh);
   }
 
@@ -344,12 +369,17 @@ export function createFigure(look = "player", opts = {}) {
     if (prop) body.add(prop);
   }
 
+  // Limb girth tracks build, but gently (0.7 + 0.3·build) — a smith's legs thicken,
+  // they don't double — while arm girth tracks build directly for a fuller sleeve.
+  const legR0 = 0.088 * (0.7 + 0.3 * build);
+  const armR0 = 0.06 * build;
+
   // Legs — capsules from the hip, each ending in a boot toed forward.
   function makeLeg(x) {
     const pivot = new THREE.Object3D();
     pivot.position.set(x, HIP_Y, 0);
-    pivot.add(capsuleLimb(0.78, 0.088, trouserMat));
-    const boot = mesh(new THREE.BoxGeometry(0.13, 0.085, 0.27), shoeMat);
+    pivot.add(capsuleLimb(0.78, legR0, trouserMat));
+    const boot = mesh(new THREE.BoxGeometry(0.13 * build, 0.085, 0.27), shoeMat);
     boot.position.set(0, -0.76, 0.05);
     pivot.add(boot);
     return pivot;
@@ -360,17 +390,17 @@ export function createFigure(look = "player", opts = {}) {
     const pivot = new THREE.Object3D();
     pivot.position.set(x, SHOULDER_Y, 0);
     pivot.rotation.z = x < 0 ? 0.09 : -0.09;
-    pivot.add(capsuleLimb(0.62, 0.06, coatMat));
-    const hand = mesh(new THREE.SphereGeometry(0.055, 12, 10), skinMat);
+    pivot.add(capsuleLimb(0.62, armR0, coatMat));
+    const hand = mesh(new THREE.SphereGeometry(0.055 * build, 12, 10), skinMat);
     hand.position.y = -0.6;
     pivot.add(hand);
     return pivot;
   }
 
-  const legL = makeLeg(-0.1);
-  const legR = makeLeg(0.1);
-  const armL = makeArm(-0.27);
-  const armR = makeArm(0.27);
+  const legL = makeLeg(-0.1 * spread);
+  const legR = makeLeg(0.1 * spread);
+  const armL = makeArm(-0.27 * spread);
+  const armR = makeArm(0.27 * spread);
   body.add(legL, legR, armL, armR);
 
   // Per-role stature: scale about the root origin (y=0 ground), so feet stay planted
