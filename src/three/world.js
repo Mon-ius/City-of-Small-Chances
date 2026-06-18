@@ -420,6 +420,70 @@ function buildCat(x, z, baseY, facing = 0) {
   };
 }
 
+// A grey heron standing sentinel on the sea-wall (spr-023): two thread-thin legs, an
+// angled body with folded wings, a long S-curved neck (a pivot carrying two capsules)
+// to a small head with a dagger beak. Mostly still — the head scans the water slowly.
+// Built facing +x (beak forward) in local space; root.rotation.y aims it.
+function buildHeron(x, z, baseY, facing = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, baseY, z);
+  root.rotation.y = facing;
+  const grey = new THREE.MeshStandardMaterial({ color: 0x9aa3ab, roughness: 0.9, metalness: 0 });
+  const pale = new THREE.MeshStandardMaterial({ color: 0xd7dce0, roughness: 0.9, metalness: 0 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x3c4147, roughness: 0.9, metalness: 0 });
+  const beakMat = new THREE.MeshStandardMaterial({ color: 0xd9a23a, roughness: 0.6, metalness: 0 });
+  const mk = (geo, mat, px, py, pz, parent = root) => { const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); m.castShadow = true; parent.add(m); return m; };
+
+  const legGeo = new THREE.CylinderGeometry(0.016, 0.014, 0.5, 6);   // feet at coping (local y0) up to body
+  mk(legGeo, dark, 0.02, 0.25, 0.05);
+  mk(legGeo, dark, 0.02, 0.25, -0.05);
+  const body = mk(new THREE.SphereGeometry(0.13, 14, 12), grey, 0, 0.6, 0);
+  body.scale.set(1.5, 0.95, 0.85); body.rotation.z = 0.18;          // angled teardrop
+  mk(new THREE.CapsuleGeometry(0.05, 0.18, 4, 8), grey, -0.02, 0.6, 0.105).rotation.z = Math.PI / 2; // folded wings
+  mk(new THREE.CapsuleGeometry(0.05, 0.18, 4, 8), grey, -0.02, 0.6, -0.105).rotation.z = Math.PI / 2;
+  mk(new THREE.ConeGeometry(0.06, 0.18, 6), grey, -0.22, 0.62, 0).rotation.z = -Math.PI / 2;          // tail
+
+  const neck = new THREE.Group(); neck.position.set(0.1, 0.68, 0); root.add(neck);
+  mk(new THREE.CapsuleGeometry(0.028, 0.22, 4, 8), pale, 0.0, 0.13, 0, neck).rotation.z = -0.25;       // lower neck rising
+  mk(new THREE.CapsuleGeometry(0.026, 0.16, 4, 8), pale, 0.085, 0.3, 0, neck).rotation.z = -0.95;      // upper neck forward
+  mk(new THREE.SphereGeometry(0.05, 10, 8), grey, 0.18, 0.4, 0, neck);                                 // head
+  mk(new THREE.CapsuleGeometry(0.012, 0.16, 4, 6), beakMat, 0.30, 0.4, 0, neck).rotation.z = Math.PI / 2; // dagger beak
+  mk(new THREE.CapsuleGeometry(0.008, 0.08, 3, 6), dark, 0.12, 0.46, 0, neck).rotation.z = -1.2;       // crest plume
+
+  return {
+    root,
+    update(t) { neck.rotation.y = Math.sin(t * 0.4) * 0.5; }, // the sentinel scans the water
+  };
+}
+
+// A mallard floating on the near water (spr-023): only the upper body shows (the
+// paddling feet are below the surface). A rounded body, a domed head on a short neck,
+// a flat bill. Bobs gently on the swell and drifts its heading. `drake` picks the
+// green-headed male vs the brown hen. Built facing +x (bill forward).
+function buildDuck(x, z, wl, facing = 0, drake = true, phase = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, wl, z);
+  root.rotation.y = facing;
+  const bodyMat = new THREE.MeshStandardMaterial({ color: drake ? 0x6e5a3c : 0x8a7350, roughness: 0.92, metalness: 0 });
+  const headMat = new THREE.MeshStandardMaterial({ color: drake ? 0x1f5e37 : 0x6b573a, roughness: 0.85, metalness: 0 });
+  const billMat = new THREE.MeshStandardMaterial({ color: 0xd9b23a, roughness: 0.6, metalness: 0 });
+  const mk = (geo, mat, px, py, pz) => { const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); m.castShadow = true; root.add(m); return m; };
+
+  const body = mk(new THREE.SphereGeometry(0.12, 14, 12), bodyMat, 0, 0.08, 0);
+  body.scale.set(1.6, 0.8, 1.0);                                    // a duck-boat hull
+  mk(new THREE.ConeGeometry(0.05, 0.16, 6), bodyMat, -0.2, 0.12, 0).rotation.z = -Math.PI / 2.4; // perky tail
+  mk(new THREE.SphereGeometry(0.075, 12, 10), headMat, 0.17, 0.17, 0);                            // head
+  mk(new THREE.BoxGeometry(0.09, 0.03, 0.06), billMat, 0.25, 0.15, 0);                            // flat bill
+
+  return {
+    root,
+    update(t) {
+      root.position.y = wl + Math.sin(t * 1.5 + phase) * 0.015;     // bob on the swell
+      root.rotation.y = facing + Math.sin(t * 0.6 + phase) * 0.13;  // drift the heading
+    },
+  };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -1018,6 +1082,7 @@ export function buildWorld(scene) {
   // body in a fixed spot reads odd); placed clear of the interactables (vendor −5,4 ·
   // board 5,−6) and the spawn. `billboards` still backs the props/birds/clouds below.
   const billboards = [];
+  const critters = []; // real-body animals (dog, cat, waterbirds) ticked from main.js (spr-022/023)
   const shadowTex = shadowTexture();
   const crowd = [
     { role: "Fisher",       x: -9.5, z: -14 },
@@ -1492,38 +1557,35 @@ export function buildWorld(scene) {
     for (const l of boatLights) l.material.opacity = n * l.userData.glowBase;
   }
 
-  // ── Harbour waterbirds (Batch 60): the quay had gulls (Batch 43) overhead and on
-  // the rails, but the wide water and the long sea-wall coping carried no other living
-  // creature — and a working port is alive with waterbirds. Three painted cutouts add
-  // them: a great CORMORANT hung out to dry with its wings half-spread, and a grey
-  // HERON standing sentinel, both PERCHED on the sea-wall coping (the Batch-43
-  // perched-gull idiom — feet on the image bottom, billboarded to face the camera, NO
-  // contact shadow), and a raft of three mallard DUCKS FLOATING on the sheltered near
-  // water (the Batch-54 near-craft idiom — waterline on the image bottom, sat on the
-  // water surface WL, billboarded, NO contact shadow). Coping top ≈0.91 (the perched
-  // gulls sit there), so each perched bird's feet rest at 0.91 and its plane centre is
-  // half its height above that. Placed in the long open coping/water gaps clear of the
-  // gulls (coping z −19/−6/3/12/25), the quay-edge gear (life-ring −22, fenders 0,
-  // ladder 10), the buoy line (−13) and the near craft (z −24/−1/18): the cormorant on
-  // the south coping by the working berth, the heron on the north-central coping, the
-  // ducks paddling the near water off the wall. Planes sized to each cutout's true
-  // aspect (cormorant ~square, heron tall, ducks wide). Low emissive, no glow.
-  const perchedBirds = [
-    // [file, x, y, z, w, h, emissive] — feet at coping top (0.91), centre = 0.91 + h/2.
-    ["PROP_Bird_Cormorant", -11.4, 1.33, -26, 0.85, 0.83, 0.16], // wings out to dry, south coping
-    ["PROP_Bird_Heron", -11.4, 1.49, 18, 0.66, 1.15, 0.16], // standing sentinel, north-central coping
+  // ── Harbour waterbirds (Batch 60 → spr-023): a working port is alive with waterbirds.
+  // The HERON sentinel and the raft of DUCKS were camera-facing billboards; spr-023
+  // rebuilds them as REAL bodies (buildHeron/buildDuck above) — same loop ask, "real body
+  // instead of faced picture" — perched/floating with a fixed facing and a small idle (the
+  // heron scans, the ducks bob and drift). The CORMORANT (wings half-spread to dry) keeps
+  // the billboard for now — outstretched wings are the trickiest pose to model; next pass.
+  // Coping top ≈0.91 (perched gulls sit there). All clear of the gulls, the quay-edge gear
+  // and the near craft, in the long open coping/water gaps off the sea-wall.
+  const cormorant = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Bird_Cormorant.png`, 0.85, 0.83, { emissive: 0.16, alphaTest: 0.4 });
+  cormorant.position.set(-11.4, 1.33, -26); // wings out to dry, south coping
+  scene.add(cormorant);
+  billboards.push(cormorant); // main.js turns it to face the camera each frame
+
+  const heron = buildHeron(-11.4, 18, 0.91, 2.7); // standing sentinel, looking out over the water
+  scene.add(heron.root);
+  critters.push(heron);
+
+  // A raft of three mallards on the sheltered near water off the wall — two drakes and a
+  // hen at slightly different headings, each bobbing on its own phase.
+  const duckSpots = [
+    [-12.5, 6.0, 2.6, true, 0.0],
+    [-12.0, 6.6, 2.1, false, 1.7],
+    [-13.0, 5.4, 3.2, true, 3.4],
   ];
-  for (const [file, x, y, z, w, h, emissive] of perchedBirds) {
-    const bird = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive, alphaTest: 0.4 });
-    bird.position.set(x, y, z);
-    scene.add(bird);
-    billboards.push(bird); // main.js turns it to face the camera each frame
+  for (const [dx, dz, df, drake, ph] of duckSpots) {
+    const duck = buildDuck(dx, dz, WL, df, drake, ph);
+    scene.add(duck.root);
+    critters.push(duck);
   }
-  // The raft of mallards floats on the near water, waterline on the image bottom.
-  const ducks = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Bird_Ducks.png`, 1.3, 0.63, { emissive: 0.16, alphaTest: 0.4 });
-  ducks.position.set(-12.5, WL + 0.63 / 2, 6);
-  scene.add(ducks);
-  billboards.push(ducks); // main.js turns it to face the camera each frame
 
   // ── Light on the night water (Batch 63): the moon (Batch 61) and the warmed
   // lamps (Batch 62) hang over the harbour, but the biggest surface in the scene —
@@ -1798,7 +1860,6 @@ export function buildWorld(scene) {
   // wags and sniffs, the cat flicks its tail and watches the water). The PIGEONS stay
   // flat billboards: tiny ground clusters where a real-body flock is overkill and a cutout
   // reads fine. `baseY` is the surface the animal sits on (0 = deck, 0.9 = sea-wall top).
-  const critters = [];
   const dog = buildDog(-7.0, 5.5, 0.4);   // a stray by Mei's stall, turned toward the scraps
   const cat = buildCat(-11.1, 9, 0.9, 3.0); // on the sea-wall coping, looking out over the water
   scene.add(dog.root); scene.add(cat.root);
