@@ -945,6 +945,66 @@ function buildLobsterPots(x, z, facing = 0) {
   return { root };
 }
 
+// ── A trawl net hung out to dry against the north sea-wall — a REAL draped mesh of
+// crossing twine (a 3D grid of strands sagging from a head-rope, bulging out and pooling
+// toward the deck) with a foot-rope and cork floats, rather than a flat side-profile
+// picture. Replaces the last PROP_Quay_FishingNet cutout. Built world-aligned: the
+// head-rope hangs near the wall and the drape leans out along +x toward the deck, so it
+// is placed with facing 0. Static — the net dries, it does not billow (no tick wiring).
+function buildFishingNet(x, z, facing = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, 0, z);
+  root.rotation.y = facing;
+
+  const cols = 12, rows = 9;                                    // ~0.12 m mesh — real netting holes
+  const W = 1.45, topY = 1.25, dropLen = 1.18, bulgeMax = 0.66, headSag = 0.06;
+
+  // The draped surface: span along z, drop in y, bulge out (+x, toward the deck) as it falls.
+  const node = (i, j) => {
+    const u = i / cols, v = j / rows;
+    const colTopY = topY - headSag * (1 - (2 * u - 1) ** 2);    // head-rope sags toward the middle
+    const depth = bulgeMax * v ** 1.6;                          // leans out increasingly as it hangs
+    const billow = 0.03 * Math.sin(u * Math.PI * 3) * v;        // a soft horizontal billow, growing downward
+    return new THREE.Vector3(
+      depth + billow,                                           // +x toward the deck
+      colTopY - v * dropLen,                                    // down the drape
+      (u - 0.5) * W * (1 - 0.05 * v),                           // along z, gathering slightly at the foot
+    );
+  };
+
+  // The twine: every vertical and horizontal strand packed into one LineSegments batch.
+  const pts = [];
+  for (let i = 0; i <= cols; i++)
+    for (let j = 0; j < rows; j++) { const a = node(i, j), b = node(i, j + 1); pts.push(a.x, a.y, a.z, b.x, b.y, b.z); }
+  for (let j = 0; j <= rows; j++)
+    for (let i = 0; i < cols; i++) { const a = node(i, j), b = node(i + 1, j); pts.push(a.x, a.y, a.z, b.x, b.y, b.z); }
+  const netGeo = new THREE.BufferGeometry();
+  netGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(pts), 3));
+  root.add(new THREE.LineSegments(netGeo, new THREE.LineBasicMaterial({ color: 0xc8bb95 })));
+
+  // Head-rope and foot-rope: tubes following the top and bottom edges of the drape.
+  const ropeMat = new THREE.MeshStandardMaterial({ color: 0x8a7c5c, roughness: 0.95 });
+  for (const [j, r] of [[0, 0.022], [rows, 0.016]]) {
+    const edge = [];
+    for (let i = 0; i <= cols; i++) edge.push(node(i, j));
+    const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(edge), cols * 2, r, 6), ropeMat);
+    tube.castShadow = false;
+    root.add(tube);
+  }
+
+  // Cork floats strung along the head-rope.
+  const corkMat = new THREE.MeshStandardMaterial({ color: 0xcf7d3a, roughness: 0.85 });
+  for (const i of [2, 6, 10]) {
+    const cork = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.13, 8), corkMat);
+    cork.position.copy(node(i, 0));
+    cork.rotation.x = Math.PI / 2;                              // lie along the head-rope (z)
+    cork.castShadow = false;
+    root.add(cork);
+  }
+
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -1457,24 +1517,13 @@ export function buildWorld(scene) {
     scene.add(v);
   }
 
-  // ── Quayside working clutter (Batch 42): the everyday gear of a working port. The net
-  // drying against the sea-wall is still a side-profile cutout; the lobster pots that once
-  // sat beside it on the east kerb are now a real stack of wire creels (see buildLobsterPots
-  // above). Each cutout is sized to its PNG aspect, sat on the deck (y = h/2), lightly self-
-  // lit so it reads after dark, broad side turned to the walkable quay. Placed in the long
-  // gaps clear of the stall/board/spawn/crates so nothing blocks the path.
-  const quayClutter = [
-    // [file, w, h, [x, y, z], yaw, emissive]
-    ["PROP_Quay_FishingNet", 1.06, 0.7, [-10.0, 0.35, 24], Math.PI / 2, 0.1],
-  ];
-  for (const [file, w, h, [x, y, z], yaw, emissive] of quayClutter) {
-    const c = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive });
-    c.position.set(x, y, z);
-    c.rotation.y = yaw;
-    scene.add(c);
-  }
-  // The lobster pots on the east kerb, now a real stack of wire creels (spr-037) — turned
-  // ~3/4 to the quay so the player reads the hooped cages on approach (from −x).
+  // ── Quayside working clutter (Batch 42), now ALL real geometry — spr-038 retired the
+  // last cutout here (the drying net). The trawl net is a draped 3D mesh of crossing twine
+  // hung from a head-rope against the north sea-wall (z=24), bulging out and pooling toward
+  // the deck; the lobster pots on the east kerb are a real stack of wire creels (spr-037),
+  // turned ~3/4 to the quay so the player reads the hooped cages on approach (from −x). Both
+  // sit in the long gaps clear of the stall/board/spawn/crates so nothing blocks the path.
+  scene.add(buildFishingNet(-10.7, 24).root);
   scene.add(buildLobsterPots(5.8, -18, -Math.PI / 2 + 0.35).root);
 
   // ── Quay-edge safety & mooring gear (Batch 55, now all REAL geometry — spr-036 retired
