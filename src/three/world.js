@@ -680,6 +680,51 @@ function buildSoaringGull() {
   return { root, leftWing, rightWing };
 }
 
+// A washing line of REAL hanging cloth (spr-033): a sagging rope strung along z with several
+// garments hanging from it, each swinging gently in the harbour wind. Replaces a flat laundry
+// CUTOUT (a faced picture) with real 3D — the loop's own ask ("real … instead of faced picture
+// with fake 3D") applied to a prop. `update(t)` billows each garment about the line (z) axis.
+function buildWashingLine(x, yTop, z0, z1, garments, phase) {
+  const root = new THREE.Group();
+  const len = z1 - z0;
+  const sag = Math.min(0.28, len * 0.08);                       // how deep the rope droops mid-span
+  const ropeY = (t) => yTop - sag * (1 - (2 * t - 1) ** 2);     // a parabolic catenary
+  // The rope itself — a thin dark tube following the droop.
+  const pts = [];
+  for (let i = 0; i <= 10; i++) { const t = i / 10; pts.push(new THREE.Vector3(x, ropeY(t), z0 + len * t)); }
+  const rope = new THREE.Mesh(
+    new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 20, 0.014, 5, false),
+    new THREE.MeshStandardMaterial({ color: 0x4a4036, roughness: 0.9 }),
+  );
+  root.add(rope);
+  // Each garment hangs from a pivot on the rope and sways about the line (z) axis — the wind
+  // billowing it toward/away from the wall — with a faint twist about x and a per-garment phase.
+  const pivots = [];
+  garments.forEach((gmt, i) => {
+    const t = gmt.t;                                            // 0..1 position along the line
+    const pivot = new THREE.Object3D();
+    pivot.position.set(x, ropeY(t), z0 + len * t);
+    const cloth = new THREE.Mesh(
+      new THREE.PlaneGeometry(gmt.w, gmt.h),
+      new THREE.MeshStandardMaterial({ color: gmt.color, roughness: 0.85, side: THREE.DoubleSide }),
+    );
+    cloth.rotation.y = -Math.PI / 2;                            // broad face toward the street (−x)
+    cloth.position.y = -gmt.h / 2 - 0.02;                       // hang just below the rope
+    pivot.add(cloth);
+    root.add(pivot);
+    pivots.push({ pivot, amp: 0.10 + (i % 3) * 0.03, rate: 0.7 + (i % 4) * 0.12, off: phase + i * 1.3 });
+  });
+  return {
+    root,
+    update(tt) {
+      for (const p of pivots) {
+        p.pivot.rotation.z = Math.sin(tt * p.rate + p.off) * p.amp;          // billow off the wall
+        p.pivot.rotation.x = Math.sin(tt * p.rate * 0.6 + p.off * 1.7) * 0.04; // a faint corner flutter
+      }
+    },
+  };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -2069,26 +2114,35 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
-  // ── Washing day over the quay (Batch 47): the tall façades fronting the quay were the
-  // plainest surface left — bare wall, a grid of windows, a few hanging signs. A crowded
-  // period port hangs its washing out over the street, so three painted washing-line
-  // cutouts now sag across the upper façades: household linens, everyday clothes, and
-  // dock-labour work-clothes. Like the Batch-9 signage these are FIXED cutouts (laundry
-  // hangs still on its line — it does not billboard to watch you), hung a little proud of
-  // the wall (x≈8.5) facing the street (−x), strung high above the doors and shop signs and
-  // below the rooflines, lit a touch (emissive) so they stay readable after dark.
-  const laundry = [
-    // [file, w, h, y, z] — all at x=8.5, facing −x (FACADE), strung across an upper façade.
-    ["PROP_Laundry_Workclothes", 3.4, 1.13, 5.2, -26.5], // over the southmost building (h8.5)
-    ["PROP_Laundry_Linens", 3.7, 1.23, 6.5, -7.5], // high on the tall Chandlery wall (h11)
-    ["PROP_Laundry_Garments", 3.4, 1.13, 5.8, 12.25], // a splash of colour, north building (h9.5)
+  // ── Washing day over the quay (Batch 47 → spr-033): the tall façades fronting the quay
+  // were the plainest surface left, so a crowded period port hangs its washing out over the
+  // street. This began as three painted laundry CUTOUTS (flat faced pictures sagging on the
+  // wall); spr-033 rebuilds them as REAL hanging cloth — the loop's own ask, "real … instead
+  // of faced picture with fake 3D," applied to a prop. Each line is a sagging rope (catenary)
+  // strung along z with real garments hanging off it, every one swinging gently in the wind
+  // (`buildWashingLine.update(t)` billows them about the line axis). Strung a little proud of
+  // the wall (x=8.5) facing the street (−x), high above the doors/shop-signs and below the
+  // rooflines. Ticked from main.js's critter clock via `world.washing`.
+  const washing = [];
+  const washLines = [
+    // [x, yTop, z0, z1, colour palette, garment hang-height] — one line per upper façade.
+    { x: 8.5, yTop: 5.7,  z0: -28.2, z1: -24.8, colors: [0x6b5d4a, 0x3a4658, 0x8a8378, 0x55503f, 0x726a55], gh: 0.85 }, // dock work-clothes, southmost building
+    { x: 8.5, yTop: 7.05, z0: -9.35, z1: -5.65, colors: [0xece6d6, 0xf0ece2, 0xe2dcc8, 0xeee9da],           gh: 1.05 }, // pale linens (sheets), tall Chandlery wall
+    { x: 8.5, yTop: 6.3,  z0: 10.55, z1: 13.95, colors: [0xa8443a, 0x3f6f8a, 0x4f7d5a, 0xc7a14a, 0x8a5a86], gh: 0.85 }, // a splash of colour, north building
   ];
-  for (const [file, w, h, y, z] of laundry) {
-    const line = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive: 0.2, alphaTest: 0.35 });
-    line.position.set(8.5, y, z);
-    line.rotation.y = FACADE; // face −x, hanging out over the street
-    scene.add(line);
-  }
+  washLines.forEach((L, li) => {
+    const n = L.colors.length;
+    const garments = L.colors.map((color, i) => ({
+      t: (i + 0.5) / n,                            // evenly spaced, inset from the rope ends
+      w: 0.34 + ((i * 7) % 3) * 0.07,              // 0.34..0.48 — varied widths (deterministic)
+      h: L.gh * (0.85 + ((i * 5) % 3) * 0.1),      // varied hang lengths
+      color,
+    }));
+    const line = buildWashingLine(L.x, L.yTop, L.z0, L.z1, garments, li * 2.1);
+    line.root.traverse((o) => { if (o.isMesh) o.castShadow = false; });
+    scene.add(line.root);
+    washing.push(line);
+  });
 
   // ── Life on the cobbles (Batch 48 → spr-022): the quay kept no animals at the player's
   // own eye level. The dog and cat began as camera-facing billboards; spr-022 rebuilds
@@ -2457,7 +2511,7 @@ export function buildWorld(scene) {
   }
 
   const bounds = { minX: -10.5, maxX: 6.5, minZ: -34, maxZ: 34 };
-  return { bounds, citizens, locals, billboards, clouds, soaringGulls, smokePlumes, critters, lampHeads, lampGlows, waterGlows, sunGlitters, brazierGlows, waterMists, beaconGlows, boatLights, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow, setWindowGlow, setWaterGlow, setSunGlitter, setBrazierGlow, setWaterMist, setBeacon, setBoatLights };
+  return { bounds, citizens, locals, billboards, clouds, soaringGulls, smokePlumes, critters, washing, lampHeads, lampGlows, waterGlows, sunGlitters, brazierGlows, waterMists, beaconGlows, boatLights, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow, setWindowGlow, setWaterGlow, setSunGlitter, setBrazierGlow, setWaterMist, setBeacon, setBoatLights };
 }
 
 // Wrapper so makeBuilding (which builds a Group) is added to the scene.
