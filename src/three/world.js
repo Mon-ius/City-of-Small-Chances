@@ -2215,6 +2215,84 @@ function buildAnchor(x, z, yaw = 0) {
   return { root };
 }
 
+// ── The quay at work (spr-058): the heavy dock gear stood as three flat `PROP_Dock_*`
+// billboards — a warping capstan, a raked derrick hoist, a stack of sawn deals — that
+// flattened the instant the player rounded them. Now real geometry, ground-planted under
+// their soft contact-shadow blobs. Module-private builders before `buildWorld`.
+
+// A squat oak warping capstan: cast-iron base, a barrel-waisted drum (LatheGeometry),
+// an iron drumhead, and four capstan bars radiating out near the top.
+function buildCapstan(x, z, yaw = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, 0, z);
+  root.rotation.y = yaw;
+  const oak = new THREE.MeshStandardMaterial({ color: 0x6b5436, roughness: 0.82 });
+  const iron = new THREE.MeshStandardMaterial({ color: 0x33302b, roughness: 0.6, metalness: 0.4 });
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.52, 0.14, 18), iron); base.position.y = 0.07; base.castShadow = true; root.add(base);
+  const prof = [], H = 0.78, N = 6;
+  for (let i = 0; i <= N; i++) { const t = i / N; prof.push(new THREE.Vector2(0.34 * (1 - 0.32 * Math.sin(Math.PI * t)), t * H)); }
+  const drum = new THREE.Mesh(new THREE.LatheGeometry(prof, 18), oak); drum.position.y = 0.14; drum.castShadow = true; root.add(drum);
+  const head = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.36, 0.12, 18), iron); head.position.y = 0.14 + H; head.castShadow = true; root.add(head);
+  for (let k = 0; k < 4; k++) {
+    const g = new THREE.Group(); g.rotation.y = k * Math.PI / 2 + Math.PI / 4;
+    const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.03, 0.9, 8), oak);
+    bar.rotation.z = Math.PI / 2; bar.position.set(0.55, 0.14 + H + 0.02, 0); bar.castShadow = true;
+    g.add(bar); root.add(g);
+  }
+  return { root };
+}
+
+// A tall raked derrick post with its block-and-tackle: an iron heel block, a raked oak
+// post, an out-and-up boom, two hemp guy-stays to the ground, and a hanging block + fall.
+function buildDerrick(x, z, yaw = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, 0, z);
+  root.rotation.y = yaw;
+  const oak = new THREE.MeshStandardMaterial({ color: 0x5e4a30, roughness: 0.82 });
+  const iron = new THREE.MeshStandardMaterial({ color: 0x33302b, roughness: 0.6, metalness: 0.4 });
+  const rope = new THREE.MeshStandardMaterial({ color: 0x7c7050, roughness: 0.95 });
+  const add = (g, m, px, py, pz, rx = 0, ry = 0, rz = 0) => { const o = new THREE.Mesh(g, m); o.position.set(px, py, pz); o.rotation.set(rx, ry, rz); o.castShadow = true; root.add(o); return o; };
+  const spar = (ax, ay, az, bx, by, bz, r, m) => {
+    const a = new THREE.Vector3(ax, ay, az), dir = new THREE.Vector3(bx - ax, by - ay, bz - az), len = dir.length();
+    const o = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 8), m);
+    o.position.copy(a).addScaledVector(dir, 0.5);
+    o.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+    o.castShadow = true; root.add(o); return o;
+  };
+  add(new THREE.BoxGeometry(0.4, 0.18, 0.4), iron, 0, 0.09, 0);          // heel block
+  spar(0, 0.12, 0, 0.2, 2.0, -0.05, 0.08, oak);                          // raked post
+  spar(0.12, 1.1, -0.02, 1.0, 1.74, 0.05, 0.06, oak);                    // boom / jib
+  spar(0.2, 2.0, -0.05, -0.7, 0.0, 0.45, 0.018, rope);                   // guy-stay aft
+  spar(0.2, 2.0, -0.05, -0.45, 0.0, -0.6, 0.018, rope);                  // guy-stay side
+  add(new THREE.BoxGeometry(0.1, 0.16, 0.09), iron, 1.0, 1.6, 0.05);     // tackle block
+  add(new THREE.CylinderGeometry(0.012, 0.012, 0.62, 6), rope, 1.0, 1.21, 0.05); // fall
+  add(new THREE.TorusGeometry(0.05, 0.018, 6, 10), iron, 1.0, 0.9, 0.05, Math.PI / 2); // hook ring
+  return { root };
+}
+
+// A stack of landed sawn deals: six stacked plank-courses (varied tone + slight hand-stack
+// jitter) banded by two cross stickers — low and flat, waiting to be carried off.
+function buildTimberStack(x, z, yaw = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, 0, z);
+  root.rotation.y = yaw;
+  const tones = [0x7a5a32, 0x6e5230, 0x836743];
+  const L = 1.6, Wd = 0.5, th = 0.06, courses = 6;
+  for (let i = 0; i < courses; i++) {
+    const m = new THREE.MeshStandardMaterial({ color: tones[i % 3], roughness: 0.85 });
+    const y = th / 2 + i * (th + 0.012);
+    const deal = new THREE.Mesh(new THREE.BoxGeometry(L, th, Wd * (0.92 + 0.08 * Math.abs(Math.sin(i * 2.1)))), m);
+    deal.position.set(Math.sin(i * 2.3) * 0.04, y, Math.sin(i * 1.7) * 0.03);
+    deal.castShadow = true; deal.receiveShadow = true; root.add(deal);
+  }
+  const battenM = new THREE.MeshStandardMaterial({ color: 0x4a3a22, roughness: 0.9 });
+  for (const bx of [-0.5, 0.5]) {
+    const b = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.04, Wd + 0.06), battenM);
+    b.position.set(bx, courses * (th + 0.012) + 0.02, 0); b.castShadow = true; root.add(b);
+  }
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -3824,16 +3902,16 @@ export function buildWorld(scene) {
   // sizes track each cutout's true aspect (the deals keyed low and flat). The
   // whole grey-timber-and-rust palette blends with Batches 42/50/51/52; no glow.
   const dockWork = [
-    // [file, w, h, x, z, shadowR, emissive]
-    ["PROP_Dock_Capstan", 0.88, 1.32, -9.8, -30, 0.46, 0.18], // a warping capstan to haul her in, far-south water deck (img 0.67:1)
-    ["PROP_Dock_Derrick", 0.64, 2.1, -10.1, -34, 0.34, 0.18], // a derrick hoist raked over the rail, the south corner (img 0.31:1)
-    ["PROP_Dock_Timber", 1.7, 0.465, 6.7, 18, 0.7, 0.18], // a stack of landed deals down the building kerb (img 3.66:1)
+    // [kind, x, z, shadowR, yaw] — now REAL geometry (spr-058), no longer billboards.
+    ["capstan", -9.8, -30, 0.46, 0.5], // a warping capstan to haul her in, far-south water deck
+    ["derrick", -10.1, -34, 0.4, -0.6], // a derrick hoist raked out over the rail, the south corner
+    ["timber", 6.7, 18, 0.7, 0.25], // a stack of landed deals down the building kerb
   ];
-  for (const [file, w, h, x, z, shadowR, emissive] of dockWork) {
-    const item = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive, alphaTest: 0.4 });
-    item.position.set(x, h / 2, z);
-    scene.add(item);
-    billboards.push(item); // main.js turns it to face the camera each frame
+  for (const [kind, x, z, shadowR, yaw] of dockWork) {
+    const built = kind === "capstan" ? buildCapstan(x, z, yaw)
+      : kind === "derrick" ? buildDerrick(x, z, yaw)
+      : buildTimberStack(x, z, yaw);
+    scene.add(built.root);
 
     const blob = new THREE.Mesh(
       new THREE.CircleGeometry(shadowR, 16),
