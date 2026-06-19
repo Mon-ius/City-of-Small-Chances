@@ -2508,6 +2508,93 @@ function buildBread(x, z, yaw = 0) {
   return { root };
 }
 
+// ── Clipped bay topiary in a tub (spr-062): a tapered iron-hooped tub, a short trunk and
+// a stacked double-ball of clipped foliage (faceted icosahedra). Replaces the flat
+// PROP_Plant_PottedTree cutout. Root at the ground; `s` scales the whole tree.
+function buildPottedTree(x, z, yaw = 0, s = 1) {
+  const root = new THREE.Group();
+  root.position.set(x, 0, z);
+  root.rotation.y = yaw;
+  root.scale.setScalar(s);
+  const tub = new THREE.MeshStandardMaterial({ color: 0x8a5a3a, roughness: 0.85 });
+  const iron = new THREE.MeshStandardMaterial({ color: 0x3a352e, roughness: 0.6, metalness: 0.4 });
+  const bark = new THREE.MeshStandardMaterial({ color: 0x5a4632, roughness: 0.9 });
+  const leaf = new THREE.MeshStandardMaterial({ color: 0x4a6b32, roughness: 0.85 });
+  const add = (g, m, py) => { const o = new THREE.Mesh(g, m); o.position.y = py; o.castShadow = true; o.receiveShadow = true; root.add(o); return o; };
+  add(new THREE.CylinderGeometry(0.26, 0.2, 0.42, 14), tub, 0.21);                  // tapered tub
+  for (const [hy, hr] of [[0.08, 0.21], [0.36, 0.265]]) { const o = add(new THREE.TorusGeometry(hr, 0.018, 6, 16), iron, hy); o.rotation.x = Math.PI / 2; } // 2 hoops
+  add(new THREE.CylinderGeometry(0.045, 0.05, 0.5, 8), bark, 0.67);                 // trunk
+  add(new THREE.IcosahedronGeometry(0.40, 1), leaf, 0.98);                          // lower clipped ball
+  add(new THREE.IcosahedronGeometry(0.32, 1), leaf, 1.38);                          // upper clipped ball
+  return { root };
+}
+
+// ── A half-barrel flower planter (spr-062): a bulged iron-hooped wooden tub (lathed
+// staves), a dark soil cap, a low leafy mound and a cluster of warm bloom-heads poking
+// up. Replaces the flat PROP_Plant_Flowers cutout.
+function buildFlowerPlanter(x, z, yaw = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, 0, z);
+  root.rotation.y = yaw;
+  const wood = new THREE.MeshStandardMaterial({ color: 0x7a5230, roughness: 0.88 });
+  const iron = new THREE.MeshStandardMaterial({ color: 0x3a352e, roughness: 0.6, metalness: 0.4 });
+  const soil = new THREE.MeshStandardMaterial({ color: 0x2e241a, roughness: 1.0 });
+  const leaf = new THREE.MeshStandardMaterial({ color: 0x537a36, roughness: 0.85 });
+  const add = (g, m, px, py, pz, rx = 0) => { const o = new THREE.Mesh(g, m); o.position.set(px, py, pz); o.rotation.x = rx; o.castShadow = true; o.receiveShadow = true; root.add(o); return o; };
+  const prof = [], R = 0.4, H = 0.5, N = 6;
+  for (let i = 0; i <= N; i++) { const t = i / N; prof.push(new THREE.Vector2(R * (0.86 + 0.14 * Math.sin(Math.PI * t)), t * H)); }
+  add(new THREE.LatheGeometry(prof, 18), wood, 0, 0, 0);                            // bulged tub
+  for (const hy of [0.1, 0.4]) add(new THREE.TorusGeometry(R * 0.96, 0.02, 6, 18), iron, 0, hy, 0, Math.PI / 2); // 2 hoops
+  add(new THREE.CylinderGeometry(R * 0.92, R * 0.92, 0.04, 18), soil, 0, H - 0.02, 0); // soil cap
+  add(new THREE.IcosahedronGeometry(0.3, 1), leaf, 0, H + 0.12, 0);                 // leafy mound (top ≈0.92)
+  // Warm bloom-heads on thin green stems, rising in a ring ABOVE the mound so the colour
+  // reads — buried in the foliage they'd vanish (the planter exists for this splash).
+  const stem = new THREE.MeshStandardMaterial({ color: 0x3f5a28, roughness: 0.85 });
+  const blooms = [
+    // [colour, angle, ringRadius, headHeight]
+    [0xe8dcc8, 0.0, 0.0, 1.14],  // tall central white
+    [0xc23a30, 0.0, 0.2, 0.99], [0xe0a832, 1.05, 0.22, 1.04], [0xe8dcc8, 2.1, 0.18, 0.97],
+    [0xc23a30, 3.14, 0.21, 1.06], [0xd86a3a, 4.19, 0.2, 0.99], [0xe0a832, 5.24, 0.22, 1.02],
+  ];
+  for (const [c, ang, rad, hy] of blooms) {
+    const hx = Math.cos(ang) * rad, hz = Math.sin(ang) * rad;
+    const sy0 = 0.6, slen = Math.max(0.06, hy - sy0 - 0.04);
+    add(new THREE.CylinderGeometry(0.013, 0.017, slen, 5), stem, hx, sy0 + slen / 2, hz); // stem rising from the foliage
+    add(new THREE.SphereGeometry(0.075, 8, 7), new THREE.MeshStandardMaterial({ color: c, roughness: 0.7 }), hx, hy, hz); // bloom head
+  }
+  return { root };
+}
+
+// ── A hardy quayside tree (spr-062): a tapered bark trunk, two raked branches (via a
+// local spar() helper) and a leafy crown of five overlapping faceted icosahedra in two
+// greens. Replaces the flat PROP_Tree_Quay cutout. `s` scales the whole tree.
+function buildQuayTree(x, z, yaw = 0, s = 1) {
+  const root = new THREE.Group();
+  root.position.set(x, 0, z);
+  root.rotation.y = yaw;
+  root.scale.setScalar(s);
+  const bark = new THREE.MeshStandardMaterial({ color: 0x5a4632, roughness: 0.92 });
+  const leaf1 = new THREE.MeshStandardMaterial({ color: 0x44642e, roughness: 0.86 });
+  const leaf2 = new THREE.MeshStandardMaterial({ color: 0x537a38, roughness: 0.86 });
+  const add = (g, m, px, py, pz) => { const o = new THREE.Mesh(g, m); o.position.set(px, py, pz); o.castShadow = true; o.receiveShadow = true; root.add(o); return o; };
+  const spar = (ax, ay, az, bx, by, bz, r, m) => {
+    const a = new THREE.Vector3(ax, ay, az), dir = new THREE.Vector3(bx - ax, by - ay, bz - az), len = dir.length();
+    const o = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.3, len, 7), m);
+    o.position.copy(a).addScaledVector(dir, 0.5);
+    o.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+    o.castShadow = true; root.add(o); return o;
+  };
+  add(new THREE.CylinderGeometry(0.14, 0.22, 2.2, 10), bark, 0, 1.1, 0);            // trunk
+  spar(0, 2.0, 0, 0.7, 2.7, 0.3, 0.07, bark);                                       // branch 1
+  spar(0, 2.0, 0, -0.6, 2.8, -0.25, 0.07, bark);                                    // branch 2
+  const crown = [
+    [leaf1, 0.0, 3.0, 0.0, 1.0], [leaf2, 0.7, 2.9, 0.3, 0.78], [leaf1, -0.65, 3.0, -0.2, 0.8],
+    [leaf2, 0.2, 3.5, -0.2, 0.72], [leaf1, -0.2, 3.35, 0.35, 0.7],
+  ];
+  for (const [m, cx, cy, cz, r] of crown) add(new THREE.IcosahedronGeometry(r, 0), m, cx, cy, cz);
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -3797,41 +3884,42 @@ export function buildWorld(scene) {
     for (const b of beaconGlows) b.material.opacity = n * b.userData.glowBase;
   }
 
-  // ── Living green on the grey quay (Batch 46): the harbour is all stone, timber and
-  // water — painted ground, gulls, vessels, a far shore — but not one growing thing.
-  // These three painted plant cutouts dress the quay with green: clipped bay topiary in
-  // tubs flanking the building doorways, half-barrel flower planters down the water-side
-  // rail (a splash of warm colour), and two hardy trees sprung from the cobbles at the
-  // building-row ends (vertical green for the skyline). Unlike the gulls/vessels/shore
-  // these are GROUND-PLANTED, so each gets a soft contact-shadow blob (the citizen idiom)
-  // to sit it on the deck, and each is a camera-facing billboard so its painted face always
-  // reads. Each plant's base is the image's bottom edge, so the plane centre is half its
-  // height above the ground. Placed clear of the walkable bounds (against the building
-  // fronts x≈8 and the water-side wall x≈−10.2), the interactables (vendor −5,4 · board
-  // 5,−6) and the named cast.
+  // ── Living green on the grey quay (Batch 46 → spr-062): the harbour is all stone, timber
+  // and water — painted ground, gulls, vessels, a far shore — but not one growing thing.
+  // This began as three painted plant CUTOUTS; spr-062 rebuilds them as REAL geometry — the
+  // loop's own ask, "real … instead of faced picture with fake 3D" — so the green stands in
+  // three dimensions and holds up as you walk around it. Clipped bay topiary in iron-hooped
+  // tubs flank the building doorways, half-barrel flower planters line the water-side rail (a
+  // splash of warm colour), and two hardy trees spring from the cobbles at the building-row
+  // ends (vertical green for the skyline). Each builder roots itself at the ground at (x,z);
+  // because they're GROUND-PLANTED, each still gets a soft contact-shadow blob (the citizen
+  // idiom) to sit it on the deck. Placed clear of the walkable bounds (against the building
+  // fronts x≈8 and the water-side wall x≈−10.2), the interactables (vendor −5,4 · board 5,−6)
+  // and the named cast.
   const plants = [
-    // [file, w, h, x, z, shadowR]
+    // [kind, x, z, shadowR, yaw, scale] — kind dispatches to a module-private builder.
     // Bay topiary in tubs flanking the harbour doorways (against the façades at x≈8.1,
     // just past the walkable edge — below the hanging shop signs, framing the doors).
-    ["PROP_Plant_PottedTree", 0.82, 1.7, 8.1, 1.0, 0.36], // Tavern door, south jamb
-    ["PROP_Plant_PottedTree", 0.82, 1.7, 8.1, 3.5, 0.36], // Tavern door, north jamb
-    ["PROP_Plant_PottedTree", 0.78, 1.62, 8.1, -8.6, 0.34], // Chandlery door, south jamb
-    ["PROP_Plant_PottedTree", 0.78, 1.62, 8.1, -6.4, 0.34], // Chandlery door, north jamb
+    ["topiary", 8.1, 1.0, 0.36, 0.0, 1.0],   // Tavern door, south jamb
+    ["topiary", 8.1, 3.5, 0.36, 0.5, 1.0],   // Tavern door, north jamb
+    ["topiary", 8.1, -8.6, 0.34, -0.3, 0.95], // Chandlery door, south jamb
+    ["topiary", 8.1, -6.4, 0.34, 0.2, 0.95],  // Chandlery door, north jamb
     // Half-barrel flower planters down the water-side quay rail (x≈−10.2, on the deck just
     // inside the sea-wall) — warm reds and golds against the grey stone and water.
-    ["PROP_Plant_Flowers", 1.05, 1.02, -10.2, -15, 0.55],
-    ["PROP_Plant_Flowers", 1.05, 1.02, -10.2, 1, 0.55],
-    ["PROP_Plant_Flowers", 1.05, 1.02, -10.2, 18, 0.55],
+    ["flowers", -10.2, -15, 0.55, 0.0, 1.0],
+    ["flowers", -10.2, 1, 0.55, 0.6, 1.0],
+    ["flowers", -10.2, 18, 0.55, -0.4, 1.0],
     // Hardy quayside trees at the ends of the building row — sprung from a corner of the
     // cobbles, vertical green closing the street's north and south ends.
-    ["PROP_Tree_Quay", 2.7, 4.2, 7.8, 27, 0.6],
-    ["PROP_Tree_Quay", 2.45, 3.8, 7.8, -30, 0.55],
+    ["tree", 7.8, 27, 0.6, 0.4, 1.0],
+    ["tree", 7.8, -30, 0.55, -0.5, 0.905],
   ];
-  for (const [file, w, h, x, z, shadowR] of plants) {
-    const plant = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive: 0.18, alphaTest: 0.35 });
-    plant.position.set(x, h / 2, z);
-    scene.add(plant);
-    billboards.push(plant); // main.js turns it to face the camera each frame
+  for (const [kind, x, z, shadowR, yaw, scale] of plants) {
+    const built =
+      kind === "topiary" ? buildPottedTree(x, z, yaw, scale)
+      : kind === "flowers" ? buildFlowerPlanter(x, z, yaw)
+      : buildQuayTree(x, z, yaw, scale);
+    scene.add(built.root);
 
     const blob = new THREE.Mesh(
       new THREE.CircleGeometry(shadowR, 16),
