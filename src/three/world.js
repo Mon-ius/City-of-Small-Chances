@@ -1756,6 +1756,89 @@ function buildShopLantern(x, y, z, facing = 0) {
   return { root };
 }
 
+// ── The courier's delivery bicycle (spr-053) — REAL geometry (two spoked wheels, a tubular diamond
+// frame, fork, handlebar, saddle, crank + pedals and a front wicker basket) rather than a flat
+// side-profile cutout. Replaces PROP_Job_Bicycle. The bike rolls along its local x (wheels are
+// vertical tori with the axle along z), root at the ground contact; `facing` yaws the whole machine.
+// The biggest single-prop build so far. Self-contained materials; deterministic spoke layout.
+function buildBicycle(x, y, z, facing = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, y, z);
+  root.rotation.y = facing;
+
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0xa83232, roughness: 0.45, metalness: 0.3 }); // courier red
+  const tyreMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1c, roughness: 0.9, metalness: 0 });
+  const steel = new THREE.MeshStandardMaterial({ color: 0x9aa0a6, roughness: 0.35, metalness: 0.7 });
+  const seatMat = new THREE.MeshStandardMaterial({ color: 0x3a2a20, roughness: 0.6, metalness: 0 });
+  const wicker = new THREE.MeshStandardMaterial({ color: 0x9a7b46, roughness: 0.85, metalness: 0 });
+
+  const R = 0.32, WB = 1.0;                          // wheel radius, wheelbase (hub-to-hub)
+  const V = (a, b, c) => new THREE.Vector3(a, b, c);
+
+  // A tube (cylinder) running between two points — the frame is six of these.
+  const tube = (a, b, r, mat) => {
+    const dir = new THREE.Vector3().subVectors(b, a), len = dir.length();
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 8), mat);
+    m.position.copy(a).add(b).multiplyScalar(0.5);
+    m.quaternion.setFromUnitVectors(V(0, 1, 0), dir.clone().normalize());
+    m.castShadow = true; return m;
+  };
+
+  // A spoked wheel in the xy-plane (axle along z), its centre lifted to sit on the ground.
+  const wheel = (cx) => {
+    const w = new THREE.Group();
+    w.add(new THREE.Mesh(new THREE.TorusGeometry(R, 0.028, 8, 24), tyreMat));
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.07, 8), steel);
+    hub.rotation.x = Math.PI / 2; w.add(hub);
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      const sp = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, R - 0.03, 4), steel);
+      sp.position.set(Math.cos(a) * R / 2, Math.sin(a) * R / 2, 0); sp.rotation.z = a - Math.PI / 2; w.add(sp);
+    }
+    w.position.set(cx, R, 0); return w;
+  };
+  root.add(wheel(-WB / 2));                           // rear
+  root.add(wheel(WB / 2));                            // front
+
+  // Frame nodes, then the diamond of tubes between them.
+  const rh = V(-WB / 2, R, 0), fh = V(WB / 2, R, 0);  // rear / front hubs
+  const bb = V(-0.02, 0.20, 0);                       // bottom bracket (crank)
+  const st = V(-0.20, 0.66, 0);                       // seat top
+  const ht = V(0.34, 0.62, 0);                        // head tube top
+  root.add(tube(bb, ht, 0.018, frameMat));            // down tube
+  root.add(tube(bb, st, 0.017, frameMat));            // seat tube
+  root.add(tube(st, ht, 0.016, frameMat));            // top tube
+  root.add(tube(bb, rh, 0.013, frameMat));            // chain stay
+  root.add(tube(st, rh, 0.012, frameMat));            // seat stay
+  root.add(tube(ht, fh, 0.014, steel));               // fork
+
+  // Handlebar (a bar across z at the head tube) + stem; saddle on the seat tube.
+  const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.38, 8), steel);
+  bar.rotation.x = Math.PI / 2; bar.position.set(0.40, 0.66, 0); root.add(bar);
+  root.add(tube(ht, V(0.40, 0.66, 0), 0.012, steel)); // stem
+  const saddle = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.05, 0.12), seatMat);
+  saddle.position.set(-0.22, 0.69, 0); saddle.castShadow = true; root.add(saddle);
+
+  // Crank axle + two pedals at the bottom bracket.
+  const axle = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.16, 6), steel);
+  axle.rotation.x = Math.PI / 2; axle.position.copy(bb); root.add(axle);
+  for (const sz of [-1, 1]) {
+    const pedal = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.02, 0.05), steel);
+    pedal.position.set(bb.x + sz * 0.05, bb.y - 0.06, sz * 0.08); root.add(pedal);
+  }
+
+  // Front wicker delivery basket over the front wheel — the courier's tell.
+  const basket = new THREE.Group();
+  basket.position.set(0.52, 0.54, 0);
+  basket.add(new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.02, 0.20), wicker));         // floor
+  for (const sx of [-1, 1]) { const m = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.16, 0.20), wicker); m.position.set(sx * 0.12, 0.08, 0); basket.add(m); }
+  for (const sz of [-1, 1]) { const m = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.16, 0.02), wicker); m.position.set(0, 0.08, sz * 0.10); basket.add(m); }
+  basket.children.forEach((c) => { c.castShadow = true; });
+  root.add(basket);
+
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -2229,11 +2312,11 @@ export function buildWorld(scene) {
       bg.add(note);
     });
     // A courier's delivery bike (Batch 11) parked at the board — the courier job's
-    // required possession, stood right where the shift is taken. Fixed side-profile
-    // (no billboarding): a bike reads by its silhouette, so it must not pivot.
-    const bike = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Job_Bicycle.png`, 1.5, 1.05, { emissive: 0.12 });
-    bike.position.set(1.55, 0.52, 0.2);
-    bg.add(bike);
+    // required possession, stood right where the shift is taken. Now REAL geometry
+    // (spr-053, buildBicycle) rather than the old side-profile PROP_Job_Bicycle cutout:
+    // two spoked wheels, a tubular diamond frame, fork, handlebar, saddle, crank and a
+    // front wicker basket. Rolls along bg-local x; the slight yaw leans it on its stand.
+    bg.add(buildBicycle(1.55, 0, 0.2, 0.12).root);
     bg.rotation.y = -0.4; // angle it toward the street
     scene.add(bg);
   }
