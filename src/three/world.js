@@ -1839,6 +1839,111 @@ function buildBicycle(x, y, z, facing = 0) {
   return { root };
 }
 
+// A delivery scooter — the courier's step-up from the bike (spr-054). Length runs
+// along local +x (front of the scooter); root sits on the ground. Step-through deck,
+// front leg-shield + self-lit headlamp, handlebar with mirrors, a saddle over the
+// rear cowl, and a red top-box (the delivery case) on the tail. ~20 meshes.
+function buildScooter(x, y, z, facing = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, y, z);
+  root.rotation.y = facing;
+
+  const bodyMat = new THREE.MeshStandardMaterial({ color: 0x2f7d6b, roughness: 0.4, metalness: 0.25 });  // teal courier scooter
+  const trim = new THREE.MeshStandardMaterial({ color: 0xd8d2c4, roughness: 0.5, metalness: 0.1 });
+  const tyreMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1c, roughness: 0.9, metalness: 0 });
+  const steel = new THREE.MeshStandardMaterial({ color: 0x9aa0a6, roughness: 0.35, metalness: 0.7 });
+  const seatMat = new THREE.MeshStandardMaterial({ color: 0x23201d, roughness: 0.6, metalness: 0 });
+  const caseMat = new THREE.MeshStandardMaterial({ color: 0xb5453b, roughness: 0.5, metalness: 0.1 });   // delivery top-box (courier red)
+  const glow = new THREE.MeshStandardMaterial({ color: 0xfff3cf, emissive: 0xffd98a, emissiveIntensity: 1.6, roughness: 0.3 });
+
+  const R = 0.18, WB = 0.82;
+  // small fat wheel (axle along z, rolling along x), centre lifted to R
+  const wheel = (cx) => {
+    const w = new THREE.Group();
+    w.add(new THREE.Mesh(new THREE.TorusGeometry(R, 0.06, 8, 20), tyreMat));
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.08, 12), steel);
+    hub.rotation.x = Math.PI / 2; w.add(hub);
+    w.position.set(cx, R, 0); w.children.forEach((c) => { c.castShadow = true; }); return w;
+  };
+  root.add(wheel(WB / 2));   // front
+  root.add(wheel(-WB / 2));  // rear
+
+  const add = (geo, mat, px, py, pz, ry = 0) => {
+    const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); m.rotation.y = ry; m.castShadow = true; root.add(m); return m;
+  };
+
+  add(new THREE.BoxGeometry(0.5, 0.05, 0.28), trim, 0.04, 0.21, 0);            // step-through floorboard
+  const cowl = add(new THREE.BoxGeometry(0.16, 0.62, 0.3), bodyMat, 0.42, 0.52, 0);  // front leg-shield
+  cowl.rotation.z = -0.12;
+  add(new THREE.BoxGeometry(0.1, 0.06, 0.22), bodyMat, 0.41, 0.4, 0);          // front fender
+  add(new THREE.SphereGeometry(0.06, 12, 10), glow, 0.52, 0.66, 0);            // headlamp (self-lit)
+  add(new THREE.CylinderGeometry(0.02, 0.02, 0.28, 8), steel, 0.46, 0.86, 0);  // handlebar riser
+  const bar = add(new THREE.CylinderGeometry(0.016, 0.016, 0.44, 8), steel, 0.47, 0.98, 0);
+  bar.rotation.x = Math.PI / 2;                                                // handlebar
+  for (const sz of [-1, 1]) {                                                  // mirrors
+    add(new THREE.CylinderGeometry(0.008, 0.008, 0.12, 6), steel, 0.45, 1.04, sz * 0.18);
+    add(new THREE.BoxGeometry(0.03, 0.07, 0.05), bodyMat, 0.45, 1.1, sz * 0.18);
+  }
+  add(new THREE.BoxGeometry(0.56, 0.36, 0.3), bodyMat, -0.26, 0.44, 0);        // rear body / engine cowl
+  add(new THREE.BoxGeometry(0.46, 0.1, 0.26), seatMat, -0.2, 0.67, 0);         // saddle
+  add(new THREE.BoxGeometry(0.3, 0.32, 0.32), caseMat, -0.5, 0.82, 0);         // delivery top-box
+  add(new THREE.BoxGeometry(0.32, 0.04, 0.34), trim, -0.5, 0.99, 0);           // top-box lid rim
+  add(new THREE.BoxGeometry(0.03, 0.06, 0.08), glow, -0.66, 0.66, 0);          // tail light (self-lit)
+  const ks = add(new THREE.CylinderGeometry(0.012, 0.012, 0.24, 6), steel, -0.1, 0.12, 0.16);
+  ks.rotation.x = 0.4;                                                         // kickstand
+
+  return { root };
+}
+
+// A small panel van at the east kerb (spr-054). Length runs along local +x (+x = front);
+// the broad cargo side is local +z, so yawing −π/2 turns it to face the street (−x world),
+// where the company panel reads. Boxy cargo + lower cab, four fat wheels, tinted glass,
+// self-lit head/tail lamps, bumpers and mirrors. ~24 meshes; root sits on the ground.
+function buildVan(x, y, z, facing = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, y, z);
+  root.rotation.y = facing;
+
+  const body = new THREE.MeshStandardMaterial({ color: 0x4a6f93, roughness: 0.45, metalness: 0.25 });   // slate-blue van
+  const panel = new THREE.MeshStandardMaterial({ color: 0xe6e0d2, roughness: 0.55, metalness: 0.1 });    // company side panel
+  const tyreMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1c, roughness: 0.9, metalness: 0 });
+  const steel = new THREE.MeshStandardMaterial({ color: 0x9aa0a6, roughness: 0.35, metalness: 0.7 });
+  const glass = new THREE.MeshStandardMaterial({ color: 0x2a3a44, roughness: 0.15, metalness: 0.4, transparent: true, opacity: 0.7 });
+  const bumperMat = new THREE.MeshStandardMaterial({ color: 0x2a2d31, roughness: 0.6, metalness: 0.3 });
+  const headlamp = new THREE.MeshStandardMaterial({ color: 0xfff3cf, emissive: 0xffd98a, emissiveIntensity: 1.4, roughness: 0.3 });
+  const taillamp = new THREE.MeshStandardMaterial({ color: 0xff6b5a, emissive: 0xc23a2a, emissiveIntensity: 1.2, roughness: 0.4 });
+
+  const L = 3.0, D = 1.3, Rw = 0.28;
+  const add = (geo, mat, px, py, pz, rz = 0) => {
+    const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); if (rz) m.rotation.z = rz; m.castShadow = true; m.receiveShadow = true; root.add(m); return m;
+  };
+  // fat wheel (axle along z so it rolls along x = length)
+  const wheel = (cx, cz) => {
+    const w = new THREE.Group();
+    w.add(new THREE.Mesh(new THREE.TorusGeometry(Rw, 0.1, 8, 20), tyreMat));
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.12, 12), steel);
+    hub.rotation.x = Math.PI / 2; w.add(hub);
+    w.position.set(cx, Rw, cz); w.children.forEach((c) => { c.castShadow = true; }); root.add(w);
+  };
+  for (const sx of [L / 2 - 0.55, -L / 2 + 0.55]) for (const sz of [-1, 1]) wheel(sx, sz * (D / 2 - 0.02));
+
+  const floorY = Rw + 0.12;                                                    // chassis floor height
+  add(new THREE.BoxGeometry(L, 0.3, D - 0.06), body, 0, floorY, 0);            // lower chassis skirt
+  add(new THREE.BoxGeometry(1.9, 1.05, D), body, -0.5, floorY + 0.55, 0);      // cargo box (rear)
+  add(new THREE.BoxGeometry(1.0, 0.78, D), body, 1.0, floorY + 0.4, 0);        // cab (front, lower)
+  add(new THREE.BoxGeometry(0.06, 0.42, D - 0.18), glass, 1.52, floorY + 0.55, 0, 0.25); // windscreen (leant back)
+  for (const sz of [-1, 1]) add(new THREE.BoxGeometry(0.5, 0.34, 0.04), glass, 1.05, floorY + 0.55, sz * (D / 2)); // cab side windows
+  add(new THREE.BoxGeometry(1.7, 0.7, 0.03), panel, -0.5, floorY + 0.55, D / 2 + 0.01); // company panel (street side, local +z)
+  add(new THREE.BoxGeometry(0.03, 0.95, D - 0.1), steel, -L / 2 - 0.01, floorY + 0.55, 0); // rear cargo-door seam
+  add(new THREE.BoxGeometry(0.08, 0.14, D), bumperMat, L / 2 + 0.02, floorY - 0.02, 0);    // front bumper
+  for (const sz of [-1, 1]) add(new THREE.BoxGeometry(0.05, 0.1, 0.16), headlamp, L / 2 + 0.02, floorY + 0.12, sz * (D / 2 - 0.22)); // headlights
+  add(new THREE.BoxGeometry(0.08, 0.14, D), bumperMat, -L / 2 - 0.02, floorY - 0.02, 0);   // rear bumper
+  for (const sz of [-1, 1]) add(new THREE.BoxGeometry(0.05, 0.12, 0.12), taillamp, -L / 2 - 0.02, floorY + 0.15, sz * (D / 2 - 0.16)); // tail lights
+  for (const sz of [-1, 1]) add(new THREE.BoxGeometry(0.04, 0.1, 0.06), body, 1.55, floorY + 0.5, sz * (D / 2 + 0.08)); // door mirrors
+
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -2327,17 +2432,12 @@ export function buildWorld(scene) {
   // panel van waits at the east kerb, its broad side to the street. Each is a flat
   // cutout sized to its PNG aspect, lightly self-lit so it reads after dark; the
   // scooter faces the approaching street (+z, angled), the van faces the street (−x).
-  const parkedVehicles = [
-    // [file, w, h, [x, y, z], yaw, emissive]
-    ["PROP_Vehicle_Scooter", 1.41, 1.0, [3.5, 0.52, -4.4], 0.35, 0.12],
-    ["PROP_Vehicle_Van", 3.15, 1.55, [5.7, 0.78, 11], -Math.PI / 2, 0.1],
-  ];
-  for (const [file, w, h, [x, y, z], yaw, emissive] of parkedVehicles) {
-    const v = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive });
-    v.position.set(x, y, z);
-    v.rotation.y = yaw;
-    scene.add(v);
-  }
+  // Now REAL geometry (spr-054) — the two PROP_Vehicle_* cutouts retired: the delivery
+  // scooter (the courier's step-up from the bike) stands near the notice board angled to
+  // the street, and the panel van waits at the east kerb with its broad company-panel side
+  // turned to the street (−x). Both carry self-lit lamps so they read after dark.
+  scene.add(buildScooter(3.5, 0, -4.4, 0.35).root);
+  scene.add(buildVan(5.7, 0, 11, -Math.PI / 2).root);
 
   // ── Quayside working clutter (Batch 42), now ALL real geometry — spr-038 retired the
   // last cutout here (the drying net). The trawl net is a draped 3D mesh of crossing twine
