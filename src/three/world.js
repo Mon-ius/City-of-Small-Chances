@@ -2010,6 +2010,121 @@ function buildSmallCraft(x, z, kind, yaw = 0) {
   return { root };
 }
 
+// ── Far working vessels (spr-056): the wide sea west of the quay carried three painted
+// broadside cutouts — a three-masted tall ship, a steam trawler, a sailing barge — that
+// turned to face the camera (the cloud/gull billboard idiom) and so read as flat the
+// moment the player strafed. Each is now a REAL closed hull: a lofted BufferGeometry built
+// from S stations, each station a keel point + port/starboard gunwale, swept into a ship
+// plan-form (blunt transom aft, full midships, fine bow), capped with a deck and end faces
+// so it's a watertight solid. On top sits per-kind rigging/superstructure. Hull carries a
+// faint emissive so the silhouette still reads against dark dusk water (the old cutouts
+// used emissive:0.2 for the same reason). Sized to roughly match the retired billboards.
+function buildVessel(x, z, kind, yaw = 0) {
+  const WL = -0.05;
+  const root = new THREE.Group();
+  root.position.set(x, WL, z);
+  root.rotation.y = yaw;
+  const cfg = {
+    tallship: { L: 10.5, B: 2.8, fb: 1.0, draft: 1.4, sheer: 0.55, flat: false, hull: 0x3a2f26, trim: 0x6a4a30 },
+    trawler:  { L: 6.2,  B: 2.2, fb: 0.7, draft: 1.0, sheer: 0.30, flat: false, hull: 0x2f3b44, trim: 0x8a3b2f },
+    barge:    { L: 8.6,  B: 2.6, fb: 0.6, draft: 0.7, sheer: 0.22, flat: true,  hull: 0x40342a, trim: 0x5a4632 },
+  }[kind];
+  const hullMat = new THREE.MeshStandardMaterial({ color: cfg.hull, roughness: 0.8, metalness: 0.05, side: THREE.DoubleSide, emissive: new THREE.Color(cfg.hull).multiplyScalar(0.1) });
+  const trimMat = new THREE.MeshStandardMaterial({ color: cfg.trim, roughness: 0.7, emissive: new THREE.Color(cfg.trim).multiplyScalar(0.12) });
+  const mastMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2c, roughness: 0.7 });
+  const cabinMat = new THREE.MeshStandardMaterial({ color: 0x8c7a5e, roughness: 0.75, emissive: new THREE.Color(0x8c7a5e).multiplyScalar(0.14) });
+  const sailMat = new THREE.MeshStandardMaterial({ color: 0xeae3cf, roughness: 0.9, side: THREE.DoubleSide, emissive: new THREE.Color(0xeae3cf).multiplyScalar(0.16) });
+  const tanSailMat = new THREE.MeshStandardMaterial({ color: 0xb89058, roughness: 0.9, side: THREE.DoubleSide, emissive: new THREE.Color(0xb89058).multiplyScalar(0.16) });
+  const funnelMat = new THREE.MeshStandardMaterial({ color: 0x33312e, roughness: 0.8 });
+  const funnelCapMat = new THREE.MeshStandardMaterial({ color: 0xb5453b, roughness: 0.5, emissive: new THREE.Color(0xb5453b).multiplyScalar(0.6) });
+
+  // Half-beam fraction along the length (u: 0 transom → 1 stem): blunt aft, full midships, fine bow.
+  const hb = (u) => {
+    let f;
+    if (u <= 0.55) { const a = u / 0.55; f = 0.6 + 0.4 * Math.sin(Math.PI * 0.5 * a); }
+    else { const a = (u - 0.55) / 0.45; f = Math.cos(Math.PI * 0.5 * a) * 0.96 + 0.04; }
+    return (cfg.B / 2) * f;
+  };
+  // Keel (bottom centreline) depth below the waterline — flat-bottomed for the barge, rockered otherwise.
+  const keelY = (u) => {
+    if (cfg.flat) { const end = Math.min(1, Math.min(u, 1 - u) / 0.12); return -cfg.draft * (0.4 + 0.6 * end); }
+    return -cfg.draft * (0.2 + 0.8 * Math.sin(Math.PI * u));
+  };
+  // Gunwale (deck edge) height — a gentle sheer, higher at bow and stern.
+  const gunY = (u) => cfg.fb + cfg.sheer * (0.5 - 0.5 * Math.sin(Math.PI * u));
+
+  const S = 10, verts = [], idx = [];
+  const push = (a, b, c) => { verts.push(a, b, c); return verts.length / 3 - 1; };
+  const station = [];
+  for (let i = 0; i <= S; i++) {
+    const u = i / S, cx = -cfg.L / 2 + u * cfg.L, w = hb(u);
+    station.push([push(cx, keelY(u), 0), push(cx, gunY(u), w), push(cx, gunY(u), -w)]); // keel, port, starboard
+  }
+  for (let i = 0; i < S; i++) {
+    const [K0, P0, St0] = station[i], [K1, P1, St1] = station[i + 1];
+    idx.push(K0, P0, P1, K0, P1, K1);     // port shell
+    idx.push(K0, K1, St1, K0, St1, St0);  // starboard shell
+    idx.push(P0, St0, St1, P0, St1, P1);  // deck
+  }
+  { const [K, P, St] = station[0]; idx.push(K, St, P); } // transom cap
+  { const [K, P, St] = station[S]; idx.push(K, P, St); } // stem cap
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(verts, 3));
+  geo.setIndex(idx); geo.computeVertexNormals();
+  const hull = new THREE.Mesh(geo, hullMat); hull.castShadow = true; hull.receiveShadow = true; root.add(hull);
+
+  const add = (g, mat, px, py, pz, rx = 0, ry = 0, rz = 0) => {
+    const m = new THREE.Mesh(g, mat); m.position.set(px, py, pz); m.rotation.set(rx, ry, rz); m.castShadow = true; root.add(m); return m;
+  };
+  // Oriented spar (mast/yard/bowsprit/sprit/derrick) between two points.
+  const spar = (ax, ay, az, bx, by, bz, r, mat) => {
+    const a = new THREE.Vector3(ax, ay, az), dir = new THREE.Vector3(bx - ax, by - ay, bz - az), len = dir.length();
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 7), mat);
+    m.position.copy(a).addScaledVector(dir, 0.5);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+    m.castShadow = true; root.add(m); return m;
+  };
+
+  const deck = cfg.fb;
+  if (kind === "tallship") {
+    spar(cfg.L / 2 - 0.1, deck + 0.2, 0, cfg.L / 2 + 2.2, deck + 1.0, 0, 0.07, mastMat);           // bowsprit
+    add(new THREE.BoxGeometry(2.0, 0.7, cfg.B * 0.8), cabinMat, -cfg.L / 2 + 1.1, deck + 0.35, 0);  // poop / raised quarterdeck
+    add(new THREE.BoxGeometry(1.1, 0.45, cfg.B * 0.7), cabinMat, cfg.L / 2 - 0.8, deck + 0.22, 0);  // forecastle
+    const masts = [
+      { x: cfg.L * 0.27, h: 6.6, yards: [2.3, 4.6], yw: [1.7, 1.2] }, // foremast
+      { x: 0.0, h: 8.4, yards: [2.8, 5.6], yw: [2.1, 1.5] },          // mainmast
+      { x: -cfg.L * 0.28, h: 5.8, yards: [2.0, 4.0], yw: [1.5, 1.0] },// mizzen
+    ];
+    for (const m of masts) {
+      spar(m.x, deck, 0, m.x, deck + m.h, 0, 0.09, mastMat);          // mast
+      for (let k = 0; k < m.yards.length; k++) {
+        const yy = deck + m.yards[k], yh = m.yw[k], sh = k === 0 ? 1.9 : 1.5;
+        spar(m.x, yy, -yh, m.x, yy, yh, 0.05, mastMat);               // yard
+        add(new THREE.BoxGeometry(0.06, sh, yh * 2 * 0.9), sailMat, m.x, yy - sh / 2, 0); // square sail
+      }
+    }
+  } else if (kind === "trawler") {
+    add(new THREE.BoxGeometry(1.6, 0.95, cfg.B * 0.78), cabinMat, -cfg.L * 0.18, deck + 0.48, 0); // wheelhouse
+    add(new THREE.BoxGeometry(1.7, 0.08, cfg.B * 0.82), trimMat, -cfg.L * 0.18, deck + 0.99, 0);  // wheelhouse roof
+    add(new THREE.CylinderGeometry(0.28, 0.3, 1.2, 10), funnelMat, -cfg.L * 0.34, deck + 1.0, 0); // funnel
+    add(new THREE.CylinderGeometry(0.3, 0.3, 0.12, 10), funnelCapMat, -cfg.L * 0.34, deck + 1.62, 0); // lit cap band
+    spar(cfg.L * 0.18, deck, 0, cfg.L * 0.18, deck + 3.4, 0, 0.07, mastMat);                      // foremast
+    spar(cfg.L * 0.18, deck + 0.6, 0, -cfg.L * 0.05, deck + 1.4, 0, 0.05, mastMat);               // derrick boom
+    add(new THREE.CylinderGeometry(0.18, 0.18, 0.7, 8), trimMat, cfg.L * 0.3, deck + 0.12, 0, 0, 0, Math.PI / 2); // foredeck winch
+    for (const sz of [-1, 1]) add(new THREE.BoxGeometry(cfg.L * 0.9, 0.14, 0.05), trimMat, 0, deck + 0.08, sz * cfg.B * 0.42); // bulwark rails
+  } else if (kind === "barge") {
+    add(new THREE.BoxGeometry(1.8, 0.55, cfg.B * 0.8), cabinMat, -cfg.L * 0.34, deck + 0.28, 0);  // aft cabin
+    add(new THREE.BoxGeometry(cfg.L * 0.4, 0.28, cfg.B * 0.66), trimMat, cfg.L * 0.05, deck + 0.14, 0); // hatch coaming
+    const mx = cfg.L * 0.12;
+    spar(mx, deck, 0, mx, deck + 6.2, 0, 0.1, mastMat);                                           // tall mast
+    spar(mx, deck + 0.6, 0, -cfg.L * 0.3, deck + 5.4, 0, 0.06, mastMat);                          // sprit
+    add(new THREE.BoxGeometry(cfg.L * 0.5, 4.4, 0.06), tanSailMat, -cfg.L * 0.06, deck + 3.0, 0.05); // sprit-sail
+    add(new THREE.BoxGeometry(cfg.L * 0.28, 1.8, 0.05), tanSailMat, mx - 0.2, deck + 6.0, 0.05);  // topsail
+    for (const sz of [-1, 1]) add(new THREE.BoxGeometry(0.08, 1.6, 0.7), trimMat, cfg.L * 0.05, deck - 0.5, sz * cfg.B * 0.52, 0, 0, sz * 0.15); // leeboards
+  }
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -2997,26 +3112,17 @@ export function buildWorld(scene) {
   }
 
   // ── Vessels on the water (Batch 44): the wide sea west of the quay carried just one
-  // moored boat (real geometry, near). These three painted broadside cutouts stand far
-  // out as camera-facing billboards (the cloud/gull idiom) — a three-masted tall ship at
-  // anchor, a steam fishing trawler, a tan-sailed sailing barge — so the harbour reads as
-  // a working port with traffic, not an empty bay. Each ship's painted waterline is the
-  // image's bottom edge, so we sit that edge on the water surface (WL): the plane centre
-  // is half its height above the water. Placed far enough (x≤−40) that the billboard's
-  // slow turn is imperceptible, and lightly hazed by the harbour fog at distance.
-  const WL = -0.05; // water surface y (matches the water plane above)
-  const vessels = [
-    // [file, w, h, x, z] — hull bottom (= image bottom) sits on the waterline.
-    ["PROP_Ship_TallShip", 11.4, 10, -60, -20],
-    ["PROP_Ship_Trawler", 6.6, 4, -44, 28],
-    ["PROP_Ship_Barge", 9.1, 6, -40, -34],
-  ];
-  for (const [file, w, h, x, z] of vessels) {
-    const ship = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive: 0.2, alphaTest: 0.35 });
-    ship.position.set(x, WL + h / 2, z);
-    scene.add(ship);
-    billboards.push(ship); // main.js turns it to face the camera each frame
-  }
+  // moored boat (real geometry, near). It used to carry three painted broadside cutouts
+  // that turned to face the camera (the cloud/gull billboard idiom) and flattened the
+  // instant the player strafed. They are now REAL lofted-hull geometry (spr-056) — a
+  // three-masted tall ship at anchor, a steam fishing trawler, a tan-sailed sailing barge —
+  // so the harbour reads as a working port with traffic from any angle, not an empty bay.
+  // Each `buildVessel` roots its hull at the waterline (keel below, deck above) and is
+  // yawed roughly broadside to the quay; placed far out (x≤−40) and hazed by harbour fog.
+  const WL = -0.05; // water surface y — shared below by ducks, smoke, glitter, mist, shoreline
+  scene.add(buildVessel(-60, -20, "tallship", Math.PI / 2 + 0.22).root);
+  scene.add(buildVessel(-44, 28, "trawler", Math.PI / 2 - 0.4).root);
+  scene.add(buildVessel(-40, -34, "barge", Math.PI / 2 + 0.5).root);
 
   // ── Small craft on the near water (Batch 54): the bay carried traffic far out (the
   // Batch-44 tall ship, trawler and barge at x≤−40) and one moored cabin-boat near the
