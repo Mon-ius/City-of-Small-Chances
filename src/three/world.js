@@ -1690,6 +1690,72 @@ function buildShopDoor(x, y, z, facing = 0) {
   return { root };
 }
 
+// ── A shopfront wall lantern (spr-052) — REAL geometry (a wall back-plate + a scroll-braced
+// bracket arm projecting toward the street, a hanging glazed cage of wrought posts and amber glass,
+// a pyramid roof with a finial, and a strongly-emissive flame core) rather than a flat billboard
+// cutout. Replaces PROP_Shop_Lantern — the LAST flat cutout on the shopfront row. The root mounts at
+// the wall (x≈8.9); after the caller's FACADE yaw (−π/2) local +z → world −x, so the bracket arm and
+// the hung cage project OUT toward the player. The amber glass + core keep a strong emissive so the
+// lantern still reads as a warm light source after dark (matching the old cutout's emissive 0.8).
+function buildShopLantern(x, y, z, facing = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, y, z);
+  root.rotation.y = facing;
+
+  const iron = new THREE.MeshStandardMaterial({ color: 0x1f1c19, roughness: 0.6, metalness: 0.45 });
+  const brass = new THREE.MeshStandardMaterial({ color: 0xb5912f, roughness: 0.35, metalness: 0.6 });
+  const glass = new THREE.MeshStandardMaterial({
+    color: 0xffcf73, emissive: 0xffb347, emissiveIntensity: 1.4,
+    transparent: true, opacity: 0.55, roughness: 0.2, metalness: 0, side: THREE.DoubleSide,
+  });
+  const flame = new THREE.MeshStandardMaterial({ color: 0xfff0c0, emissive: 0xffcf73, emissiveIntensity: 2.5 });
+
+  const cz = 0.20;                                  // how far the hung cage projects from the wall (local +z)
+  const cw = 0.085, ch = 0.16;                      // cage half-width and half-height
+
+  // Wall bracket — a back-plate flat on the wall, a horizontal arm out to over the cage, a scroll brace.
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.30, 0.035), iron);
+  plate.position.set(0, 0.42, -0.018); plate.castShadow = true; root.add(plate);
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.028, cz + 0.04), iron);
+  arm.position.set(0, 0.50, cz / 2); arm.castShadow = true; root.add(arm);
+  const braceLen = Math.sqrt(0.20 * 0.20 + 0.14 * 0.14);
+  const brace = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, braceLen, 6), iron);
+  brace.position.set(0, 0.40, 0.07); brace.rotation.x = Math.atan2(0.14, 0.20); root.add(brace);
+  const link = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.19, 6), iron);
+  link.position.set(0, 0.405, cz); root.add(link);
+
+  // Pyramid roof + finial atop the cage.
+  const roof = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.11, 4), iron);
+  roof.position.set(0, ch + 0.10, cz); roof.rotation.y = Math.PI / 4; roof.castShadow = true; root.add(roof);
+  const finial = new THREE.Mesh(new THREE.SphereGeometry(0.018, 10, 8), brass);
+  finial.position.set(0, ch + 0.17, cz); root.add(finial);
+  const collar = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.025, 0.20), iron);
+  collar.position.set(0, ch + 0.01, cz); root.add(collar);
+
+  // Glazed cage — four corner posts, four amber glass panes, a strongly-emissive flame core.
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.016, 2 * ch, 0.016), iron);
+    post.position.set(sx * cw, 0, cz + sz * cw); root.add(post);
+  }
+  glass.depthWrite = false;
+  for (const sz of [-1, 1]) {
+    const pane = new THREE.Mesh(new THREE.BoxGeometry(2 * cw - 0.02, 2 * ch - 0.02, 0.008), glass);
+    pane.position.set(0, 0, cz + sz * cw); root.add(pane);
+  }
+  for (const sx of [-1, 1]) {
+    const pane = new THREE.Mesh(new THREE.BoxGeometry(0.008, 2 * ch - 0.02, 2 * cw - 0.02), glass);
+    pane.position.set(sx * cw, 0, cz); root.add(pane);
+  }
+  const core = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 10), flame);
+  core.position.set(0, -0.01, cz); root.add(core);
+
+  // Base tray under the cage.
+  const tray = new THREE.Mesh(new THREE.BoxGeometry(0.21, 0.03, 0.21), iron);
+  tray.position.set(0, -ch - 0.02, cz); tray.castShadow = true; root.add(tray);
+
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -2514,17 +2580,16 @@ export function buildWorld(scene) {
     scene.add(buildShopDoor(x, y, z, FACADE).root);
   }
   const shopLanterns = [
-    // [x, y, z] — Lantern 197×512 (h0.95, w0.37), mounted beside each door, amber glass
-    // lit strong emissive so it reads as a warm light source after dark.
-    [8.7, 2.55, 3.15], // beside the Tavern door
-    [8.7, 2.55, -6.6], // beside the Chandlery door
-    [8.7, 2.55, 22.4], // beside the HarbourGate door
+    // [x, y, z] — the back-plate mounts at the wall front (x8.9), the bracket arm carries the glazed
+    // cage out toward the street beside each door, amber glass kept strongly emissive so it reads as
+    // a warm light after dark. Now REAL geometry (spr-052, buildShopLantern) — the LAST shopfront
+    // cutout retired — rather than the old PROP_Shop_Lantern billboard.
+    [8.9, 2.55, 3.15], // beside the Tavern door
+    [8.9, 2.55, -6.6], // beside the Chandlery door
+    [8.9, 2.55, 22.4], // beside the HarbourGate door
   ];
   for (const [x, y, z] of shopLanterns) {
-    const lantern = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Shop_Lantern.png`, 0.37, 0.95, { emissive: 0.8, alphaTest: 0.4 });
-    lantern.position.set(x, y, z);
-    lantern.rotation.y = FACADE;
-    scene.add(lantern);
+    scene.add(buildShopLantern(x, y, z, FACADE).root);
   }
   const shopCrates = [
     // [x, z, shadowR, facing] — a stack of retail crates at a doorway threshold, on a soft
