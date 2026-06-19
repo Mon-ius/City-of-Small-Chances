@@ -1471,6 +1471,53 @@ function buildFlowerBox(x, y, z, facing = 0) {
   return { root };
 }
 
+// ── A stack of retail crates at a shop threshold (spr-048) — REAL geometry (three closed
+// timber crates of stepped sizes: a solid body, four corner posts, mid-rails round the four
+// sides, and an X-brace battened on the front face) rather than a flat billboard cutout.
+// Replaces PROP_Shop_Crates. The root sits on the ground and builds upward; facing yaws the
+// whole stack toward the street. Self-contained own materials; deterministic layout (no
+// Math.random); the kept contact-shadow blob still grounds it.
+function buildCrateStack(x, y, z, facing = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, y, z);
+  root.rotation.y = facing;
+
+  const woodMat = new THREE.MeshStandardMaterial({ color: 0x8a6539, roughness: 0.85, metalness: 0 });
+  const postMat = new THREE.MeshStandardMaterial({ color: 0x6b4d2a, roughness: 0.9, metalness: 0 });
+
+  // One closed slatted crate (origin at its base centre, builds up).
+  const crate = (w, h, d) => {
+    const g = new THREE.Group();
+    const hw = w / 2, hh = h / 2, hd = d / 2, post = 0.05;
+    const body = new THREE.Mesh(new THREE.BoxGeometry(w - 0.02, h - 0.02, d - 0.02), woodMat);
+    body.position.y = hh; body.castShadow = true; body.receiveShadow = true; g.add(body);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) {            // four corner posts
+      const p = new THREE.Mesh(new THREE.BoxGeometry(post, h, post), postMat);
+      p.position.set(sx * (hw - post / 2), hh, sz * (hd - post / 2)); p.castShadow = true; g.add(p);
+    }
+    for (const sz of [-1, 1]) {                                      // mid-rails front & back
+      const r = new THREE.Mesh(new THREE.BoxGeometry(w, 0.05, 0.02), postMat);
+      r.position.set(0, hh, sz * hd); g.add(r);
+    }
+    for (const sx of [-1, 1]) {                                      // mid-rails left & right
+      const r = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.05, d), postMat);
+      r.position.set(sx * hw, hh, 0); g.add(r);
+    }
+    const diag = Math.sqrt(w * w + h * h) * 0.92;                    // X-brace on the front (+z) face
+    for (const s of [1, -1]) {
+      const b = new THREE.Mesh(new THREE.BoxGeometry(diag, 0.045, 0.015), postMat);
+      b.position.set(0, hh, hd + 0.005); b.rotation.z = s * Math.atan2(h, w); g.add(b);
+    }
+    return g;
+  };
+
+  const big = crate(0.62, 0.50, 0.50); big.position.set(0, 0, 0); big.rotation.y = 0.05; root.add(big);
+  const mid = crate(0.50, 0.42, 0.46); mid.position.set(0.03, 0.50, -0.02); mid.rotation.y = -0.12; root.add(mid);
+  const side = crate(0.42, 0.36, 0.42); side.position.set(-0.52, 0, 0.14); side.rotation.y = 0.22; root.add(side);
+
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -2309,17 +2356,15 @@ export function buildWorld(scene) {
     scene.add(lantern);
   }
   const shopCrates = [
-    // [x, z, shadowR] — Crates 512×472 (w1.2, h1.1), ground-planted billboard at a
-    // doorway threshold, on a soft contact-shadow blob. Placed at the two signed doors
-    // without topiary (HarbourGate, FerryStop) so nothing collides with the tubs.
-    [8.0, 20.5, 0.6], // by the HarbourGate door
-    [8.0, -16.3, 0.6], // by the FerryStop sign
+    // [x, z, shadowR, facing] — a stack of retail crates at a doorway threshold, on a soft
+    // contact-shadow blob. Placed at the two signed doors without topiary (HarbourGate,
+    // FerryStop) so nothing collides with the tubs. Now REAL geometry (spr-048, buildCrateStack)
+    // rather than the old PROP_Shop_Crates billboard; facing yaws each stack toward the street.
+    [8.0, 20.5, 0.6, -1.1], // by the HarbourGate door
+    [8.0, -16.3, 0.6, -1.4], // by the FerryStop sign
   ];
-  for (const [x, z, shadowR] of shopCrates) {
-    const crates = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Shop_Crates.png`, 1.2, 1.1, { emissive: 0.16, alphaTest: 0.4 });
-    crates.position.set(x, 0.55, z);
-    scene.add(crates);
-    billboards.push(crates); // main.js turns it to face the camera each frame
+  for (const [x, z, shadowR, facing] of shopCrates) {
+    scene.add(buildCrateStack(x, 0, z, facing).root);
 
     const blob = new THREE.Mesh(
       new THREE.CircleGeometry(shadowR, 16),
