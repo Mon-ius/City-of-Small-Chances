@@ -263,6 +263,29 @@ function addChimneySmoke(scene, x, z, h, w, d, plumes) {
   plumes.push({ mouthX: cx, mouthY, mouthZ: cz, puffs });
 }
 
+// Real volumetric steam curling off Mei's hot noodle bowl (spr-042) — the SAME soft
+// camera-facing sprite puffs and the SAME main.js plume tick as the chimneys, but tuned
+// tiny (a short rise, a tight curl, a pale near-white vapour) and pushed to the shared
+// `smokePlumes` array with its own column-tuning fields. REPLACES the old flat
+// FX_Smoke_NoodleSteam billboard — vapour you can walk around, not a faced picture. The
+// puffs are phase-staggered so the wisp reads continuous even in a frozen frame.
+// Deterministic per-puff seeds (no Math.random), so the bowl always steams the same way.
+function addBowlSteam(scene, x, y, z, plumes) {
+  const tex = smokeTexture();
+  const puffs = [];
+  const N = 5;
+  for (let i = 0; i < N; i++) {
+    const mat = new THREE.SpriteMaterial({ map: tex, color: 0xeef3f6, transparent: true, depthWrite: false, opacity: 0 });
+    const sp = new THREE.Sprite(mat);
+    sp.position.set(x, y, z);
+    scene.add(sp);
+    const seed = (((x * 2.1 + z * 1.3 + i * 0.53) % 1) + 1) % 1;
+    puffs.push({ sprite: sp, phase: i / N + seed * 0.1, speed: 0.12 + seed * 0.05, sway: 1.1 + seed * 0.7 });
+  }
+  // A short, tight, pale column — overrides the chimney defaults in the main.js plume tick.
+  plumes.push({ mouthX: x, mouthY: y, mouthZ: z, puffs, rise: 0.62, driftBase: 0.02, driftGain: 0.1, scaleBase: 0.1, scaleGain: 0.22, maxOpacity: 0.5 });
+}
+
 function box(w, h, d, color, opts = {}) {
   const mat = new THREE.MeshStandardMaterial({
     color,
@@ -2665,45 +2688,16 @@ export function buildWorld(scene) {
     billboards.push(plume); // main.js turns it to face the camera each frame
   }
 
-  // ── Steam off the noodle pot (Batch 69): Mei's stall (built mid-street, far above) has
-  // carried a "steaming noodle bowl" on the counter since Batch 17, but the bowl never
-  // actually steamed. This hangs that steam — a soft pale-white wisp rising and curling off
-  // the hot pot, the Batch-49 luminance-alpha plume idiom (RGBA, alpha = brightness, so the
-  // vapour stays truly soft) scaled down to a kitchen wisp and billboarded so its shape
-  // always reads. (Lives down here, with the other plumes, because `billboards` is only
-  // declared after the stall is built.) The noodle bowl sits at stall-local (0.55,1.2,0.42)
-  // → world (−4.45, ~1.5 top, 4.42); the wisp's base sits at the bowl and rises. Unlike the
-  // rooftop woodsmoke (high in the empty sky, depthTest OFF so it draws over the far sky
-  // dome), this is at COUNTER height in the thick of the scene, so depthTest stays ON and
-  // depthWrite OFF — props and people standing in front of the stall correctly occlude it.
-  // Subtle emissive carries the pale vapour across the whole day cycle without glowing. A
-  // living touch on the harbour's heart, by day and night.
-  {
-    const steamMap = _texLoader.load(`${FX_DIR}FX_Smoke_NoodleSteam.png`);
-    steamMap.colorSpace = THREE.SRGBColorSpace;
-    steamMap.anisotropy = 8;
-    const steamMat = new THREE.MeshStandardMaterial({
-      map: steamMap,
-      transparent: true,
-      opacity: 0.78, // faint kitchen vapour, not a solid sheet
-      depthWrite: false, // true vapour — nothing reads its depth
-      depthTest: true, // at counter height: props/people in front occlude it
-      side: THREE.DoubleSide,
-      roughness: 1,
-      metalness: 0,
-      emissive: 0xffffff,
-      emissiveMap: steamMap,
-      emissiveIntensity: 0.7, // carries the pale wisp day → night without glowing
-    });
-    const steamH = 1.5;
-    const steam = new THREE.Mesh(new THREE.PlaneGeometry(0.85, steamH), steamMat);
-    // bowl world position (stall at −5,0,4 + local 0.55,1.2,0.42); base of the wisp at the
-    // bowl top (~1.5), so the plane centre is half its height above that.
-    steam.position.set(-5 + 0.55, 1.5 + steamH / 2, 4 + 0.42);
-    steam.renderOrder = 3;
-    scene.add(steam);
-    billboards.push(steam); // main.js turns the wisp to face the camera each frame
-  }
+  // ── Steam off the noodle bowl (spr-042, was Batch 69): Mei's bowl is REAL geometry now
+  // (spr-041) and it should breathe like it's hot. The old steam was a single flat
+  // FX_Smoke_NoodleSteam billboard hung at a fixed height above the (then flat) bowl — a
+  // faced picture of vapour. This replaces it with real volumetric steam: soft sprite
+  // puffs rising and curling off the actual bowl, on the SAME shared plume system as the
+  // rooftop chimney smoke (addBowlSteam pushes a small-scale plume to `smokePlumes`, ticked
+  // in main.js). The mouth sits just above the noodle dome — bowl at stall-local (0.55,0.9,
+  // 0.42) → world (−4.45, dome apex ~1.05, 4.42). Vapour you can walk around, lit by the
+  // day cycle, occluded correctly by props/people in front (sprites keep depthTest on).
+  addBowlSteam(scene, -5 + 0.55, 1.05, 4 + 0.42, smokePlumes);
 
   // ── The working cargo of the port (Batch 50): the quay is dressed for life — a cat, a
   // dog, pigeons, washing, planters — far more than for work. There are crates and sacks

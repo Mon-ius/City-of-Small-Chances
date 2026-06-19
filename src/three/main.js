@@ -281,16 +281,19 @@ function start() {
     // Smoke rises from the homes' chimneys (spr-021): each puff loops a lifecycle
     // — rise, widen, drift on the wind, fade in then out. The puffs in a plume are
     // phase-staggered, so the column always carries smoke at every height. Sprites
-    // self-billboard, so no facing math here.
+    // self-billboard, so no facing math here. The same tick also drives Mei's bowl
+    // STEAM (spr-042): a plume may carry its own column tuning (rise/drift/scale/
+    // opacity); absent fields fall back to the chimney defaults, so the rooftop
+    // smoke is byte-identical while the steam rides a short, tight, pale wisp.
     smokeClock += dt;
     for (const pl of world.smokePlumes) {
       for (const pf of pl.puffs) {
         let lt = (smokeClock * pf.speed + pf.phase) % 1; if (lt < 0) lt += 1;
-        pf.sprite.position.y = pl.mouthY + lt * 3.4;                               // rise
-        pf.sprite.position.x = pl.mouthX + Math.sin((smokeClock + pf.phase * 10) * pf.sway) * (0.15 + lt * 0.6); // drift, widening
-        const s = 0.4 + lt * 1.5;                                                  // grow as it thins
+        pf.sprite.position.y = pl.mouthY + lt * (pl.rise ?? 3.4);                  // rise
+        pf.sprite.position.x = pl.mouthX + Math.sin((smokeClock + pf.phase * 10) * pf.sway) * ((pl.driftBase ?? 0.15) + lt * (pl.driftGain ?? 0.6)); // drift, widening
+        const s = (pl.scaleBase ?? 0.4) + lt * (pl.scaleGain ?? 1.5);             // grow as it thins
         pf.sprite.scale.set(s, s, s);
-        pf.sprite.material.opacity = Math.sin(lt * Math.PI) * 0.42;                // fade in then out
+        pf.sprite.material.opacity = Math.sin(lt * Math.PI) * (pl.maxOpacity ?? 0.42); // fade in then out
       }
     }
 
