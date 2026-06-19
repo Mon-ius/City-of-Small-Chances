@@ -1283,6 +1283,73 @@ function buildHangingWares(x, y, z, facing = 0) {
   return { root };
 }
 
+// ── Mei's cooking gear (spr-045) — REAL geometry (a seasoned iron wok, a steel
+// ladle resting in it, and a pair of chopsticks laid across the rim) rather than a
+// flat painted cutout. Replaces the PROP_Kit_Utensils cutout. The wok is a shallow
+// bottom-hemisphere shell (DoubleSide so the inside reads), lifted so its base rests
+// on the counter top; two little ear-loops sit at the front/back lip. Self-contained
+// own materials; deterministic layout (no Math.random). Footprint kept to ±0.15 in x
+// so it tucks between the counter's left edge and the fruit basket beside it.
+function buildUtensils(x, y, z, facing = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, y, z);
+  root.rotation.y = facing;
+
+  const iron = new THREE.MeshStandardMaterial({ color: 0x2c2823, roughness: 0.45, metalness: 0.55, side: THREE.DoubleSide });
+  const ironRim = new THREE.MeshStandardMaterial({ color: 0x1f1c19, roughness: 0.5, metalness: 0.55 });
+  const steel = new THREE.MeshStandardMaterial({ color: 0x9398a0, roughness: 0.35, metalness: 0.7 });
+  const wood = new THREE.MeshStandardMaterial({ color: 0x9a6f3a, roughness: 0.7, metalness: 0 });
+  const oil = new THREE.MeshStandardMaterial({ color: 0x6b4a1f, roughness: 0.25, metalness: 0.1 });
+
+  const R = 0.14, wokScaleY = 0.6, wokLift = R * wokScaleY;  // base rests on the counter (y0), rim at +wokLift
+
+  // The wok: lower hemisphere of a sphere, squashed flat into a shallow bowl.
+  const wok = new THREE.Group();
+  wok.position.y = wokLift;
+  const shell = new THREE.Mesh(new THREE.SphereGeometry(R, 20, 12, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), iron);
+  shell.scale.set(1, wokScaleY, 1); shell.castShadow = true; shell.receiveShadow = true; wok.add(shell);
+  // A rolled rim around the lip.
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(R - 0.006, 0.008, 8, 28), ironRim);
+  rim.rotation.x = Math.PI / 2; wok.add(rim);
+  // A sheen of oil pooled in the bottom.
+  const sheen = new THREE.Mesh(new THREE.CircleGeometry(R * 0.66, 22), oil);
+  sheen.rotation.x = -Math.PI / 2; sheen.position.y = -wokLift * 0.45; wok.add(sheen);
+  // Two ear-loop handles at the front and back of the lip.
+  for (const ez of [R, -R]) {
+    const ear = new THREE.Mesh(new THREE.TorusGeometry(0.018, 0.005, 6, 12), ironRim);
+    ear.position.set(0, 0, ez); ear.castShadow = true; wok.add(ear);
+  }
+  root.add(wok);
+
+  // A steel ladle resting in the wok, its handle leaning up and out toward the cook.
+  const lad = new THREE.Group();
+  lad.position.set(-0.02, 0, 0);
+  const scoop = new THREE.Mesh(new THREE.SphereGeometry(0.035, 12, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), steel);
+  scoop.scale.set(1, 0.7, 1); scoop.position.set(0, 0.035, -0.02); scoop.castShadow = true; lad.add(scoop);
+  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.24, 6), wood);
+  handle.rotation.x = 1.0;                       // lean the handle up and toward +z
+  handle.position.set(0, 0.105, 0.075); handle.castShadow = true; lad.add(handle);
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.011, 8, 6), wood);
+  knob.position.set(0, 0.17, 0.165); lad.add(knob);   // little end-cap where you grip
+  root.add(lad);
+
+  // A pair of chopsticks laid across the rim, poking out toward the customer.
+  const stickMat = new THREE.MeshStandardMaterial({ color: 0x8a5f30, roughness: 0.7, metalness: 0 });
+  const stick = (off) => {
+    const g = new THREE.Group();
+    g.position.set(0.0, wokLift + 0.012, off);
+    g.rotation.y = 0.3;    // angled across the rim in plan
+    g.rotation.z = 0.05;   // a slight tilt so it rests on the lip
+    const s = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.008, 0.3, 6), stickMat);
+    s.rotation.z = Math.PI / 2;   // lay along local x
+    s.castShadow = true; g.add(s);
+    root.add(g);
+  };
+  stick(0.05); stick(0.018);
+
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -1632,9 +1699,6 @@ export function buildWorld(scene) {
   // Lightly self-lit so they read after dark.
   const stallGoods = [
     // [file, w, h, [x, y, z], emissive]
-    // Mei's cooking gear (Batch 20, closing spr-006): a seasoned wok + ladle +
-    // chopsticks at the left of the counter, where she works the bowls.
-    ["PROP_Kit_Utensils", 0.64, 0.537, [-1.3, 1.2, 0.42], 0.12],
     ["PROP_Market_Crate", 0.84, 0.54, [-2.3, 0.31, 0.4], 0.06],
   ];
   for (const [file, w, h, [x, y, z], emissive] of stallGoods) {
@@ -1646,6 +1710,7 @@ export function buildWorld(scene) {
   // longer flat cutouts. Added to the stall group so they inherit its place; each base sits
   // where the cutout's base sat (heaped baskets on counter/ground, the sacks slumped beside it).
   stall.add(buildHangingWares(0.95, 1.74, 0.55).root);                   // dried wares hung under the awning
+  stall.add(buildUtensils(-1.146, 0.9, 0.42, -0.1).root);                // Mei's wok + ladle + chopsticks, counter-left
   stall.add(buildNoodleBowl(0.55, 0.9, 0.42, -0.15).root);               // Mei's bowl, up on the counter top
   stall.add(buildProduceBasket(-0.6, 0.9, 0.42, 0.83, "fruit").root);     // up on the counter top
   stall.add(buildProduceBasket(-1.95, 0.0, 1.2, 0.78, "veg").root);       // on the ground beside the stall
