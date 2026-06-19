@@ -1053,6 +1053,47 @@ function buildProduceBasket(x, y, z, width = 0.8, kind = "fruit") {
   return { root };
 }
 
+// ── A stack of grain sacks slumped beside the stall — REAL plump burlap (two fat sacks
+// lying on their sides under a third sitting upright with a gathered, corded neck) rather
+// than a flat painted cutout. Replaces the PROP_Market_Sacks cutout. The root sits on the
+// ground and builds upward; facing rotates the pile. Static — sacks don't move (no tick).
+function buildSackStack(x, y, z, facing = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, y, z);
+  root.rotation.y = facing;
+  const burlapA = new THREE.MeshStandardMaterial({ color: 0xc9b186, roughness: 0.97, metalness: 0 }); // oatmeal
+  const burlapB = new THREE.MeshStandardMaterial({ color: 0xb7a06f, roughness: 0.97, metalness: 0 }); // a shade darker
+  const tieMat = new THREE.MeshStandardMaterial({ color: 0x8a7245, roughness: 0.9, metalness: 0 });   // cord
+
+  // Two plump sacks lying on their sides — capsules squashed a touch as if settled.
+  const lying = (mat, px, pz, len, r, tilt) => {
+    const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 6, 14), mat);
+    m.rotation.z = Math.PI / 2;          // lie along x
+    m.rotation.y = tilt;                 // a slight skew so they don't read machined
+    m.scale.set(1, 1, 0.82);             // settled under their own weight
+    m.position.set(px, r, pz);
+    m.castShadow = true; root.add(m);
+  };
+  lying(burlapA, 0.0, 0.17, 0.42, 0.18, 0.12);
+  lying(burlapB, 0.04, -0.17, 0.44, 0.185, -0.14);
+
+  // A third sack sitting upright on top, its neck gathered, folded over and corded.
+  const top = new THREE.Group();
+  top.position.set(-0.02, 0.34, 0.0);
+  top.rotation.z = 0.08;                  // a soft slump
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.18, 14, 12), burlapA);
+  body.scale.set(0.95, 1.15, 0.9); body.castShadow = true; top.add(body);
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.1, 0.1, 10), burlapB);
+  neck.position.y = 0.21; top.add(neck);
+  const fold = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), burlapB);
+  fold.scale.set(1.35, 0.7, 1.35); fold.position.y = 0.27; top.add(fold);   // the cinched-over mouth
+  const tie = new THREE.Mesh(new THREE.TorusGeometry(0.058, 0.014, 6, 14), tieMat);
+  tie.rotation.x = Math.PI / 2; tie.position.y = 0.2; top.add(tie);          // cord round the neck
+  root.add(top);
+
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -1396,11 +1437,11 @@ export function buildWorld(scene) {
   stall.add(stallSign);
 
   // Mei's wares (Batch 17): market goods dressing the stall — a steaming noodle bowl up
-  // on the counter, a string of dried wares hung under the awning, and a sack stack +
-  // restock crate on the ground beside it. These stay flat alpha cutouts sized to their
-  // PNG aspect, added to the stall group so they inherit its place and face +z toward the
-  // customer; her two PRODUCE BASKETS are now real woven baskets (spr-039, below). Lightly
-  // self-lit so the goods read after dark.
+  // on the counter, a string of dried wares hung under the awning, and a restock crate on
+  // the ground beside it. These stay flat alpha cutouts sized to their PNG aspect, added to
+  // the stall group so they inherit its place and face +z toward the customer; her two
+  // PRODUCE BASKETS (spr-039) and her SACK STACK (spr-040) are now real geometry, below.
+  // Lightly self-lit so the goods read after dark.
   const stallGoods = [
     // [file, w, h, [x, y, z], emissive]
     ["PROP_Food_NoodleBowl", 0.62, 0.625, [0.55, 1.2, 0.42], 0.18],
@@ -1408,7 +1449,6 @@ export function buildWorld(scene) {
     // Mei's cooking gear (Batch 20, closing spr-006): a seasoned wok + ladle +
     // chopsticks at the left of the counter, where she works the bowls.
     ["PROP_Kit_Utensils", 0.64, 0.537, [-1.3, 1.2, 0.42], 0.12],
-    ["PROP_Market_Sacks", 0.97, 0.48, [1.8, 0.29, 1.2], 0.05],
     ["PROP_Market_Crate", 0.84, 0.54, [-2.3, 0.31, 0.4], 0.06],
   ];
   for (const [file, w, h, [x, y, z], emissive] of stallGoods) {
@@ -1416,11 +1456,12 @@ export function buildWorld(scene) {
     good.position.set(x, y, z);
     stall.add(good);
   }
-  // Mei's two produce baskets, now REAL woven baskets heaped with fruit/veg (spr-039) — no
+  // Mei's produce baskets (spr-039) and grain-sack stack (spr-040), now REAL geometry — no
   // longer flat cutouts. Added to the stall group so they inherit its place; each base sits
-  // where the cutout's base sat (a heaped basket on the counter, one on the ground beside it).
+  // where the cutout's base sat (heaped baskets on counter/ground, the sacks slumped beside it).
   stall.add(buildProduceBasket(-0.6, 0.9, 0.42, 0.83, "fruit").root);     // up on the counter top
   stall.add(buildProduceBasket(-1.95, 0.0, 1.2, 0.78, "veg").root);       // on the ground beside the stall
+  stall.add(buildSackStack(1.8, 0.0, 1.2).root);                          // grain sacks slumped on the ground
   scene.add(stall);
 
   // ── A few barrels by the stall: painted barrel-stave wrap (Batch 11) bound with
