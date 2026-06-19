@@ -1628,6 +1628,68 @@ function buildShopWindow(x, y, z, facing = 0) {
   return { root };
 }
 
+// ── A shopfront door (spr-051) — REAL geometry (a painted casing + lintel proud of the wall, a
+// recessed jamb reveal, a ledged-and-braced plank slab set back in the opening, a brass handle on a
+// backplate, and a stone threshold step) rather than a flat billboard cutout. Replaces
+// PROP_Shop_Door. The root sits flush on the wall front (x≈8.95); after the caller's FACADE yaw
+// (−π/2) local +z → world −x (OUT toward the street), so the casing is proud at local +z while the
+// slab is recessed at local −z (back into the wall thickness). Self-contained own materials.
+function buildShopDoor(x, y, z, facing = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, y, z);
+  root.rotation.y = facing;
+
+  const doorMat = new THREE.MeshStandardMaterial({ color: 0x2e4636, roughness: 0.7, metalness: 0 });   // painted green planks
+  const railMat = new THREE.MeshStandardMaterial({ color: 0x24382b, roughness: 0.7, metalness: 0 });   // ledges/braces
+  const casingMat = new THREE.MeshStandardMaterial({ color: 0x8a7f6a, roughness: 0.85, metalness: 0 }); // painted stone trim
+  const jambMat = new THREE.MeshStandardMaterial({ color: 0x3a342b, roughness: 0.95, metalness: 0 });   // shadowed reveal
+  const brass = new THREE.MeshStandardMaterial({ color: 0xb5912f, roughness: 0.3, metalness: 0.7 });
+  const stepMat = new THREE.MeshStandardMaterial({ color: 0x877c6b, roughness: 0.95, metalness: 0 });
+
+  const W = 1.09, H = 2.30, hw = W / 2, hh = H / 2;
+  const proud = 0.04, recess = -0.10;               // casing stands out (local +z), slab sits back (local −z)
+
+  // Casing — two pilasters and a lintel, proud of the wall.
+  const lintel = new THREE.Mesh(new THREE.BoxGeometry(W + 0.20, 0.13, 0.10), casingMat);
+  lintel.position.set(0, hh + 0.065, proud); lintel.castShadow = true; root.add(lintel);
+  for (const sx of [-1, 1]) {
+    const pil = new THREE.Mesh(new THREE.BoxGeometry(0.12, H + 0.13, 0.10), casingMat);
+    pil.position.set(sx * (hw + 0.06), 0, proud); pil.castShadow = true; root.add(pil);
+  }
+
+  // Recessed jamb reveals — thin panels bridging the wall face to the set-back slab.
+  for (const sx of [-1, 1]) {
+    const rev = new THREE.Mesh(new THREE.BoxGeometry(0.02, H, 0.16), jambMat);
+    rev.position.set(sx * hw, 0, (proud + recess) / 2); root.add(rev);
+  }
+  const topRev = new THREE.Mesh(new THREE.BoxGeometry(W, 0.02, 0.16), jambMat);
+  topRev.position.set(0, hh, (proud + recess) / 2); root.add(topRev);
+
+  // Ledged plank slab, set back in the opening — N vertical boards.
+  const N = 4, pw = (W - 0.04) / N;
+  for (let i = 0; i < N; i++) {
+    const plank = new THREE.Mesh(new THREE.BoxGeometry(pw * 0.96, H - 0.05, 0.04), doorMat);
+    plank.position.set((i - (N - 1) / 2) * pw, 0, recess); plank.castShadow = true; root.add(plank);
+  }
+  // Three ledges (top/middle/bottom) battened proud of the planks.
+  for (const ly of [hh - 0.22, 0, -hh + 0.22]) {
+    const ledge = new THREE.Mesh(new THREE.BoxGeometry(W - 0.06, 0.11, 0.04), railMat);
+    ledge.position.set(0, ly, recess + 0.04); root.add(ledge);
+  }
+
+  // Brass handle on a backplate, proud of the slab toward the street.
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.22, 0.02), brass);
+  plate.position.set(hw - 0.16, -0.06, recess + 0.06); root.add(plate);
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 10), brass);
+  knob.position.set(hw - 0.16, -0.06, recess + 0.10); root.add(knob);
+
+  // Stone threshold step at the base, proud underfoot.
+  const step = new THREE.Mesh(new THREE.BoxGeometry(W + 0.10, 0.06, 0.20), stepMat);
+  step.position.set(0, -hh + 0.0, 0.06); step.castShadow = true; step.receiveShadow = true; root.add(step);
+
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -2441,16 +2503,15 @@ export function buildWorld(scene) {
   // door sits flush at x8.95, the lantern a touch proud at x8.7, the crates out on
   // the deck at x8.0 — all clear of the walkable bounds (maxX 6.5).
   const shopDoors = [
-    // [x, y, z] — Door 242×512 (h2.3, w1.09), base on deck (y = h/2), facing −x.
+    // [x, y, z] — w1.09×h2.3 slab centred at y1.15 (base on the deck), flush on the wall front
+    // (x8.95), facing −x. Now REAL geometry (spr-051, buildShopDoor) rather than the old
+    // PROP_Shop_Door cutout — a recessed, ledged plank door in a proud painted casing.
     [8.95, 1.15, 2.25], // Tavern
     [8.95, 1.15, -7.5], // Chandlery
     [8.95, 1.15, 21.5], // HarbourGate
   ];
   for (const [x, y, z] of shopDoors) {
-    const door = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Shop_Door.png`, 1.09, 2.3, { emissive: 0.12, alphaTest: 0.4 });
-    door.position.set(x, y, z);
-    door.rotation.y = FACADE;
-    scene.add(door);
+    scene.add(buildShopDoor(x, y, z, FACADE).root);
   }
   const shopLanterns = [
     // [x, y, z] — Lantern 197×512 (h0.95, w0.37), mounted beside each door, amber glass
