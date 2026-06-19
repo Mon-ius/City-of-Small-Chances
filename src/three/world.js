@@ -1350,6 +1350,65 @@ function buildUtensils(x, y, z, facing = 0) {
   return { root };
 }
 
+// ── A market crate of packed goods beside the stall (spr-046) — REAL geometry (a slatted,
+// open-topped wooden crate: four corner posts + horizontal slats with gaps, holding three
+// twine-tied paper parcels, one poking above the rim) rather than a flat painted cutout.
+// Replaces PROP_Market_Crate — the LAST faced-picture good on Mei's stall. The root sits on
+// the ground and builds upward; facing rotates the crate. Self-contained own materials;
+// deterministic layout (no Math.random); open-topped so the parcels read from above.
+function buildMarketCrate(x, y, z, facing = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, y, z);
+  root.rotation.y = facing;
+
+  const slatMat = new THREE.MeshStandardMaterial({ color: 0x7a5733, roughness: 0.85, metalness: 0 });
+  const postMat = new THREE.MeshStandardMaterial({ color: 0x5f4427, roughness: 0.9, metalness: 0 });
+  const paperMat = new THREE.MeshStandardMaterial({ color: 0xcabf9e, roughness: 0.9, metalness: 0 });
+  const twineMat = new THREE.MeshStandardMaterial({ color: 0x6b5a3f, roughness: 1, metalness: 0 });
+
+  const hw = 0.26, hd = 0.22, H = 0.40, post = 0.04;   // half-width(x), half-depth(z), height
+
+  // Four corner posts.
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const p = new THREE.Mesh(new THREE.BoxGeometry(post, H, post), postMat);
+    p.position.set(sx * hw, H / 2, sz * hd); p.castShadow = true; root.add(p);
+  }
+  // A solid floor so you don't see through the crate from above.
+  const floor = new THREE.Mesh(new THREE.BoxGeometry(hw * 2, 0.03, hd * 2), slatMat);
+  floor.position.y = 0.015; floor.receiveShadow = true; root.add(floor);
+
+  // Horizontal slats on all four sides at three heights, gaps between (it reads as boards).
+  const slatH = 0.085, slatT = 0.022;
+  for (const sy of [0.07, 0.20, 0.33]) {
+    for (const sz of [-1, 1]) {                     // front & back (span x)
+      const s = new THREE.Mesh(new THREE.BoxGeometry(hw * 2 + post, slatH, slatT), slatMat);
+      s.position.set(0, sy, sz * hd); s.castShadow = true; root.add(s);
+    }
+    for (const sx of [-1, 1]) {                     // left & right (span z)
+      const s = new THREE.Mesh(new THREE.BoxGeometry(slatT, slatH, hd * 2 + post), slatMat);
+      s.position.set(sx * hw, sy, 0); s.castShadow = true; root.add(s);
+    }
+  }
+
+  // Three twine-tied paper parcels packed inside; the top one pokes above the rim.
+  const parcel = (px, pz, w, ph, d, ry, lift) => {
+    const g = new THREE.Group();
+    g.position.set(px, lift + ph / 2, pz); g.rotation.y = ry;
+    const box = new THREE.Mesh(new THREE.BoxGeometry(w, ph, d), paperMat);
+    box.castShadow = true; g.add(box);
+    const b1 = new THREE.Mesh(new THREE.BoxGeometry(w + 0.006, 0.012, 0.012), twineMat);
+    b1.position.y = ph / 2; g.add(b1);             // twine band across the top, along x
+    const b2 = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.012, d + 0.006), twineMat);
+    b2.position.y = ph / 2; g.add(b2);             // …and along z, crossing it
+    root.add(g);
+  };
+  parcel(-0.09, -0.02, 0.20, 0.22, 0.17, 0.18, 0.03);   // low-left
+  parcel(0.10, 0.06, 0.17, 0.20, 0.15, -0.30, 0.03);    // low-right
+  parcel(0.0, -0.02, 0.17, 0.18, 0.15, 0.50, 0.26);     // stacked on top, poking above the rim
+
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -1692,29 +1751,18 @@ export function buildWorld(scene) {
   stallSign.position.set(0, 1.32, 0.96);
   stall.add(stallSign);
 
-  // Mei's wares (Batch 17): market goods dressing the stall. These remaining two stay flat
-  // alpha cutouts sized to their PNG aspect, added to the stall group so they inherit its
-  // place and face +z toward the customer; her HANGING WARES (spr-044), NOODLE BOWL (spr-041),
-  // two PRODUCE BASKETS (spr-039) and SACK STACK (spr-040) are now real geometry, below.
-  // Lightly self-lit so they read after dark.
-  const stallGoods = [
-    // [file, w, h, [x, y, z], emissive]
-    ["PROP_Market_Crate", 0.84, 0.54, [-2.3, 0.31, 0.4], 0.06],
-  ];
-  for (const [file, w, h, [x, y, z], emissive] of stallGoods) {
-    const good = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive });
-    good.position.set(x, y, z);
-    stall.add(good);
-  }
-  // Mei's produce baskets (spr-039) and grain-sack stack (spr-040), now REAL geometry — no
-  // longer flat cutouts. Added to the stall group so they inherit its place; each base sits
-  // where the cutout's base sat (heaped baskets on counter/ground, the sacks slumped beside it).
+  // Mei's wares: market goods dressing the stall, EVERY one now REAL geometry — the flat alpha
+  // cutouts are gone. Each is added to the stall group so it inherits the stall's place and
+  // sits where its cutout's base sat: HANGING WARES (spr-044), WOK + utensils (spr-045),
+  // NOODLE BOWL (spr-041), two PRODUCE BASKETS (spr-039), SACK STACK (spr-040), and the
+  // MARKET CRATE (spr-046) — the last faced-picture good converted.
   stall.add(buildHangingWares(0.95, 1.74, 0.55).root);                   // dried wares hung under the awning
   stall.add(buildUtensils(-1.146, 0.9, 0.42, -0.1).root);                // Mei's wok + ladle + chopsticks, counter-left
   stall.add(buildNoodleBowl(0.55, 0.9, 0.42, -0.15).root);               // Mei's bowl, up on the counter top
   stall.add(buildProduceBasket(-0.6, 0.9, 0.42, 0.83, "fruit").root);     // up on the counter top
   stall.add(buildProduceBasket(-1.95, 0.0, 1.2, 0.78, "veg").root);       // on the ground beside the stall
   stall.add(buildSackStack(1.8, 0.0, 1.2).root);                          // grain sacks slumped on the ground
+  stall.add(buildMarketCrate(-2.3, 0.0, 0.4, 0.12).root);                 // a crate of parcels on the ground, stall-left
   scene.add(stall);
 
   // ── A few barrels by the stall: painted barrel-stave wrap (Batch 11) bound with
