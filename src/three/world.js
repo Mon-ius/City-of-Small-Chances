@@ -2293,6 +2293,66 @@ function buildTimberStack(x, z, yaw = 0) {
   return { root };
 }
 
+// ── A quayside bench (spr-059): a slatted timber seat & back carried on two cast-iron
+// ends — front leg, taller back leg, and a seat-frame rail. Built along local x, root
+// at the ground; replaces the flat PROP_Quay_Bench cutout.
+function buildBench(x, z, yaw = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, 0, z);
+  root.rotation.y = yaw;
+  const wood = new THREE.MeshStandardMaterial({ color: 0x7a5d38, roughness: 0.82 });
+  const iron = new THREE.MeshStandardMaterial({ color: 0x2c2a26, roughness: 0.5, metalness: 0.45 });
+  const add = (g, m, px, py, pz, rx = 0) => {
+    const o = new THREE.Mesh(g, m);
+    o.position.set(px, py, pz);
+    o.rotation.x = rx;
+    o.castShadow = true; o.receiveShadow = true; root.add(o); return o;
+  };
+  const L = 1.5, D = 0.42, sh = 0.44;
+  for (const ex of [-(L / 2 - 0.06), L / 2 - 0.06]) {
+    add(new THREE.BoxGeometry(0.05, sh, 0.05), iron, ex, sh / 2, D / 2 - 0.06);                 // front leg
+    add(new THREE.BoxGeometry(0.05, sh + 0.38, 0.05), iron, ex, (sh + 0.38) / 2, -(D / 2 - 0.06)); // back leg, rises to the backrest
+    add(new THREE.BoxGeometry(0.05, 0.05, D), iron, ex, sh, 0);                                  // seat-frame rail
+  }
+  for (const sz of [-0.13, 0, 0.13]) add(new THREE.BoxGeometry(L, 0.04, 0.11), wood, 0, sh + 0.03, sz); // slatted seat
+  add(new THREE.BoxGeometry(L, 0.08, 0.03), wood, 0, sh + 0.22, -(D / 2 - 0.04), -0.12);        // backrest slat, lower
+  add(new THREE.BoxGeometry(L, 0.08, 0.03), wood, 0, sh + 0.38, -(D / 2 - 0.02), -0.12);        // backrest slat, upper
+  return { root };
+}
+
+// ── A parish standpipe pump (spr-059): a tapered cast-iron shaft on a plinth, a boxed
+// pump-head with a domed finial, a brass spout drooping forward and a long lever handle
+// raked up the back. Spout & handle oriented via a local spar() helper; replaces the
+// flat PROP_Quay_Pump cutout.
+function buildPump(x, z, yaw = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, 0, z);
+  root.rotation.y = yaw;
+  const iron = new THREE.MeshStandardMaterial({ color: 0x30332e, roughness: 0.5, metalness: 0.42 });
+  const brass = new THREE.MeshStandardMaterial({ color: 0x8a6f33, roughness: 0.4, metalness: 0.6 });
+  const add = (g, m, px, py, pz, rx = 0, ry = 0, rz = 0) => {
+    const o = new THREE.Mesh(g, m);
+    o.position.set(px, py, pz);
+    o.rotation.set(rx, ry, rz);
+    o.castShadow = true; root.add(o); return o;
+  };
+  const spar = (ax, ay, az, bx, by, bz, r, m) => {
+    const a = new THREE.Vector3(ax, ay, az), dir = new THREE.Vector3(bx - ax, by - ay, bz - az), len = dir.length();
+    const o = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 8), m);
+    o.position.copy(a).addScaledVector(dir, 0.5);
+    o.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+    o.castShadow = true; root.add(o); return o;
+  };
+  add(new THREE.BoxGeometry(0.26, 0.12, 0.26), iron, 0, 0.06, 0);            // plinth
+  add(new THREE.CylinderGeometry(0.065, 0.09, 0.86, 12), iron, 0, 0.55, 0);  // tapered shaft (0.12..0.98)
+  add(new THREE.BoxGeometry(0.17, 0.26, 0.17), iron, 0, 1.05, 0);            // pump-head casing (0.92..1.18)
+  add(new THREE.SphereGeometry(0.075, 12, 10), iron, 0, 1.22, 0);            // domed finial
+  spar(0, 0.98, 0.07, 0, 0.84, 0.34, 0.04, brass);                          // spout, drooping forward
+  spar(0, 1.06, -0.07, 0, 1.2, -0.44, 0.028, iron);                         // handle lever, raked up the back
+  add(new THREE.CylinderGeometry(0.02, 0.02, 0.12, 8), iron, 0, 1.06, -0.06, 0, 0, Math.PI / 2); // handle pivot pin
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -3772,29 +3832,33 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
-  // ── Quayside comforts for the people who work it (Batch 51): the stones are now
-  // dressed for cargo, for nature and for gear, but there is nothing on the quay for
-  // the labourers themselves — nowhere to rest a back, no water to drink, no fire to
-  // warm cold hands. Three painted cutouts answer that: a slatted timber bench with
-  // cast-iron ends set on the building kerb and again along the water-side promenade, a
-  // black cast-iron parish pump at the south kerb, and a dockers' coal brazier out on
-  // the open quay. Same GROUND-PLANTED camera-facing-billboard idiom as the cargo and
-  // animals, each on a soft contact-shadow blob; placed in the long gaps clear of the
-  // cargo (water-side z −24/−4/30, the building barrow at z 6). The brazier alone gets a
-  // strong emissive (0.6) — cutoutPlane self-illuminates by the sprite's own albedo, so
-  // the glowing coals burn warm against the dark iron and read brighter as the day dims.
+  // ── Quayside comforts for the people who work it (Batch 51; made solid spr-059): the
+  // stones are dressed for cargo, nature and gear, but there is something for the
+  // labourers themselves — a back to rest, water to drink, a fire to warm cold hands. A
+  // slatted timber bench on cast-iron ends sits on the building kerb and again along the
+  // water-side promenade, a black cast-iron parish pump stands at the south kerb, and a
+  // dockers' coal brazier burns out on the open quay. The bench & pump are now REAL
+  // geometry (buildBench/buildPump above); the brazier ALONE stays a ground-planted
+  // camera-facing billboard, because its strong emissive (0.6) coals are wired to the
+  // Batch-64 firelight glow/halo FX below. Each still rests on a soft contact-shadow blob.
   const comforts = [
-    // [file, w, h, x, z, shadowR, emissive]
-    ["PROP_Quay_Bench", 1.5, 0.8, 6.5, -16, 0.72, 0.18], // a bench by the shopfronts, a tired back's rest
-    ["PROP_Quay_Bench", 1.42, 0.76, -9.7, 20, 0.68, 0.18], // a second bench along the water-side promenade
-    ["PROP_Quay_Pump", 0.7, 1.5, 6.7, -28, 0.32, 0.18], // a parish standpipe at the south kerb
-    ["PROP_Quay_Brazier", 0.94, 1.0, -9.8, 14, 0.46, 0.6], // a dockers' brazier on the open quay, coals aglow
+    // [kind, x, z, shadowR, yaw] — bench & pump now REAL geometry (spr-059); the brazier
+    // alone stays a camera-facing billboard so its Batch-64 firelight glow/halo FX hold.
+    ["bench", 6.5, -16, 0.72, -Math.PI / 2], // a bench by the shopfronts, back to the building, facing the quay
+    ["bench", -9.7, 20, 0.68, Math.PI / 2],  // a second bench along the water-side promenade
+    ["pump", 6.7, -28, 0.32, -Math.PI / 2],  // a parish standpipe at the south kerb, spout to the open quay
+    ["brazier", -9.8, 14, 0.46, 0],          // a dockers' brazier on the open quay, coals aglow — KEPT billboard
   ];
-  for (const [file, w, h, x, z, shadowR, emissive] of comforts) {
-    const item = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive, alphaTest: 0.4 });
-    item.position.set(x, h / 2, z);
-    scene.add(item);
-    billboards.push(item); // main.js turns it to face the camera each frame
+  for (const [kind, x, z, shadowR, yaw] of comforts) {
+    if (kind === "brazier") {
+      const item = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Quay_Brazier.png`, 0.94, 1.0, { emissive: 0.6, alphaTest: 0.4 });
+      item.position.set(x, 0.5, z);
+      scene.add(item);
+      billboards.push(item); // main.js turns it to face the camera each frame
+    } else {
+      const built = kind === "bench" ? buildBench(x, z, yaw) : buildPump(x, z, yaw);
+      scene.add(built.root);
+    }
 
     const blob = new THREE.Mesh(
       new THREE.CircleGeometry(shadowR, 16),
