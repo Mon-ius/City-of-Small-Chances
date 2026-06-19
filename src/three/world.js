@@ -1005,6 +1005,54 @@ function buildFishingNet(x, z, facing = 0) {
   return { root };
 }
 
+// ── A market basket heaped with produce — a REAL woven basket (a tapered wicker wall
+// banded with hoops over a base disc) mounded with round fruit or knobbly veg, rather
+// than a flat painted cutout. Replaces the PROP_Market_BasketFruit / BasketVeg cutouts
+// on Mei's stall. `kind` "fruit" (round, warm colours) | "veg" (elongated greens). The
+// heap is a deterministic ring + crown (no Math.random). Radially symmetric, so it
+// ignores the stall's yaw; the root sits at the basket's BASE and builds upward.
+function buildProduceBasket(x, y, z, width = 0.8, kind = "fruit") {
+  const root = new THREE.Group();
+  root.position.set(x, y, z);
+
+  const wicker = new THREE.MeshStandardMaterial({ color: 0xb0894f, roughness: 0.85, metalness: 0, side: THREE.DoubleSide });
+  const band = new THREE.MeshStandardMaterial({ color: 0x7c5e32, roughness: 0.9, metalness: 0 });
+  const rTop = width * 0.45, rBot = width * 0.36, hB = width * 0.42;   // a shallow, slightly flared market basket
+
+  const wall = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBot, hB, 18, 1, true), wicker);
+  wall.position.y = hB / 2; wall.castShadow = true; root.add(wall);
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(rBot, rBot, 0.02, 18), wicker);
+  base.position.y = 0.01; root.add(base);
+  for (const ty of [0.12, 0.5, 0.9]) {                                  // hoop bands suggest the weave
+    const r = rBot + (rTop - rBot) * ty + 0.008;
+    const hoop = new THREE.Mesh(new THREE.TorusGeometry(r, 0.012, 6, 20), band);
+    hoop.rotation.x = Math.PI / 2; hoop.position.y = hB * ty; root.add(hoop);
+  }
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(rTop + 0.005, 0.018, 8, 22), band);
+  rim.rotation.x = Math.PI / 2; rim.position.y = hB; root.add(rim);
+
+  // The heap of produce mounded above the rim.
+  const fruitCols = [0xc0392b, 0xe67e22, 0x8e44ad, 0xd4ac0d, 0xc0563b, 0x9b3b2f];   // apples / oranges / plums…
+  const vegCols = [0x4a7c2f, 0x6b8e23, 0xe07b39, 0x3f6b2a, 0x8fae4a, 0x556b2f];     // cabbages / carrots / gourds…
+  const cols = kind === "veg" ? vegCols : fruitCols;
+  const pr = width * 0.11;                                              // produce radius
+  const rimY = hB + pr * 0.5;
+  const place = (rad, ang, yy, i) => {
+    const m = new THREE.Mesh(
+      new THREE.SphereGeometry(pr * (0.88 + (i % 3) * 0.08), 10, 8),
+      new THREE.MeshStandardMaterial({ color: cols[i % cols.length], roughness: 0.6, metalness: 0 }),
+    );
+    m.position.set(Math.cos(ang) * rad, yy, Math.sin(ang) * rad);
+    if (kind === "veg") { m.scale.set(0.8, 1.35, 0.8); m.rotation.z = (i % 2 ? 1 : -1) * 0.4; } // knobbly / elongated
+    m.castShadow = true; root.add(m);
+  };
+  for (let k = 0; k < 6; k++) place(rTop * 0.62, (k * Math.PI) / 3, rimY, k);                       // a ring on the rim
+  for (let k = 0; k < 3; k++) place(rTop * 0.28, (k * 2 * Math.PI) / 3 + 0.5, rimY + pr * 0.8, k + 6); // a crown
+  place(0, 0, rimY + pr * 1.3, 9);                                                                  // one on top
+
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -1347,22 +1395,19 @@ export function buildWorld(scene) {
   stallSign.position.set(0, 1.32, 0.96);
   stall.add(stallSign);
 
-  // Mei's wares (Batch 17): painted market goods dressing the stall — two heaped
-  // produce baskets and a steaming noodle bowl up on the counter, a string of dried
-  // wares hung under the awning, and a sack stack + a restock crate on the ground
-  // beside it. Each is a flat alpha cutout sized to its PNG aspect and added to the
-  // stall group, so it inherits the stall's place and faces +z toward the customer
-  // (the way the player walks in) — the same fixed-cutout trick as the noodle sign
-  // and the parked courier bike. Lightly self-lit so the goods read after dark.
+  // Mei's wares (Batch 17): market goods dressing the stall — a steaming noodle bowl up
+  // on the counter, a string of dried wares hung under the awning, and a sack stack +
+  // restock crate on the ground beside it. These stay flat alpha cutouts sized to their
+  // PNG aspect, added to the stall group so they inherit its place and face +z toward the
+  // customer; her two PRODUCE BASKETS are now real woven baskets (spr-039, below). Lightly
+  // self-lit so the goods read after dark.
   const stallGoods = [
     // [file, w, h, [x, y, z], emissive]
     ["PROP_Food_NoodleBowl", 0.62, 0.625, [0.55, 1.2, 0.42], 0.18],
-    ["PROP_Market_BasketFruit", 0.83, 0.58, [-0.6, 1.22, 0.42], 0.1],
     ["PROP_Market_HangingWares", 0.68, 0.62, [0.95, 1.45, 0.55], 0.1],
     // Mei's cooking gear (Batch 20, closing spr-006): a seasoned wok + ladle +
     // chopsticks at the left of the counter, where she works the bowls.
     ["PROP_Kit_Utensils", 0.64, 0.537, [-1.3, 1.2, 0.42], 0.12],
-    ["PROP_Market_BasketVeg", 0.78, 0.5, [-1.95, 0.3, 1.2], 0.06],
     ["PROP_Market_Sacks", 0.97, 0.48, [1.8, 0.29, 1.2], 0.05],
     ["PROP_Market_Crate", 0.84, 0.54, [-2.3, 0.31, 0.4], 0.06],
   ];
@@ -1371,6 +1416,11 @@ export function buildWorld(scene) {
     good.position.set(x, y, z);
     stall.add(good);
   }
+  // Mei's two produce baskets, now REAL woven baskets heaped with fruit/veg (spr-039) — no
+  // longer flat cutouts. Added to the stall group so they inherit its place; each base sits
+  // where the cutout's base sat (a heaped basket on the counter, one on the ground beside it).
+  stall.add(buildProduceBasket(-0.6, 0.9, 0.42, 0.83, "fruit").root);     // up on the counter top
+  stall.add(buildProduceBasket(-1.95, 0.0, 1.2, 0.78, "veg").root);       // on the ground beside the stall
   scene.add(stall);
 
   // ── A few barrels by the stall: painted barrel-stave wrap (Batch 11) bound with
