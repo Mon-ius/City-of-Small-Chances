@@ -1944,6 +1944,72 @@ function buildVan(x, y, z, facing = 0) {
   return { root };
 }
 
+// A near small craft floating over the water (spr-055) — replaces the flat broadside
+// PROP_Boat_* cutouts (Rowboat/Punt/Dinghy) that always billboarded their painted side
+// at the player. Now a REAL open hull: a shell triangulated from stations along the
+// length, V-bottom with rocker, open at the gunwale so you read down into it. `kind`
+// "dory" (clinker rowing dory, oars shipped) | "punt" (flat blunt punt, quant pole) |
+// "dinghy" (sailing dinghy, mast + furled tan sail). Length runs local x; root sits at
+// the WATERLINE (local y=0), so the keel dips below and the gunwale rides above. No
+// billboard — real geometry reads from any angle.
+function buildSmallCraft(x, z, kind, yaw = 0) {
+  const WL = -0.05; // water surface y (matches the water plane / vessel placement)
+  const root = new THREE.Group();
+  root.position.set(x, WL, z);
+  root.rotation.y = yaw;
+
+  const cfg = {
+    dory:   { L: 2.4, B: 0.9,  depth: 0.34, fb: 0.16, profile: "double", hull: 0xcdc6b4, trim: 0x8a5a36 },
+    punt:   { L: 2.7, B: 0.86, depth: 0.24, fb: 0.10, profile: "punt",   hull: 0x6f7361, trim: 0x44402f },
+    dinghy: { L: 1.7, B: 0.74, depth: 0.34, fb: 0.18, profile: "double", hull: 0xb98a4e, trim: 0xece6d4 },
+  }[kind];
+
+  const hullMat = new THREE.MeshStandardMaterial({ color: cfg.hull, roughness: 0.72, metalness: 0, side: THREE.DoubleSide, emissive: new THREE.Color(cfg.hull).multiplyScalar(0.07) });
+  const trimMat = new THREE.MeshStandardMaterial({ color: cfg.trim, roughness: 0.6, metalness: 0.05 });
+  const woodMat = new THREE.MeshStandardMaterial({ color: 0x7a5230, roughness: 0.6, metalness: 0 });
+
+  // ── Hull shell: 3 points per station (keel centre + two gunwales) lofted along the length.
+  const S = 8, verts = [], idx = [];
+  const hb = (t) => cfg.profile === "double"
+    ? (cfg.B / 2) * Math.sin(Math.PI * t)                       // pointed both ends
+    : (cfg.B / 2) * (0.4 + 0.6 * Math.sin(Math.PI * t));        // blunt ends (punt)
+  const keelY = (t) => cfg.fb - cfg.depth * (0.45 + 0.55 * Math.sin(Math.PI * t)); // rocker: deepest amidships
+  const push = (a, b, c) => { verts.push(a, b, c); return verts.length / 3 - 1; };
+  const station = [];
+  for (let i = 0; i <= S; i++) {
+    const t = i / S, cx = -cfg.L / 2 + t * cfg.L, w = hb(t), ky = keelY(t);
+    station.push([push(cx, ky, 0), push(cx, cfg.fb, w), push(cx, cfg.fb, -w)]); // [keel, port, stbd]
+  }
+  for (let i = 0; i < S; i++) {
+    const [B0, P0, St0] = station[i], [B1, P1, St1] = station[i + 1];
+    idx.push(P0, P1, B1, P0, B1, B0); // port flank
+    idx.push(B0, B1, St1, B0, St1, St0); // starboard flank
+  }
+  { const [B, P, St] = station[0]; idx.push(P, St, B); }         // stern closure
+  { const [B, P, St] = station[S]; idx.push(St, P, B); }         // bow closure
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(verts, 3));
+  geo.setIndex(idx); geo.computeVertexNormals();
+  const hull = new THREE.Mesh(geo, hullMat); hull.castShadow = true; hull.receiveShadow = true; root.add(hull);
+
+  const add = (g, mat, px, py, pz, rx = 0, ry = 0, rz = 0) => {
+    const m = new THREE.Mesh(g, mat); m.position.set(px, py, pz); m.rotation.set(rx, ry, rz); m.castShadow = true; root.add(m); return m;
+  };
+  // Thwarts (seats) across the beam.
+  for (const t of [0.36, 0.62]) add(new THREE.BoxGeometry(0.07, 0.03, hb(t) * 2 * 0.92), trimMat, -cfg.L / 2 + t * cfg.L, cfg.fb - 0.02, 0);
+
+  if (kind === "dory") {
+    for (const sz of [-1, 1]) add(new THREE.CylinderGeometry(0.018, 0.018, 1.7, 6), woodMat, -0.1, cfg.fb + 0.02, sz * 0.18, 0, sz * 0.08, Math.PI / 2); // two shipped oars
+  } else if (kind === "punt") {
+    add(new THREE.CylinderGeometry(0.016, 0.016, 2.5, 6), woodMat, 0, cfg.fb + 0.03, 0.3, 0, 0, Math.PI / 2); // quant pole on the gunwale
+  } else if (kind === "dinghy") {
+    add(new THREE.CylinderGeometry(0.022, 0.022, 1.35, 8), woodMat, 0.15, cfg.fb + 0.62, 0);                  // mast
+    add(new THREE.CylinderGeometry(0.06, 0.09, 1.05, 8), new THREE.MeshStandardMaterial({ color: 0xc8a877, roughness: 0.85 }), 0.15, cfg.fb + 0.5, 0.05); // furled tan sail
+    add(new THREE.CylinderGeometry(0.015, 0.015, 0.9, 6), woodMat, -0.1, cfg.fb + 0.12, 0, 0, 0, Math.PI / 2); // boom
+  }
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -2956,25 +3022,16 @@ export function buildWorld(scene) {
   // Batch-44 tall ship, trawler and barge at x≤−40) and one moored cabin-boat near the
   // quay, but the wide band of near water between the sea-wall and that moored boat was
   // bare. A working harbour is thick with the small craft that ferry between hull and
-  // shore — so these three painted cutouts float there: a clinker rowing dory, a small
-  // sailing dinghy with its tan sail furled, and a flat-bottomed harbour punt. Same idiom
-  // as the far vessels above (sit the painted waterline on the water surface WL, NO contact
-  // shadow — they float — and billboard each so its broadside always reads), just placed
-  // close in (x≈−13..−17, spread across z) so the player looking out over the wall sees a
-  // busy small-boat harbour. Clear of the moored boat at (−20,−6), the buoy line (−10.3,−13)
-  // and the far vessels. Plane sized to each cutout's true aspect so nothing distorts.
-  const nearCraft = [
-    // [file, w, h, x, z] — waterline (= image bottom) sits on WL; centre is h/2 above it.
-    ["PROP_Boat_Rowboat", 2.4, 0.79, -14, 18], // clinker rowing dory, north band
-    ["PROP_Boat_Punt", 2.7, 0.48, -13.5, -1], // flat-bottomed harbour punt, mid band near the wall
-    ["PROP_Boat_Dinghy", 1.6, 1.6, -16.5, -24], // furled-sail sailing dinghy, south band
-  ];
-  for (const [file, w, h, x, z] of nearCraft) {
-    const craft = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive: 0.2, alphaTest: 0.4 });
-    craft.position.set(x, WL + h / 2, z);
-    scene.add(craft);
-    billboards.push(craft); // main.js turns it to face the camera each frame
-  }
+  // shore — so three craft float there, now ALL REAL open-hull geometry (spr-055), the flat
+  // PROP_Boat_* broadside cutouts retired: a clinker rowing dory (oars shipped), a flat
+  // blunt harbour punt (quant pole), and a small sailing dinghy with its tan sail furled on
+  // the mast. Each `buildSmallCraft` roots at the waterline (keel below, gunwale above) and
+  // is yawed ~broadside to the quay so the player looking over the wall reads a real hull
+  // from any angle — no billboard turn. Clear of the moored boat at (−20,−6), the buoy line
+  // (−10.3,−13) and the far vessels.
+  scene.add(buildSmallCraft(-14, 18, "dory", Math.PI / 2 + 0.35).root);    // north band
+  scene.add(buildSmallCraft(-13.5, -1, "punt", Math.PI / 2 - 0.28).root);  // mid band near the wall
+  scene.add(buildSmallCraft(-16.5, -24, "dinghy", Math.PI / 2 + 0.6).root); // south band
 
   // ── The boats light their lanterns (Batch 67): the moored vessels (the far tall ship,
   // trawler and barge, the near dory/punt/dinghy above) sit dark over the water at night,
