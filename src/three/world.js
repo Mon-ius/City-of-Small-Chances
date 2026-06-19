@@ -1409,6 +1409,68 @@ function buildMarketCrate(x, y, z, facing = 0) {
   return { root };
 }
 
+// ── A window flower box on a shopfront sill (spr-047) — REAL geometry (a weathered wooden
+// trough with a soil bed, a heaped row of leaf-cushioned blooms, and a few trailing vines
+// hanging below the front lip) rather than a flat painted cutout. Replaces PROP_Shop_FlowerBox
+// — the first OFF-stall cutout converted. Mounted flush on the building front and rotated by
+// FACADE (−π/2) so it faces −x toward the street; in the root's local frame +x runs ALONG the
+// wall and +z projects OUT toward the player. Self-contained own materials; deterministic
+// layout (no Math.random); the trough's back sits at the wall, the blooms rise toward the glass.
+function buildFlowerBox(x, y, z, facing = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, y, z);
+  root.rotation.y = facing;
+
+  const woodMat = new THREE.MeshStandardMaterial({ color: 0x6f5235, roughness: 0.9, metalness: 0 });
+  const soilMat = new THREE.MeshStandardMaterial({ color: 0x3a2c1e, roughness: 1, metalness: 0 });
+  const leafMats = [
+    new THREE.MeshStandardMaterial({ color: 0x3f6b2a, roughness: 0.8, metalness: 0 }),
+    new THREE.MeshStandardMaterial({ color: 0x4f7d33, roughness: 0.8, metalness: 0 }),
+    new THREE.MeshStandardMaterial({ color: 0x5c8a3a, roughness: 0.8, metalness: 0 }),
+  ];
+  const bloomMats = [0xc0392b, 0xe6b800, 0xd96aa0, 0xeae6df, 0x8e5aa8, 0xe0772f]
+    .map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.55, metalness: 0 }));
+
+  const L = 1.3, th = 0.26, td = 0.32;   // length (local x, along wall), height, depth (local z, out from wall)
+
+  // The planter trough + a trim rail along the top front edge + a soil bed inset on top.
+  const body = new THREE.Mesh(new THREE.BoxGeometry(L, th, td), woodMat);
+  body.castShadow = true; body.receiveShadow = true; root.add(body);
+  const rail = new THREE.Mesh(new THREE.BoxGeometry(L + 0.02, 0.045, 0.045), woodMat);
+  rail.position.set(0, th / 2 - 0.02, td / 2); root.add(rail);
+  const soil = new THREE.Mesh(new THREE.BoxGeometry(L * 0.94, 0.05, td * 0.82), soilMat);
+  soil.position.y = th / 2 - 0.01; root.add(soil);
+
+  // A heaped row of leaf-cushioned blooms along the top.
+  const topY = th / 2 + 0.02;
+  const N = 11;
+  for (let i = 0; i < N; i++) {
+    const fx = (i / (N - 1) - 0.5) * (L - 0.12);    // spread along the length
+    const wob = Math.sin(i * 2.3);                  // deterministic wobble
+    const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), leafMats[i % 3]);
+    leaf.scale.set(1.2, 0.7, 1.1);
+    leaf.position.set(fx, topY, wob * 0.05);
+    leaf.castShadow = true; root.add(leaf);
+    const bloom = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 7), bloomMats[i % bloomMats.length]);
+    bloom.scale.set(1, 0.8, 1);
+    bloom.position.set(fx + wob * 0.02, topY + 0.06 + (i % 3) * 0.015, 0.03 + wob * 0.04);
+    root.add(bloom);
+  }
+  // A few trailing vines hanging below the front lip.
+  for (let i = 0; i < 5; i++) {
+    const tx = (i / 4 - 0.5) * (L - 0.2);
+    const len = 0.16 + (i % 2) * 0.08;
+    const vine = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.006, len, 5), leafMats[i % 3]);
+    vine.position.set(tx, -th / 2 - len / 2 + 0.04, td / 2 - 0.02);
+    vine.rotation.x = 0.2; root.add(vine);
+    const tip = new THREE.Mesh(new THREE.SphereGeometry(0.03, 7, 6), leafMats[(i + 1) % 3]);
+    tip.scale.set(1, 1.3, 1); tip.position.set(tx, -th / 2 - len + 0.04, td / 2 + 0.02);
+    root.add(tip);
+  }
+
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -2306,17 +2368,15 @@ export function buildWorld(scene) {
     scene.add(awn);
   }
   const shopFlowerBoxes = [
-    // [x, y, z] — FlowerBox 512×173 (w1.4, h0.47), on the sill under each window (x8.78),
-    // its trailing foliage hanging below — the only softening greenery at building level.
+    // [x, y, z] — on the sill under each window (x8.78), trailing foliage hanging below — the
+    // only softening greenery at building level. Now REAL geometry (spr-047, buildFlowerBox)
+    // rather than the old PROP_Shop_FlowerBox cutout — the first off-stall good converted.
     [8.78, 0.82, -18.5],
     [8.78, 0.82, -10.2],
     [8.78, 0.82, 4.9],
   ];
   for (const [x, y, z] of shopFlowerBoxes) {
-    const box = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Shop_FlowerBox.png`, 1.4, 0.47, { emissive: 0.16, alphaTest: 0.4 });
-    box.position.set(x, y, z);
-    box.rotation.y = FACADE;
-    scene.add(box);
+    scene.add(buildFlowerBox(x, y, z, FACADE).root);
   }
 
   // ── The market grows (Batch 57): "Market Row" is core, and the player spawns
