@@ -2353,6 +2353,94 @@ function buildPump(x, z, yaw = 0) {
   return { root };
 }
 
+// ── A costermonger's two-wheeled handcart (spr-060): a railed timber deck on a
+// transverse-axle pair of spoked iron-tyred wheels, standing level on two back legs,
+// shafts raked up to a handle bar, loaded with a crate and two produce mounds. Replaces
+// the flat PROP_Market_Cart cutout. Root at the ground, builds upward along local x.
+function buildMarketCart(x, z, yaw = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, 0, z);
+  root.rotation.y = yaw;
+  const wood = new THREE.MeshStandardMaterial({ color: 0x8a6a3e, roughness: 0.82 });
+  const woodDk = new THREE.MeshStandardMaterial({ color: 0x6e5230, roughness: 0.85 });
+  const iron = new THREE.MeshStandardMaterial({ color: 0x2c2a26, roughness: 0.55, metalness: 0.4 });
+  const add = (g, m, px, py, pz, rx = 0, ry = 0, rz = 0) => {
+    const o = new THREE.Mesh(g, m); o.position.set(px, py, pz); o.rotation.set(rx, ry, rz);
+    o.castShadow = true; o.receiveShadow = true; root.add(o); return o;
+  };
+  const spar = (ax, ay, az, bx, by, bz, r, m) => {
+    const a = new THREE.Vector3(ax, ay, az), dir = new THREE.Vector3(bx - ax, by - ay, bz - az), len = dir.length();
+    const o = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 8), m);
+    o.position.copy(a).addScaledVector(dir, 0.5);
+    o.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+    o.castShadow = true; root.add(o); return o;
+  };
+  const bedY = 0.56, W = 0.72, Lx = 1.5;
+  add(new THREE.BoxGeometry(Lx, 0.07, W), wood, 0, bedY, 0);                            // deck
+  add(new THREE.BoxGeometry(Lx, 0.16, 0.04), woodDk, 0, bedY + 0.1, W / 2 - 0.02);      // side rail +z
+  add(new THREE.BoxGeometry(Lx, 0.16, 0.04), woodDk, 0, bedY + 0.1, -(W / 2 - 0.02));   // side rail -z
+  add(new THREE.BoxGeometry(0.04, 0.16, W), woodDk, -(Lx / 2 - 0.02), bedY + 0.1, 0);   // back board
+  const wx = -0.18, R = 0.32;
+  add(new THREE.CylinderGeometry(0.04, 0.04, W + 0.12, 8), iron, wx, R, 0, Math.PI / 2); // axle (along z)
+  for (const wz of [W / 2 + 0.04, -(W / 2 + 0.04)]) {
+    add(new THREE.TorusGeometry(R, 0.05, 8, 16), iron, wx, R, wz);                       // tyre (xy-plane, faces ±z)
+    add(new THREE.CylinderGeometry(0.06, 0.06, 0.05, 10), iron, wx, R, wz, Math.PI / 2); // hub
+    for (let s = 0; s < 4; s++) add(new THREE.BoxGeometry(R * 1.7, 0.025, 0.02), wood, wx, R, wz, 0, 0, s * Math.PI / 2 + 0.2); // spokes
+  }
+  for (const lz of [0.28, -0.28]) add(new THREE.BoxGeometry(0.05, bedY, 0.05), woodDk, -(Lx / 2 - 0.08), bedY / 2, lz); // back legs
+  spar(Lx / 2 - 0.04, bedY, 0.26, Lx / 2 + 0.5, bedY + 0.22, 0.26, 0.03, wood);         // shaft +z
+  spar(Lx / 2 - 0.04, bedY, -0.26, Lx / 2 + 0.5, bedY + 0.22, -0.26, 0.03, wood);       // shaft -z
+  add(new THREE.CylinderGeometry(0.028, 0.028, 0.62, 8), wood, Lx / 2 + 0.5, bedY + 0.22, 0, Math.PI / 2); // handle bar
+  add(new THREE.BoxGeometry(0.42, 0.3, 0.5), woodDk, -0.32, bedY + 0.19, 0);            // a crate of goods
+  add(new THREE.SphereGeometry(0.17, 10, 8), new THREE.MeshStandardMaterial({ color: 0xc24a30, roughness: 0.7 }), 0.28, bedY + 0.14, 0.16); // apples
+  add(new THREE.SphereGeometry(0.15, 10, 8), new THREE.MeshStandardMaterial({ color: 0xb8902f, roughness: 0.7 }), 0.34, bedY + 0.12, -0.16); // squashes
+  return { root };
+}
+
+// ── A tall canvas market parasol (spr-060): a weighted foot, a timber pole, a shallow
+// octagonal canvas canopy (apex up) with a hanging valance skirt and a turned finial.
+// Replaces the flat PROP_Market_Parasol cutout.
+function buildParasol(x, z, yaw = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, 0, z);
+  root.rotation.y = yaw;
+  const pole = new THREE.MeshStandardMaterial({ color: 0x6b5333, roughness: 0.8 });
+  const canvas = new THREE.MeshStandardMaterial({ color: 0xb5503f, roughness: 0.9, side: THREE.DoubleSide });
+  const add = (g, m, px, py, pz) => { const o = new THREE.Mesh(g, m); o.position.set(px, py, pz); o.castShadow = true; root.add(o); return o; };
+  add(new THREE.CylinderGeometry(0.24, 0.28, 0.1, 14), pole, 0, 0.05, 0);               // weighted foot
+  add(new THREE.CylinderGeometry(0.04, 0.05, 2.5, 10), pole, 0, 1.25, 0);               // pole
+  add(new THREE.ConeGeometry(1.05, 0.55, 8), canvas, 0, 2.36, 0);                       // octagonal canopy, apex up
+  add(new THREE.CylinderGeometry(1.02, 1.06, 0.14, 8, 1, true), canvas, 0, 2.02, 0);    // hanging valance (open skirt)
+  add(new THREE.SphereGeometry(0.05, 10, 8), pole, 0, 2.66, 0);                          // finial
+  return { root };
+}
+
+// ── A crock-seller's huddle of glazed earthenware jars (spr-060): five bellied crocks of
+// stepped size, each a LatheGeometry swept from one shared bellied profile (scaled per
+// jar) in varied glaze tones. Replaces the flat PROP_Market_Crocks cutout.
+function buildCrocks(x, z, yaw = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, 0, z);
+  root.rotation.y = yaw;
+  const prof = [
+    new THREE.Vector2(0.0, 0.0), new THREE.Vector2(0.17, 0.015), new THREE.Vector2(0.22, 0.08),
+    new THREE.Vector2(0.27, 0.26), new THREE.Vector2(0.21, 0.45), new THREE.Vector2(0.12, 0.55),
+    new THREE.Vector2(0.145, 0.6), new THREE.Vector2(0.12, 0.63),
+  ];
+  const jarGeo = new THREE.LatheGeometry(prof, 16);
+  const put = (color, px, pz, s) => {
+    const o = new THREE.Mesh(jarGeo, new THREE.MeshStandardMaterial({ color, roughness: 0.55, metalness: 0.05 }));
+    o.position.set(px, 0, pz); o.scale.setScalar(s);
+    o.castShadow = true; o.receiveShadow = true; root.add(o); return o;
+  };
+  put(0x9c5a3c, 0, 0, 1.0);        // big terracotta
+  put(0x5f6a3e, 0.34, 0.06, 0.78); // olive glaze
+  put(0x46586a, -0.3, 0.1, 0.64);  // slate-blue glaze
+  put(0xa8986a, 0.08, -0.32, 0.72); // cream
+  put(0x7a4a36, -0.26, -0.26, 0.58); // small terracotta
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -3256,21 +3344,21 @@ export function buildWorld(scene) {
   // pitch on the open deck between the spawn and Mei's stall, so the player walks
   // *into* a market: a costermonger's loaded two-wheeled handcart, a crock-seller's
   // cluster of glazed earthenware jars, and a tall canvas parasol shading the pitch.
-  // All three are ground-planted camera-facing billboards (the Batch-50 cargo idiom
-  // — pushed to `billboards`, base on the image bottom, each on a soft contact-shadow
-  // blob), clustered east of the commuter patrol line (x-7) and clear of the stall
-  // goods and the 3D barrels (z2.6–3.5).
+  // All three are now REAL geometry (buildMarketCart/buildParasol/buildCrocks above,
+  // spr-060) — no longer billboards — clustered east of the commuter patrol line
+  // (x-7) and clear of the stall goods and the 3D barrels (z2.6–3.5). Each still rests
+  // on a soft contact-shadow blob.
   const marketPitch = [
-    // [file, w, h, x, z, shadowR, emissive] — base planted at y = h/2 on the deck.
-    ["PROP_Market_Parasol", 1.74, 2.6, -5.7, 11.4, 0.55, 0.18], // tall anchor of the pitch
-    ["PROP_Market_Cart", 2.05, 1.35, -6.4, 12.9, 0.95, 0.16], // the wide costermonger's barrow
-    ["PROP_Market_Crocks", 1.15, 0.91, -4.5, 12.0, 0.6, 0.16], // a huddle of glazed jars
+    // [kind, x, z, shadowR, yaw]
+    ["parasol", -5.7, 11.4, 0.55, 0],    // tall anchor of the pitch
+    ["cart", -6.4, 12.9, 0.95, 0.35],    // the wide costermonger's barrow
+    ["crocks", -4.5, 12.0, 0.6, -0.4],   // a huddle of glazed jars
   ];
-  for (const [file, w, h, x, z, shadowR, emissive] of marketPitch) {
-    const item = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive, alphaTest: 0.4 });
-    item.position.set(x, h / 2, z);
-    scene.add(item);
-    billboards.push(item); // main.js turns it to face the camera each frame
+  for (const [kind, x, z, shadowR, yaw] of marketPitch) {
+    const built = kind === "parasol" ? buildParasol(x, z, yaw)
+      : kind === "cart" ? buildMarketCart(x, z, yaw)
+        : buildCrocks(x, z, yaw);
+    scene.add(built.root);
 
     const blob = new THREE.Mesh(
       new THREE.CircleGeometry(shadowR, 16),
