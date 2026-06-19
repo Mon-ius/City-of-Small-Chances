@@ -2125,6 +2125,96 @@ function buildVessel(x, z, kind, yaw = 0) {
   return { root };
 }
 
+// ── Working cargo of the port (spr-057): the quay dressed three flat `PROP_Cargo_*`
+// billboards — two stacks of casks, a labourer's hand-barrow, a great laid-up anchor —
+// that turned to face the camera and flattened the instant the player rounded them. Each
+// is now real geometry, ground-planted (root at y=0) and kept under its soft contact-shadow
+// blob. Module-private builders before `buildWorld`, each with self-contained materials.
+
+// A cluster of three iron-hooped casks landed on the quay (LatheGeometry staves with a
+// bilge bulge, dark hoop rings, lighter heads). Geometries are shared across the barrels.
+function buildCaskStack(x, z, R, H, yaw = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, 0, z);
+  root.rotation.y = yaw;
+  const wood = new THREE.MeshStandardMaterial({ color: 0x6e4a2a, roughness: 0.82, metalness: 0 });
+  const lidM = new THREE.MeshStandardMaterial({ color: 0x8a6a3c, roughness: 0.8 });
+  const hoopM = new THREE.MeshStandardMaterial({ color: 0x36302a, roughness: 0.55, metalness: 0.4 });
+  const prof = [], N = 6;
+  for (let i = 0; i <= N; i++) { const t = i / N; prof.push(new THREE.Vector2(R * (0.8 + 0.2 * Math.sin(Math.PI * t)), t * H)); }
+  const barrelGeo = new THREE.LatheGeometry(prof, 14);
+  const lidGeo = new THREE.CircleGeometry(R * 0.82, 14);
+  const hoopGeo = new THREE.CylinderGeometry(R * 1.02, R * 1.02, H * 0.07, 14, 1, true);
+  const mkBarrel = (cx, cz, hs) => {
+    const g = new THREE.Group(); g.position.set(cx, 0, cz); g.scale.y = hs;
+    const b = new THREE.Mesh(barrelGeo, wood); b.castShadow = true; g.add(b);
+    const lo = new THREE.Mesh(lidGeo, lidM); lo.rotation.x = -Math.PI / 2; lo.position.y = 0.005; g.add(lo);
+    const lt = new THREE.Mesh(lidGeo, lidM); lt.rotation.x = Math.PI / 2; lt.position.y = H - 0.005; g.add(lt);
+    for (const hy of [0.2, 0.8]) { const h = new THREE.Mesh(hoopGeo, hoopM); h.position.y = H * hy; g.add(h); }
+    root.add(g);
+  };
+  const s = R * 1.02;
+  mkBarrel(-s * 0.9, -s * 0.5, 1.0);
+  mkBarrel(s * 0.9, -s * 0.4, 0.92);
+  mkBarrel(0, s * 0.75, 1.06);
+  return { root };
+}
+
+// A labourer's two-wheel hand-barrow stood at rest, tipped up on its wheels and front
+// legs with the bed near-vertical and the handles in the air.
+function buildHandbarrow(x, z, yaw = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, 0, z);
+  root.rotation.y = yaw;
+  const wood = new THREE.MeshStandardMaterial({ color: 0x7a5230, roughness: 0.8 });
+  const iron = new THREE.MeshStandardMaterial({ color: 0x33312e, roughness: 0.6, metalness: 0.4 });
+  const add = (g, m, px, py, pz, rx = 0, ry = 0, rz = 0) => { const o = new THREE.Mesh(g, m); o.position.set(px, py, pz); o.rotation.set(rx, ry, rz); o.castShadow = true; root.add(o); return o; };
+  const spar = (ax, ay, az, bx, by, bz, r, m) => {
+    const a = new THREE.Vector3(ax, ay, az), dir = new THREE.Vector3(bx - ax, by - ay, bz - az), len = dir.length();
+    const o = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 8), m);
+    o.position.copy(a).addScaledVector(dir, 0.5);
+    o.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+    o.castShadow = true; root.add(o); return o;
+  };
+  for (const sx of [-1, 1]) {
+    add(new THREE.TorusGeometry(0.24, 0.06, 8, 18), iron, sx * 0.34, 0.24, 0.18, 0, Math.PI / 2);      // tyre, disc faces x
+    add(new THREE.CylinderGeometry(0.07, 0.07, 0.1, 10), iron, sx * 0.34, 0.24, 0.18, 0, 0, Math.PI / 2); // hub
+  }
+  add(new THREE.CylinderGeometry(0.03, 0.03, 0.68, 8), iron, 0, 0.24, 0.18, 0, 0, Math.PI / 2);          // axle
+  add(new THREE.BoxGeometry(0.6, 0.9, 0.05), wood, 0, 0.66, 0.06, -0.32);                                 // bed, leaning back
+  for (const sx of [-1, 1]) {
+    spar(sx * 0.24, 0.98, -0.07, sx * 0.24, 1.34, -0.16, 0.025, wood);                                    // handle up
+    spar(sx * 0.25, 0.42, 0.12, sx * 0.25, 0.0, 0.42, 0.03, wood);                                        // front leg/stop
+  }
+  return { root };
+}
+
+// A great rusted admiralty anchor laid up upright against the sea-wall: shank, ring, stock
+// crossbar, and two arms sweeping out to arrow-head flukes. A `spar` orients each member.
+function buildAnchor(x, z, yaw = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, 0.05, z);
+  root.rotation.y = yaw;
+  root.rotation.z = 0.1; // propped, leaning
+  const iron = new THREE.MeshStandardMaterial({ color: 0x4a443c, roughness: 0.62, metalness: 0.5, emissive: new THREE.Color(0x3a241a).multiplyScalar(0.22) });
+  const spar = (ax, ay, az, bx, by, bz, r) => {
+    const a = new THREE.Vector3(ax, ay, az), dir = new THREE.Vector3(bx - ax, by - ay, bz - az), len = dir.length();
+    const o = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 9), iron);
+    o.position.copy(a).addScaledVector(dir, 0.5);
+    o.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+    o.castShadow = true; root.add(o); return o;
+  };
+  spar(0, 0.2, 0, 0, 1.5, 0, 0.07);                  // shank
+  spar(-0.55, 1.32, 0, 0.55, 1.32, 0, 0.045);        // stock crossbar
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.035, 8, 16), iron); ring.position.set(0, 1.62, 0); ring.castShadow = true; root.add(ring);
+  for (const sz of [-1, 1]) {
+    spar(0, 0.22, 0, sz * 0.4, 0.12, 0, 0.06);       // arm throat → elbow
+    spar(sz * 0.4, 0.12, 0, sz * 0.62, 0.56, 0, 0.05); // elbow → fluke
+    const fl = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.04, 0.22), iron); fl.position.set(sz * 0.64, 0.58, 0); fl.rotation.z = sz * -0.6; fl.castShadow = true; root.add(fl); // fluke palm
+  }
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -3582,17 +3672,17 @@ export function buildWorld(scene) {
   // ground. Placed against the water-side wall (x≈−10) and the building kerb (x≈7) in the
   // long gaps clear of the Batch-42 quay clutter, the planters, the named cast and spawn.
   const cargo = [
-    // [file, w, h, x, z, shadowR]
-    ["PROP_Cargo_Barrels", 1.2, 1.03, -9.8, -24, 0.6], // casks off a boat, south quay
-    ["PROP_Cargo_Barrels", 1.1, 0.95, -9.9, -4, 0.55], // a second stack, mid-quay
-    ["PROP_Cargo_Handbarrow", 0.8, 1.4, 7.0, 6, 0.42], // a barrow at rest by the shopfronts
-    ["PROP_Cargo_Anchor", 1.4, 1.6, -10.3, 30, 0.62], // a great anchor laid up, north quay
+    // [kind, x, z, shadowR, ...params] — now REAL geometry (spr-057), no longer billboards.
+    ["casks", -9.8, -24, 0.6, 0.3, 0.95, 0.4], // casks off a boat, south quay (R, H, yaw)
+    ["casks", -9.9, -4, 0.55, 0.27, 0.82, -0.3], // a second, smaller stack, mid-quay
+    ["barrow", 7.0, 6, 0.42, -1.35], // a barrow at rest by the shopfronts (yaw)
+    ["anchor", -10.3, 30, 0.62, 0.55], // a great anchor laid up, north quay (yaw)
   ];
-  for (const [file, w, h, x, z, shadowR] of cargo) {
-    const item = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive: 0.18, alphaTest: 0.4 });
-    item.position.set(x, h / 2, z);
-    scene.add(item);
-    billboards.push(item); // main.js turns it to face the camera each frame
+  for (const [kind, x, z, shadowR, ...p] of cargo) {
+    const built = kind === "casks" ? buildCaskStack(x, z, p[0], p[1], p[2])
+      : kind === "barrow" ? buildHandbarrow(x, z, p[0])
+      : buildAnchor(x, z, p[0]);
+    scene.add(built.root);
 
     const blob = new THREE.Mesh(
       new THREE.CircleGeometry(shadowR, 16),
