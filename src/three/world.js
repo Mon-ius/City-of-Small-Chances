@@ -905,6 +905,46 @@ function buildQuayLadder(z0, copingY = 0.9, wallFaceX = -10.8) {
   return { root };
 }
 
+// ── A stack of D-shape lobster creels on the east kerb — real wire cages (three hooped
+// ribs + longitudinal stringers over a slatted base) rather than a flat decal. Replaces
+// the PROP_Quay_LobsterPots cutout. Each creel's openings run along its local z.
+function buildLobsterPots(x, z, facing = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, 0, z);
+  root.rotation.y = facing;
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0x9a7b4f, roughness: 0.9 });
+  const baseMat = new THREE.MeshStandardMaterial({ color: 0x6e5733, roughness: 0.95 });
+  const R = 0.21, depth = 0.42;
+
+  function creel() {
+    const c = new THREE.Group();
+    const base = new THREE.Mesh(new THREE.BoxGeometry(2 * R + 0.04, 0.05, depth), baseMat);
+    base.position.y = 0.025;
+    base.castShadow = false;
+    c.add(base);
+    for (const dz of [-depth / 2 + 0.04, 0, depth / 2 - 0.04]) {     // three hooped ribs
+      const hoop = new THREE.Mesh(new THREE.TorusGeometry(R, 0.012, 6, 16, Math.PI), frameMat);
+      hoop.position.set(0, 0.05, dz);                                 // top half-arc rising off the base
+      hoop.castShadow = false;
+      c.add(hoop);
+    }
+    for (let k = 0; k <= 4; k++) {                                    // longitudinal stringers
+      const a = (k / 4) * Math.PI;                                    // spread around the half-circle
+      const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, depth, 6), frameMat);
+      bar.rotation.x = Math.PI / 2;                                   // lie along z
+      bar.position.set(Math.cos(a) * R, 0.05 + Math.sin(a) * R, 0);
+      bar.castShadow = false;
+      c.add(bar);
+    }
+    return c;
+  }
+
+  const a = creel(); a.position.z = -0.24; root.add(a);               // two creels side by side on the deck…
+  const b = creel(); b.position.z = 0.24; root.add(b);
+  const top = creel(); top.position.set(0.02, 0.30, 0.0); top.rotation.y = 0.5; root.add(top); // …one tossed on top
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -1417,17 +1457,15 @@ export function buildWorld(scene) {
     scene.add(v);
   }
 
-  // ── Quayside working clutter (Batch 42): the everyday gear of a working port,
-  // fixed side-profile cutouts like the vehicles. Most sit along the water's edge
-  // against the painted sea-wall where it belongs — buoys hung at the wall, a net
-  // drying, a coil of mooring rope — with a stack of lobster pots on the east kerb.
-  // Each is sized to its PNG aspect, sat on the deck (y = h/2), lightly self-lit so
-  // it reads after dark, broad side turned to the walkable quay. Placed in the long
+  // ── Quayside working clutter (Batch 42): the everyday gear of a working port. The net
+  // drying against the sea-wall is still a side-profile cutout; the lobster pots that once
+  // sat beside it on the east kerb are now a real stack of wire creels (see buildLobsterPots
+  // above). Each cutout is sized to its PNG aspect, sat on the deck (y = h/2), lightly self-
+  // lit so it reads after dark, broad side turned to the walkable quay. Placed in the long
   // gaps clear of the stall/board/spawn/crates so nothing blocks the path.
   const quayClutter = [
     // [file, w, h, [x, y, z], yaw, emissive]
     ["PROP_Quay_FishingNet", 1.06, 0.7, [-10.0, 0.35, 24], Math.PI / 2, 0.1],
-    ["PROP_Quay_LobsterPots", 1.17, 0.8, [5.8, 0.4, -18], -Math.PI / 2, 0.1],
   ];
   for (const [file, w, h, [x, y, z], yaw, emissive] of quayClutter) {
     const c = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive });
@@ -1435,6 +1473,9 @@ export function buildWorld(scene) {
     c.rotation.y = yaw;
     scene.add(c);
   }
+  // The lobster pots on the east kerb, now a real stack of wire creels (spr-037) — turned
+  // ~3/4 to the quay so the player reads the hooped cages on approach (from −x).
+  scene.add(buildLobsterPots(5.8, -18, -Math.PI / 2 + 0.35).root);
 
   // ── Quay-edge safety & mooring gear (Batch 55, now all REAL geometry — spr-036 retired
   // the last two cutouts here): the sea-wall the near craft tie up against. A fixed steel
