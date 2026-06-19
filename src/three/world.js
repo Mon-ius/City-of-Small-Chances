@@ -1582,6 +1582,52 @@ function buildAwning(x, y, z, facing = 0) {
   return { root };
 }
 
+// ── A shopfront window (spr-050) — REAL geometry (a stained-wood casing frame, a horizontal
+// transom + two vertical mullions dividing it into panes, a tinted glass sheet set behind, and a
+// proud sill ledge) rather than a flat billboard cutout. Replaces PROP_Shop_Window. The root sits
+// flush on the wall front (x≈8.92); after the caller's FACADE yaw (−π/2) local +z → world −x, so
+// the frame is built in the local xy plane and projects a little toward the street (proud of the
+// glass). Self-contained own materials; the glass is faintly emissive so it never goes pure black.
+function buildShopWindow(x, y, z, facing = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, y, z);
+  root.rotation.y = facing;
+
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0x5a4126, roughness: 0.8, metalness: 0 });
+  const sillMat = new THREE.MeshStandardMaterial({ color: 0x7d6f5a, roughness: 0.85, metalness: 0 });
+  const glassMat = new THREE.MeshStandardMaterial({
+    color: 0x35535e, roughness: 0.12, metalness: 0.25, transparent: true, opacity: 0.5,
+    emissive: 0x0c1418, emissiveIntensity: 1, side: THREE.DoubleSide,
+  });
+
+  const W = 1.42, H = 1.70, hw = W / 2, hh = H / 2;
+  const ft = 0.07, fd = 0.08;                       // frame thickness & proud depth (local +z)
+
+  // Tinted glass, set just behind the casing opening.
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(W - 2 * ft + 0.01, H - 2 * ft + 0.01, 0.02), glassMat);
+  glass.position.set(0, 0, 0); root.add(glass);
+
+  // Outer casing — four boards round the opening, each proud toward the street.
+  const horiz = (sy) => { const m = new THREE.Mesh(new THREE.BoxGeometry(W, ft, fd), frameMat); m.position.set(0, sy * (hh - ft / 2), fd / 2); m.castShadow = true; root.add(m); };
+  const vert = (sx) => { const m = new THREE.Mesh(new THREE.BoxGeometry(ft, H, fd), frameMat); m.position.set(sx * (hw - ft / 2), 0, fd / 2); m.castShadow = true; root.add(m); };
+  horiz(1); horiz(-1); vert(-1); vert(1);
+
+  // Glazing bars — a transom near the top, two vertical mullions (a 3-pane upper row over a tall
+  // lower display, the classic shopfront division).
+  const transom = new THREE.Mesh(new THREE.BoxGeometry(W - 2 * ft, 0.045, fd * 0.7), frameMat);
+  transom.position.set(0, 0.40, fd * 0.35); root.add(transom);
+  for (const sx of [-1, 1]) {
+    const mull = new THREE.Mesh(new THREE.BoxGeometry(0.04, H - 2 * ft, fd * 0.7), frameMat);
+    mull.position.set(sx * 0.225, 0, fd * 0.35); root.add(mull);
+  }
+
+  // Proud sill ledge at the base (the spr-047 flower box rests against it).
+  const sill = new THREE.Mesh(new THREE.BoxGeometry(W + 0.12, 0.06, fd + 0.12), sillMat);
+  sill.position.set(0, -hh + 0.01, (fd + 0.12) / 2 - 0.04); sill.castShadow = true; sill.receiveShadow = true; root.add(sill);
+
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -2452,16 +2498,15 @@ export function buildWorld(scene) {
   // (z−10.2), and right of the Tavern door past its topiary (z4.9) — each clear of the
   // doors, lanterns, topiary tubs and the high washing lines (y≈5–6.5).
   const shopWindows = [
-    // [x, y, z] — Window 428×512 (w1.42, h1.7), flush on the front (x8.92), facing −x.
+    // [x, y, z] — w1.42×h1.7 casing flush on the wall front (x8.92), facing −x. Now REAL geometry
+    // (spr-050, buildShopWindow) rather than the old PROP_Shop_Window cutout — framed, mullioned
+    // and glazed, sitting under the spr-049 awning with the spr-047 flower box on its sill.
     [8.92, 1.75, -18.5], // FerryStop bay
     [8.92, 1.75, -10.2], // Chandlery blank side
     [8.92, 1.75, 4.9], // Tavern bay
   ];
   for (const [x, y, z] of shopWindows) {
-    const win = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Shop_Window.png`, 1.42, 1.7, { emissive: 0.14, alphaTest: 0.4 });
-    win.position.set(x, y, z);
-    win.rotation.y = FACADE;
-    scene.add(win);
+    scene.add(buildShopWindow(x, y, z, FACADE).root);
   }
   const shopAwnings = [
     // [x, y, z] — the mounting bar pins to the wall front (x8.9, just above each window's top
