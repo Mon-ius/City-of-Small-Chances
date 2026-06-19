@@ -1518,6 +1518,70 @@ function buildCrateStack(x, y, z, facing = 0) {
   return { root };
 }
 
+// ── A shopfront awning (spr-049) — REAL geometry (a striped canvas sheet slanting down-and-out
+// from the wall on two struts, a mounting bar at the back, a front lip bar, and a scalloped
+// striped valance hanging off the front) rather than a flat billboard cutout. Replaces
+// PROP_Shop_Awning. The root mounts at the wall (x≈8.9) and projects toward the street; after the
+// caller's FACADE yaw (−π/2) local +z → world −x (OUT over the window), so the canvas is built long
+// in local x (along the wall) and slopes down in local +z. Self-contained own materials;
+// deterministic stripe layout (no Math.random).
+function buildAwning(x, y, z, facing = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, y, z);
+  root.rotation.y = facing;
+
+  const cream = new THREE.MeshStandardMaterial({ color: 0xe8e2d0, roughness: 0.9, metalness: 0, side: THREE.DoubleSide });
+  const red = new THREE.MeshStandardMaterial({ color: 0xb5453b, roughness: 0.9, metalness: 0, side: THREE.DoubleSide });
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0x5f5140, roughness: 0.7, metalness: 0.15 });
+  const barMat = new THREE.MeshStandardMaterial({ color: 0x463b2e, roughness: 0.7, metalness: 0.2 });
+  const stripeOf = (i) => (i % 2 === 0 ? cream : red);
+
+  const W = 2.0, D = 0.92, drop = 0.40;            // width (along wall), projection out, vertical fall
+  const slopeLen = Math.sqrt(D * D + drop * drop); // length of the canvas down the slope
+  const slopeAng = Math.atan2(drop, D);            // tilt of the canvas from horizontal
+  const N = 9, sw = W / N;                          // stripe count & width
+
+  // Mounting bar pinned to the wall (a horizontal cylinder along local x at the back, y0).
+  const back = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, W + 0.06, 8), barMat);
+  back.rotation.z = Math.PI / 2; back.castShadow = true; root.add(back);
+
+  // The canvas: a flat striped sheet built in the local xz plane, then tilted about x so its
+  // front edge falls down-and-out. Back edge at z0 (the wall), front edge at z=slopeLen.
+  const canvas = new THREE.Group();
+  canvas.rotation.x = slopeAng;
+  for (let i = 0; i < N; i++) {
+    const s = new THREE.Mesh(new THREE.BoxGeometry(sw * 0.96, 0.02, slopeLen), stripeOf(i));
+    s.position.set((i - (N - 1) / 2) * sw, 0, slopeLen / 2);
+    s.castShadow = true; s.receiveShadow = true; canvas.add(s);
+  }
+  root.add(canvas);
+
+  // Front lip bar along the leading (street) edge.
+  const lip = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, W + 0.04, 8), barMat);
+  lip.rotation.z = Math.PI / 2; lip.position.set(0, -drop, D); lip.castShadow = true; root.add(lip);
+
+  // Scalloped striped valance hanging off the front lip (each scallop a flattened half-disc,
+  // its stripe matched to the canvas stripe above it).
+  for (let i = 0; i < N; i++) {
+    const flap = new THREE.Mesh(new THREE.BoxGeometry(sw * 0.96, 0.15, 0.02), stripeOf(i));
+    flap.position.set((i - (N - 1) / 2) * sw, -drop - 0.075, D); flap.castShadow = true; root.add(flap);
+    const cup = new THREE.Mesh(new THREE.SphereGeometry(sw * 0.45, 10, 8), stripeOf(i));
+    cup.scale.set(1, 0.55, 0.4); cup.position.set((i - (N - 1) / 2) * sw, -drop - 0.15, D); root.add(cup);
+  }
+
+  // Two diagonal support struts from a low wall bracket out to the front lip corners.
+  const armLen = Math.sqrt((D - 0.04) * (D - 0.04) + 0.05 * 0.05);
+  const armAng = Math.atan2(D - 0.04, 0.05);       // angle of the strut from +y
+  for (const sx of [-1, 1]) {
+    const ax = sx * (W / 2 - 0.12);
+    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, armLen, 6), frameMat);
+    arm.position.set(ax, -0.425, 0.04 + (D - 0.04) / 2);
+    arm.rotation.x = armAng; arm.castShadow = true; root.add(arm);
+  }
+
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -2400,17 +2464,15 @@ export function buildWorld(scene) {
     scene.add(win);
   }
   const shopAwnings = [
-    // [x, y, z] — Awning 512×267 (w2.2, h1.15), proud of the wall (x8.55) so it shades
-    // the window below; the painted mounting bar sits along the awning's top edge.
-    [8.55, 2.9, -18.5],
-    [8.55, 2.9, -10.2],
-    [8.55, 2.9, 4.9],
+    // [x, y, z] — the mounting bar pins to the wall front (x8.9, just above each window's top
+    // at y2.6) and the striped canvas slopes down-and-out toward the street, shading the glass.
+    // Now REAL geometry (spr-049, buildAwning) rather than the old PROP_Shop_Awning cutout.
+    [8.9, 2.92, -18.5],
+    [8.9, 2.92, -10.2],
+    [8.9, 2.92, 4.9],
   ];
   for (const [x, y, z] of shopAwnings) {
-    const awn = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Shop_Awning.png`, 2.2, 1.15, { emissive: 0.16, alphaTest: 0.4 });
-    awn.position.set(x, y, z);
-    awn.rotation.y = FACADE;
-    scene.add(awn);
+    scene.add(buildAwning(x, y, z, FACADE).root);
   }
   const shopFlowerBoxes = [
     // [x, y, z] — on the sill under each window (x8.78), trailing foliage hanging below — the
