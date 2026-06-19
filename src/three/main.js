@@ -300,6 +300,8 @@ function start() {
     for (const c of world.critters) c.update(critterClock);
     // The washing sways on its lines in the harbour wind (spr-033) — same elapsed-seconds clock.
     for (const w of world.washing) w.update(critterClock);
+    // The masthead burgee ripples in that same wind (spr-035).
+    for (const f of world.flags) f.update(critterClock);
 
     // Bob the interaction markers so they catch the eye.
     markerPhase += dt * 2.2;

@@ -806,6 +806,49 @@ function buildRopeCoil(x, z, y, facing = Math.PI / 2) {
   return { root };
 }
 
+// ── A triangular burgee for the boat's masthead — the spr-033 swaying-cloth idea taken
+// horizontal: a chain of cloth segments hinged end-to-end, each lagging the one before so
+// a travelling ripple runs from the hoist out to the whipping point. Real rippling cloth,
+// not a flat decal. The ribbon streams along local +z (broad faces ±x); the caller places
+// and yaws the root. update(tt) is driven on the same elapsed-seconds clock as the washing.
+function buildPennant(segments = 6, length = 1.9, hoist = 0.5, color = 0xc0392b) {
+  const root = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.85, metalness: 0, side: THREE.DoubleSide });
+  const segLen = length / segments;
+  const pivots = [];
+  let parent = root;
+  for (let i = 0; i < segments; i++) {
+    const pivot = new THREE.Object3D();
+    if (i > 0) pivot.position.z = segLen;            // hung off the previous segment's tail
+    parent.add(pivot);
+    const hL = hoist * (1 - i / segments);           // cloth height at this segment's leading edge…
+    const hT = hoist * (1 - (i + 1) / segments);     // …tapering toward the fly point
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array([
+      0,  hL / 2, 0,         // leading top
+      0, -hL / 2, 0,         // leading bottom
+      0, -hT / 2, segLen,    // trailing bottom
+      0,  hT / 2, segLen,    // trailing top
+    ]), 3));
+    geo.setIndex([0, 1, 2, 0, 2, 3]);
+    geo.computeVertexNormals();
+    const cloth = new THREE.Mesh(geo, mat);
+    cloth.castShadow = false;
+    pivot.add(cloth);
+    pivots.push(pivot);
+    parent = pivot;
+  }
+  return {
+    root,
+    update(tt) {
+      for (let i = 0; i < pivots.length; i++) {
+        // travelling ripple: each joint lags the one before, the swing growing toward the fly
+        pivots[i].rotation.y = (0.05 + i * 0.035) * Math.sin(tt * 2.3 - i * 1.05);
+      }
+    },
+  };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -1207,6 +1250,7 @@ export function buildWorld(scene) {
   });
 
   // ── A moored boat out on the water for life on the horizon.
+  const flags = []; // masthead burgee(s) that ripple in the wind (spr-035), ticked on the critter clock
   const boat = new THREE.Group();
   boat.position.set(-20, 0, -6);
   const hull = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.0, 8), woodMat);
@@ -1234,6 +1278,12 @@ export function buildWorld(scene) {
   sail.position.set(0, 3.3, 1.5);
   sail.castShadow = true;
   boat.add(sail);
+  // A crimson burgee at the masthead, rippling in the harbour wind (spr-035) — streams aft
+  // (+z) so its broad face turns to the quay; ticked via world.flags on the critter clock.
+  const pennant = buildPennant();
+  pennant.root.position.set(0, 5.25, 1.5);           // at the mast top (mast tip ≈ y5.5)
+  boat.add(pennant.root);
+  flags.push(pennant);
   scene.add(boat);
 
   // ── A notice board for the "read the board" interactable.
@@ -2596,7 +2646,7 @@ export function buildWorld(scene) {
   }
 
   const bounds = { minX: -10.5, maxX: 6.5, minZ: -34, maxZ: 34 };
-  return { bounds, citizens, locals, billboards, clouds, soaringGulls, smokePlumes, critters, washing, lampHeads, lampGlows, waterGlows, sunGlitters, brazierGlows, waterMists, beaconGlows, boatLights, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow, setWindowGlow, setWaterGlow, setSunGlitter, setBrazierGlow, setWaterMist, setBeacon, setBoatLights };
+  return { bounds, citizens, locals, billboards, clouds, soaringGulls, smokePlumes, critters, washing, flags, lampHeads, lampGlows, waterGlows, sunGlitters, brazierGlows, waterMists, beaconGlows, boatLights, markers, sun, hemi, ambient, skyDome, moon, paintSky, setSkyBlend, setOvercast, tintClouds, setMoon, setLampGlow, setWindowGlow, setWaterGlow, setSunGlitter, setBrazierGlow, setWaterMist, setBeacon, setBoatLights };
 }
 
 // Wrapper so makeBuilding (which builds a Group) is added to the scene.
