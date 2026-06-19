@@ -1211,6 +1211,78 @@ function buildNoodleBowl(x, y, z, facing = 0) {
   return { root };
 }
 
+// ── Mei's string of dried wares hung under the awning (spr-044) — REAL geometry (a wooden
+// rail with four clusters of hanging market fare: a pair of dried fish, a string of red
+// chillies, a link of cured sausages, and a little garlic braid, each on its own twine)
+// rather than a flat painted cutout. Replaces the PROP_Market_HangingWares cutout. The root
+// sits at the rail under the awning; the wares hang below it. Static — they don't sway (no
+// tick). Self-contained own materials; deterministic layout (no Math.random).
+function buildHangingWares(x, y, z, facing = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, y, z);
+  root.rotation.y = facing;
+  const wood = new THREE.MeshStandardMaterial({ color: 0x7a5d3a, roughness: 0.9, metalness: 0 });
+  const twine = new THREE.MeshStandardMaterial({ color: 0x6b5a3f, roughness: 1, metalness: 0 });
+  const fishMat = new THREE.MeshStandardMaterial({ color: 0xc2b290, roughness: 0.7, metalness: 0 });
+  const chilliMat = new THREE.MeshStandardMaterial({ color: 0xbe2f24, roughness: 0.55, metalness: 0 });
+  const sausageMat = new THREE.MeshStandardMaterial({ color: 0x8a4b2f, roughness: 0.75, metalness: 0 });
+  const garlicMat = new THREE.MeshStandardMaterial({ color: 0xe6ded0, roughness: 0.85, metalness: 0 });
+
+  // The rail the wares hang from (a thin wooden dowel along x).
+  const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.64, 8), wood);
+  bar.rotation.z = Math.PI / 2; bar.castShadow = true; root.add(bar);
+
+  // A thin twine from the rail (y0) down to -len at local x; returns the y of its bottom.
+  const hang = (px, len) => {
+    const s = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, len, 5), twine);
+    s.position.set(px, -len / 2, 0); root.add(s);
+    return -len;
+  };
+
+  // 1) a pair of dried fish on the left.
+  {
+    const y0 = hang(-0.24, 0.16);
+    for (const dx of [-0.03, 0.03]) {
+      const fish = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 8), fishMat);
+      fish.scale.set(0.42, 1.0, 0.28);                       // flattened, elongated
+      fish.position.set(-0.24 + dx, y0 - 0.085, 0); fish.castShadow = true; root.add(fish);
+      const tail = new THREE.Mesh(new THREE.ConeGeometry(0.028, 0.05, 6), fishMat);
+      tail.scale.set(1, 1, 0.4); tail.position.set(-0.24 + dx, y0 - 0.165, 0); root.add(tail);
+    }
+  }
+  // 2) a string of red chillies.
+  {
+    const y0 = hang(-0.08, 0.09);
+    for (let i = 0; i < 7; i++) {
+      const a = (i / 7) * Math.PI * 2;
+      const c = new THREE.Mesh(new THREE.CapsuleGeometry(0.011, 0.05, 4, 6), chilliMat);
+      c.position.set(-0.08 + Math.cos(a) * 0.025, y0 - 0.05 - (i % 3) * 0.022, Math.sin(a) * 0.02);
+      c.rotation.z = Math.cos(a) * 0.5; c.rotation.x = 0.2; c.castShadow = true; root.add(c);
+    }
+  }
+  // 3) a link of cured sausages.
+  {
+    const y0 = hang(0.08, 0.09);
+    for (let i = 0; i < 4; i++) {
+      const s = new THREE.Mesh(new THREE.CapsuleGeometry(0.026, 0.03, 5, 8), sausageMat);
+      s.scale.set(1, 1, 0.9);
+      s.position.set(0.08 + (i % 2 ? 0.018 : -0.018), y0 - 0.04 - i * 0.05, 0);
+      s.rotation.z = (i % 2 ? 1 : -1) * 0.4; s.castShadow = true; root.add(s);
+    }
+  }
+  // 4) a little garlic braid on the right.
+  {
+    const y0 = hang(0.24, 0.11);
+    for (let i = 0; i < 4; i++) {
+      const g = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 7), garlicMat);
+      g.scale.set(1, 0.85, 1);
+      g.position.set(0.24 + (i % 2 ? 0.016 : -0.016), y0 - 0.03 - i * 0.045, 0);
+      g.castShadow = true; root.add(g);
+    }
+  }
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -1553,14 +1625,13 @@ export function buildWorld(scene) {
   stallSign.position.set(0, 1.32, 0.96);
   stall.add(stallSign);
 
-  // Mei's wares (Batch 17): market goods dressing the stall — a string of dried wares hung
-  // under the awning and a restock crate on the ground beside it. These stay flat alpha
-  // cutouts sized to their PNG aspect, added to the stall group so they inherit its place and
-  // face +z toward the customer; her NOODLE BOWL (spr-041), two PRODUCE BASKETS (spr-039) and
-  // her SACK STACK (spr-040) are now real geometry, below. Lightly self-lit so they read after dark.
+  // Mei's wares (Batch 17): market goods dressing the stall. These remaining two stay flat
+  // alpha cutouts sized to their PNG aspect, added to the stall group so they inherit its
+  // place and face +z toward the customer; her HANGING WARES (spr-044), NOODLE BOWL (spr-041),
+  // two PRODUCE BASKETS (spr-039) and SACK STACK (spr-040) are now real geometry, below.
+  // Lightly self-lit so they read after dark.
   const stallGoods = [
     // [file, w, h, [x, y, z], emissive]
-    ["PROP_Market_HangingWares", 0.68, 0.62, [0.95, 1.45, 0.55], 0.1],
     // Mei's cooking gear (Batch 20, closing spr-006): a seasoned wok + ladle +
     // chopsticks at the left of the counter, where she works the bowls.
     ["PROP_Kit_Utensils", 0.64, 0.537, [-1.3, 1.2, 0.42], 0.12],
@@ -1574,6 +1645,7 @@ export function buildWorld(scene) {
   // Mei's produce baskets (spr-039) and grain-sack stack (spr-040), now REAL geometry — no
   // longer flat cutouts. Added to the stall group so they inherit its place; each base sits
   // where the cutout's base sat (heaped baskets on counter/ground, the sacks slumped beside it).
+  stall.add(buildHangingWares(0.95, 1.74, 0.55).root);                   // dried wares hung under the awning
   stall.add(buildNoodleBowl(0.55, 0.9, 0.42, -0.15).root);               // Mei's bowl, up on the counter top
   stall.add(buildProduceBasket(-0.6, 0.9, 0.42, 0.83, "fruit").root);     // up on the counter top
   stall.add(buildProduceBasket(-1.95, 0.0, 1.2, 0.78, "veg").root);       // on the ground beside the stall
