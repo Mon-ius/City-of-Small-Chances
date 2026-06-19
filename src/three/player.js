@@ -434,9 +434,10 @@ export function createFigure(look = "player", opts = {}) {
   // reads clean. Walkers and the player (seed 0) are always stance 0, i.e. unchanged.
   const seed = opts.seed ?? 0;
   const seated = opts.seated === true;   // perched on a wall, legs dangling (spr-031)
+  const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
-  if (p.prop) stance = 0;
+  if (p.prop || talk) stance = 0;        // a clean arms-at-side base for the talk gesture
   const stanceArmX = stance === 1 ? -0.5 : stance === 2 ? 0.45 : 0;   // pitch the upper arm
   const armZL = stance === 1 ? -0.3 : 0.09;   // the clasped pose rolls the shoulders inward
   const armZR = stance === 1 ? 0.3 : -0.09;   // so the two hands meet in front of the body
@@ -494,12 +495,14 @@ export function createFigure(look = "player", opts = {}) {
     _idleRate: 1.7 + seed * 1.1,        // 1.7..2.8 — each idler breathes at its own pace
     _armBias: (seed - 0.5) * 0.16,      // a small, fixed asymmetric arm hang
     _build: build,                      // mass proxy — drives the stride heft (spr-017)
-    _fidgety: idler && !p.prop,         // empty-handed idlers fidget; the laden don't (spr-018)
+    _fidgety: idler && !p.prop && !talk, // empty-handed idlers fidget; the laden & talkers don't (spr-018/032)
     _fidgetPhase: seed * Math.PI * 3.3, // fidget clock, decorrelated from breath/gaze/sway
     _propPivot: propPivot,              // a worked tool's hand-pivot, or null (spr-019)
     _propLeaf: propLeaf,                // a ledger's turning page-leaf, or null (spr-030)
     _propAnim: propAnim,                // "stir" | "turn" | "read" | null
     _seated: seated,                    // perched on the sea-wall, legs dangling (spr-031)
+    _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
+    _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
     update(dt, speed = 0) {
       const moving = speed > 0.05;
       // Stride cadence scales with pace (sqrt so it eases off), so a laden trudge steps
@@ -591,6 +594,32 @@ export function createFigure(look = "player", opts = {}) {
       if (this._propLeaf && this._propAnim === "read") {
         const r = Math.max(0, Math.sin(this._phase * 0.55));
         this._propLeaf.rotation.y = r * r * r * 2.5;
+      }
+      // Conversation (spr-032) — a pair of idlers stand face to face and talk in turns: one
+      // holds the floor (lifting and working the forearms, leaning in, nodding to the beat of
+      // speech) while the other listens with the odd agreeing dip of the head; then they swap.
+      // `_talkPhase` advances slowly and is set ANTIPHASE between the two (0 and π) so exactly
+      // one leads at a time. Overrides the wandering gaze + fidget set above (a talker watches
+      // its partner, not the harbour) while keeping the breath + weight-shift. Empty-handed
+      // idlers only — the player never talks (no opts.talk), so this is dead code for the hero.
+      if (this._talk && !moving) {
+        this._talkPhase += dt * 0.45;                     // ~14s round, ~7s a turn at the floor
+        const tp = this._talkPhase;
+        const spk = Math.max(0, Math.sin(tp));            // 0..1 — high while THIS one speaks
+        const lst = Math.max(0, -Math.sin(tp));           // its complement — high while listening
+        const beat = Math.sin(this._phase * 3.1);         // a quick hand/voice beat over the breath
+        // Gesticulate: the speaker lifts and works the forearms; hands come a little inward.
+        armR.rotation.x = -spk * (0.7 + beat * 0.2);
+        armL.rotation.x = -spk * (0.55 - beat * 0.2);
+        armR.rotation.z = -0.12 - spk * 0.12;
+        armL.rotation.z = 0.12 + spk * 0.12;
+        // Head: both already face the partner (yaw'd face to face). The speaker nods to the
+        // beat; the listener gives slow agreeing dips. No wandering gaze.
+        this.headPivot.rotation.y = 0;
+        this.headPivot.rotation.x =
+          -spk * (0.06 + 0.05 * beat) - lst * Math.max(0, Math.sin(this._phase * 0.8)) * 0.10;
+        // The speaker leans in a touch (overrides the upright 0 set for a still idler).
+        body.rotation.x = spk * 0.06;
       }
     },
   };

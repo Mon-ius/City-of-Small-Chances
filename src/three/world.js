@@ -1443,6 +1443,37 @@ export function buildWorld(scene) {
     citizens.push(makeStanding(fig, s.yaw));
   }
 
+  // A conversation pair (spr-032): the crowd already has static face-to-face "knots" (spr-009),
+  // but they only STAND turned toward one another — nobody actually talks. These two stand a
+  // natural arm's-length apart on the open deck between the spawn (−3,16) and Mei's stall and
+  // hold a real exchange: `createFigure(..., {talk:true, talkPhase})` gives each a turn-taking
+  // gesture (one gesticulates & leans in while the other listens & nods, then they swap). The
+  // pair is set ANTIPHASE (talkPhase 0 and π) so exactly one holds the floor at a time. Placed
+  // at x≈0.5, z≈11 — ≥2.5 m clear of every crowd body, the pigeon flocks ((−2.5,6)/(1.5,14)),
+  // the patrol lanes and the spawn — and angled a touch off the z-axis so the player coming
+  // south from the spawn sees both at a three-quarter view, not one behind the other.
+  const talkers = [
+    { role: "Fisher",   x: 0.2, z: 10.6, talkPhase: 0 },
+    { role: "Merchant", x: 0.9, z: 11.9, talkPhase: Math.PI },
+  ];
+  for (let i = 0; i < talkers.length; i++) {
+    const t = talkers[i];
+    const o = talkers[1 - i];                                  // the partner to face
+    const seed = (((t.x * 12.9 + t.z * 7.3) % 1) + 1) % 1;
+    const fig = createFigure(t.role, { castShadow: false, seed, talk: true, talkPhase: t.talkPhase });
+    fig.root.position.set(t.x, 0, t.z);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, Math.atan2(o.x - t.x, o.z - t.z)));   // turn to face the partner
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.55 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(t.x, 0.02, t.z);
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like
