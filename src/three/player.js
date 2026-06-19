@@ -279,9 +279,19 @@ function buildProp(type) {
     g.add(at(mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.02, 14), wickerMat()), 0, 0.89, 0.30));
     const handle = mesh(new THREE.TorusGeometry(0.11, 0.012, 6, 14, Math.PI), wickerMat());
     g.add(at(handle, 0, 1.07, 0.30));
-  } else if (type === "book") {                  // a clerk's ledger / cleric's book at the chest
-    const bk = mesh(new THREE.BoxGeometry(0.16, 0.2, 0.05), flatMat(0x4a2e22, 0.6));
-    bk.rotation.x = -0.5; g.add(at(bk, -0.02, 1.27, 0.23));
+  } else if (type === "book") {                  // an open ledger at the chest, a page turning (spr-030)
+    const cover = flatMat(0x4a2e22, 0.6);        // dark board
+    const paper = flatMat(0xcabf9e, 0.85);       // aged leaves
+    const tilt = new THREE.Group();              // the whole ledger tilts its open face up to the reader
+    tilt.rotation.x = -0.8;
+    tilt.add(at(mesh(new THREE.BoxGeometry(0.30, 0.22, 0.025), cover), 0, 0, -0.014)); // boards beneath
+    tilt.add(mesh(new THREE.BoxGeometry(0.28, 0.20, 0.012), paper));                   // the spread of pages
+    const leaf = new THREE.Group();              // one sheet, hinged at the central spine (x=0)
+    leaf.position.z = 0.012;
+    leaf.add(at(mesh(new THREE.BoxGeometry(0.135, 0.185, 0.003), paper), 0.0675, 0, 0)); // lies over the right page
+    tilt.add(leaf);
+    g.add(at(tilt, -0.02, 1.3, 0.22));
+    g.userData.leaf = leaf; g.userData.anim = "read";   // the leaf flips in place (no grip → ledger stays planted)
   } else if (type === "sack") {                  // a porter's sack hoisted on the shoulder
     // Pale hemp (not the coat brown — a same-colour sack vanishes into the porter's coat),
     // sat high beside the shoulder and a touch forward so it reads from the front.
@@ -389,7 +399,7 @@ export function createFigure(look = "player", opts = {}) {
   // Carried prop — a trade tell in the hands (spr-006). Rides the breath, not the swing.
   // A worked tool (one with a userData.grip) hangs from a pivot at the grip so it can be
   // stirred or cranked about the hand without the whole tool swinging from the feet (spr-019).
-  let propPivot = null, propAnim = null;
+  let propPivot = null, propAnim = null, propLeaf = null;
   if (p.prop) {
     const prop = buildProp(p.prop);
     if (prop) {
@@ -405,6 +415,10 @@ export function createFigure(look = "player", opts = {}) {
         propPivot = pivot; propAnim = prop.userData.anim || null;
       } else {
         body.add(prop);
+        // A planted prop (no grip) can still work a moving part of itself — the ledger's
+        // turning leaf (spr-030). The figure stays still; only the page sweeps.
+        propLeaf = prop.userData.leaf || null;
+        propAnim = prop.userData.anim || null;
       }
     }
   }
@@ -482,7 +496,8 @@ export function createFigure(look = "player", opts = {}) {
     _fidgety: idler && !p.prop,         // empty-handed idlers fidget; the laden don't (spr-018)
     _fidgetPhase: seed * Math.PI * 3.3, // fidget clock, decorrelated from breath/gaze/sway
     _propPivot: propPivot,              // a worked tool's hand-pivot, or null (spr-019)
-    _propAnim: propAnim,                // "stir" | "turn" | null
+    _propLeaf: propLeaf,                // a ledger's turning page-leaf, or null (spr-030)
+    _propAnim: propAnim,                // "stir" | "turn" | "read" | null
     update(dt, speed = 0) {
       const moving = speed > 0.05;
       // Stride cadence scales with pace (sqrt so it eases off), so a laden trudge steps
@@ -545,6 +560,14 @@ export function createFigure(look = "player", opts = {}) {
         } else if (this._propAnim === "turn") {     // Tomo cranks his spanner on a fitting
           this._propPivot.rotation.x = Math.sin(t * 1.6) * 0.28;
         }
+      }
+      // A read ledger (spr-030) — Jun the dispatcher (and the crowd's clerks/clerics) work
+      // through the pages: the leaf rests flat most of the cycle, then lifts and sweeps over
+      // the spine in a brief riffle and settles back. The cube keeps it still between turns,
+      // and the gesture returns to 0 each cycle so it loops without a teleporting reset.
+      if (this._propLeaf && this._propAnim === "read") {
+        const r = Math.max(0, Math.sin(this._phase * 0.55));
+        this._propLeaf.rotation.y = r * r * r * 2.5;
       }
     },
   };
