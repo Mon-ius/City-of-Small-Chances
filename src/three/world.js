@@ -725,6 +725,87 @@ function buildWashingLine(x, yTop, z0, z1, garments, phase) {
   };
 }
 
+// ── A real life-ring on its station board — a white torus banded with red grab-marks,
+// mounted flat against a dark plank. Replaces the old PROP_Quay_LifeRing cutout.
+// Arg order: (x, z, y, facing) — y is THIRD; facing yaws the whole group.
+function buildLifeRing(x, z, y, facing = Math.PI / 2) {
+  const root = new THREE.Group();
+  root.position.set(x, y, z);
+  root.rotation.y = facing;
+  const board = new THREE.Mesh(
+    new THREE.BoxGeometry(0.06, 0.86, 0.86),
+    new THREE.MeshStandardMaterial({ color: 0x3a2f26, roughness: 0.92 }),
+  );
+  board.position.x = -0.06;
+  board.castShadow = false; board.receiveShadow = true;
+  root.add(board);
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(0.32, 0.082, 12, 28),
+    new THREE.MeshStandardMaterial({ color: 0xf4f4ee, roughness: 0.7 }),
+  );
+  ring.rotation.y = Math.PI / 2;                                // broad face toward the quay (+x)
+  ring.castShadow = false;
+  root.add(ring);
+  const bandMat = new THREE.MeshStandardMaterial({ color: 0xc0392b, roughness: 0.65 });
+  for (let i = 0; i < 4; i++) {
+    const a = i * Math.PI / 2 + Math.PI / 4;
+    const band = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.18, 0.18), bandMat);
+    band.position.set(0, Math.sin(a) * 0.32, -Math.cos(a) * 0.32);
+    band.castShadow = false;
+    root.add(band);
+  }
+  return { root };
+}
+
+// ── A cluster of fishing floats — three egg-shaped buoys with short lanyards, the kind
+// lashed to a quay edge. Replaces the flat PROP_Quay_Buoys cutout.
+function buildBuoyCluster(x, z, y, facing = Math.PI / 2) {
+  const root = new THREE.Group();
+  root.position.set(x, y, z);
+  root.rotation.y = facing;
+  const floats = [
+    { r: 0.20, dy: 0.10, dz: -0.20, color: 0xe07b22 },
+    { r: 0.16, dy: -0.06, dz: 0.02, color: 0xeae6dc },
+    { r: 0.18, dy: 0.03, dz: 0.24, color: 0xb23a34 },
+  ];
+  for (const f of floats) {
+    const float = new THREE.Mesh(
+      new THREE.SphereGeometry(f.r, 14, 12),
+      new THREE.MeshStandardMaterial({ color: f.color, roughness: 0.6 }),
+    );
+    float.scale.y = 1.15;                                       // an egg, not a ball
+    float.position.set(0, f.dy, f.dz);
+    float.castShadow = false;
+    root.add(float);
+    const lanyard = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.012, 0.012, 0.42, 6),
+      new THREE.MeshStandardMaterial({ color: 0x4a4036, roughness: 0.9 }),
+    );
+    lanyard.position.set(0, f.dy + f.r * 1.15 + 0.18, f.dz);
+    lanyard.castShadow = false;
+    root.add(lanyard);
+  }
+  return { root };
+}
+
+// ── A coil of mooring rope flaked flat on the stone — four concentric loops tapering inward.
+// Replaces the PROP_Quay_RopeCoil cutout.
+function buildRopeCoil(x, z, y, facing = Math.PI / 2) {
+  const root = new THREE.Group();
+  root.position.set(x, y, z);
+  root.rotation.y = facing;
+  const mat = new THREE.MeshStandardMaterial({ color: 0x8a7853, roughness: 0.95 });
+  const radii = [0.34, 0.26, 0.18, 0.11];
+  radii.forEach((R, i) => {
+    const loop = new THREE.Mesh(new THREE.TorusGeometry(R, 0.035, 8, 22), mat);
+    loop.rotation.x = -Math.PI / 2;
+    loop.position.y = i * 0.045;
+    loop.castShadow = false;
+    root.add(loop);
+  });
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -1239,9 +1320,7 @@ export function buildWorld(scene) {
   // gaps clear of the stall/board/spawn/crates so nothing blocks the path.
   const quayClutter = [
     // [file, w, h, [x, y, z], yaw, emissive]
-    ["PROP_Quay_Buoys", 1.07, 0.9, [-10.3, 0.45, -13], Math.PI / 2, 0.12],
     ["PROP_Quay_FishingNet", 1.06, 0.7, [-10.0, 0.35, 24], Math.PI / 2, 0.1],
-    ["PROP_Quay_RopeCoil", 0.75, 0.45, [-9.6, 0.22, 16], Math.PI / 2 - 0.3, 0.1],
     ["PROP_Quay_LobsterPots", 1.17, 0.8, [5.8, 0.4, -18], -Math.PI / 2, 0.1],
   ];
   for (const [file, w, h, [x, y, z], yaw, emissive] of quayClutter) {
@@ -1252,19 +1331,15 @@ export function buildWorld(scene) {
   }
 
   // ── Quay-edge safety & mooring gear (Batch 55): the sea-wall the near craft tie up
-  // against carried bollards, rope, a net and buoys — but none of the gear a working
-  // berth keeps right at the water's edge. Three FIXED side-profile cutouts (the same
-  // Batch-42 quayClutter idiom — broad face turned to the walkable quay, NOT
-  // billboarded) dress the bare coping: a cork life-ring on its station mounted above
-  // the parapet (y raised so it sits over the coping, its backing board grounding it),
-  // a timber quay ladder with its foot on the deck and grab-hoops rising past the wall
-  // top, and a cluster of fenders hung from a lashing at the coping draping down the
-  // wall face. Slotted into the long empty stretches clear of the bollards
-  // (z∈{−34…30 step 8}), the perched gulls (z∈{−6,3,12,−19,25}) and the existing
-  // clutter (buoys z=−13, rope z=16, net z=24).
+  // against. Two FIXED side-profile cutouts (the same Batch-42 quayClutter idiom — broad
+  // face turned to the walkable quay, NOT billboarded) dress the bare coping: a timber
+  // quay ladder with its foot on the deck and grab-hoops rising past the wall top, and a
+  // cluster of fenders hung from a lashing at the coping draping down the wall face. (The
+  // life-ring that once rode here is now real geometry — see buildLifeRing below.) Slotted
+  // into the long empty stretches clear of the bollards (z∈{−34…30 step 8}), the perched
+  // gulls (z∈{−6,3,12,−19,25}) and the existing clutter (net z=24).
   const quayEdgeGear = [
     // [file, w, h, [x, y, z], yaw, emissive]
-    ["PROP_Quay_LifeRing", 0.82, 0.92, [-10.7, 1.05, -22], Math.PI / 2, 0.14], // throw-ring station, mounted over the coping
     ["PROP_Quay_Fenders", 0.635, 0.9, [-10.72, 0.45, 0], Math.PI / 2, 0.1], // fenders hung over the coping, lashing at wall top
     ["PROP_Quay_Ladder", 0.45, 1.6, [-10.7, 0.8, 10], Math.PI / 2, 0.1], // access ladder, foot on the deck, grab-hoops above the parapet
   ];
@@ -1274,6 +1349,16 @@ export function buildWorld(scene) {
     c.rotation.y = yaw;
     scene.add(c);
   }
+
+  // ── The water's-edge mooring & safety gear, now built as REAL geometry (spr-034) rather
+  // than billboarded cutouts: a cork life-ring on its station board mounted over the coping,
+  // a cluster of fishing floats lashed to the wall, and a coil of mooring rope flaked flat
+  // on the deck. All turn their working faces to the walkable quay (+x). Slotted into the
+  // same long empty stretches the old cutouts held (life-ring z=−22, buoys z=−13, rope z=16),
+  // clear of the bollards, perched gulls and the remaining net/fenders/ladder.
+  scene.add(buildLifeRing(-10.7, -22, 1.05, 0).root);          // board flush to the wall, ring facing +x quay
+  scene.add(buildBuoyCluster(-10.3, -13, 0.6, 0).root);        // floats hung in a row along the wall (z)
+  scene.add(buildRopeCoil(-9.6, 16, 0.04, Math.PI / 2 - 0.3).root); // flat coil — rotationally symmetric
 
   // ── Floating markers above each interactable, so you can spot them from afar.
   const markers = [];
