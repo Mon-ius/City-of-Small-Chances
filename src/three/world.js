@@ -1094,6 +1094,73 @@ function buildSackStack(x, y, z, facing = 0) {
   return { root };
 }
 
+// ── Mei's signature noodle bowl, up on the counter — REAL geometry (a glazed open bowl
+// with a cobalt rim band, a disc of golden broth, a heaped dome of pale noodles laced with
+// a few coiled strands, a scatter of scallion + a pink fishcake slice, and two chopsticks
+// resting across the rim) rather than a flat painted cutout. Replaces the PROP_Food_NoodleBowl
+// cutout. The root sits ON the counter top (y is the surface height); facing rotates the set.
+// Static for now — the rising steam is the next polish (reuse smokeTexture/smokePlumes).
+function buildNoodleBowl(x, y, z, facing = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, y, z);
+  root.rotation.y = facing;
+
+  const rTop = 0.17, rBot = 0.10, hB = 0.12;
+  const porcelain = new THREE.MeshStandardMaterial({ color: 0xf3efe6, roughness: 0.35, metalness: 0, side: THREE.DoubleSide });
+  const glaze = new THREE.MeshStandardMaterial({ color: 0x2f5d8a, roughness: 0.3, metalness: 0 }); // cobalt rim band
+
+  // Open bowl wall (truncated cone, both faces shown so the inside reads).
+  const wall = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBot, hB, 24, 1, true), porcelain);
+  wall.position.y = hB / 2; wall.castShadow = true; wall.receiveShadow = true; root.add(wall);
+  // A closed base so you don't see through the bottom of the open cone.
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(rBot, rBot * 0.82, 0.02, 24), porcelain);
+  base.position.y = 0.012; root.add(base);
+  // Cobalt rim band just under the lip.
+  const band = new THREE.Mesh(new THREE.TorusGeometry(rTop - 0.004, 0.009, 8, 28), glaze);
+  band.rotation.x = Math.PI / 2; band.position.y = hB - 0.012; root.add(band);
+
+  // Golden broth: a disc filling the bowl near the rim (faces up).
+  const brothY = hB * 0.78;
+  const brothR = rBot + (rTop - rBot) * 0.78 - 0.006;
+  const broth = new THREE.Mesh(new THREE.CircleGeometry(brothR, 24), new THREE.MeshStandardMaterial({ color: 0xc6862f, roughness: 0.42, metalness: 0 }));
+  broth.rotation.x = -Math.PI / 2; broth.position.y = brothY; root.add(broth);
+
+  // Noodle dome rising out of the broth, laced with a few coiled strands.
+  const noodleMat = new THREE.MeshStandardMaterial({ color: 0xe7d590, roughness: 0.72, metalness: 0 });
+  const mound = new THREE.Mesh(new THREE.SphereGeometry(brothR * 0.72, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), noodleMat);
+  mound.scale.set(1, 0.55, 1); mound.position.y = brothY; mound.castShadow = true; root.add(mound);
+  for (let i = 0; i < 3; i++) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(brothR * (0.55 - i * 0.13), 0.007, 5, 16), noodleMat);
+    ring.rotation.x = Math.PI / 2 + (i % 2 ? 0.18 : -0.14);
+    ring.position.set((i - 1) * 0.012, brothY + brothR * (0.26 + i * 0.13), 0.01 * i);
+    root.add(ring);
+  }
+  // Toppings: scallion greens + a pink fishcake slice, scattered on top.
+  const toppings = [[0x4e7a32, brothR * 0.5, 0.6], [0x6b9a3a, brothR * 0.42, 2.4], [0xd98a86, brothR * 0.55, 4.3]];
+  for (const [col, rad, ang] of toppings) {
+    const t = new THREE.Mesh(new THREE.SphereGeometry(0.016, 8, 6), new THREE.MeshStandardMaterial({ color: col, roughness: 0.6, metalness: 0 }));
+    t.scale.set(1.4, 0.5, 1.4);
+    t.position.set(Math.cos(ang) * rad, brothY + brothR * 0.5, Math.sin(ang) * rad);
+    root.add(t);
+  }
+
+  // Two chopsticks resting across the rim, poking out one side.
+  const stickMat = new THREE.MeshStandardMaterial({ color: 0x9a6f3a, roughness: 0.7, metalness: 0 });
+  const stick = (off) => {
+    const g = new THREE.Group();
+    g.position.set(0.02, hB + 0.014, off);
+    g.rotation.y = 0.35;   // angled out across the rim in plan
+    g.rotation.z = 0.07;   // a slight tilt so it rests on the lip
+    const s = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.009, 0.32, 6), stickMat);
+    s.rotation.z = Math.PI / 2;   // lay along local x
+    s.castShadow = true; g.add(s);
+    root.add(g);
+  };
+  stick(0.035); stick(-0.005);
+
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -1436,15 +1503,13 @@ export function buildWorld(scene) {
   stallSign.position.set(0, 1.32, 0.96);
   stall.add(stallSign);
 
-  // Mei's wares (Batch 17): market goods dressing the stall — a steaming noodle bowl up
-  // on the counter, a string of dried wares hung under the awning, and a restock crate on
-  // the ground beside it. These stay flat alpha cutouts sized to their PNG aspect, added to
-  // the stall group so they inherit its place and face +z toward the customer; her two
-  // PRODUCE BASKETS (spr-039) and her SACK STACK (spr-040) are now real geometry, below.
-  // Lightly self-lit so the goods read after dark.
+  // Mei's wares (Batch 17): market goods dressing the stall — a string of dried wares hung
+  // under the awning and a restock crate on the ground beside it. These stay flat alpha
+  // cutouts sized to their PNG aspect, added to the stall group so they inherit its place and
+  // face +z toward the customer; her NOODLE BOWL (spr-041), two PRODUCE BASKETS (spr-039) and
+  // her SACK STACK (spr-040) are now real geometry, below. Lightly self-lit so they read after dark.
   const stallGoods = [
     // [file, w, h, [x, y, z], emissive]
-    ["PROP_Food_NoodleBowl", 0.62, 0.625, [0.55, 1.2, 0.42], 0.18],
     ["PROP_Market_HangingWares", 0.68, 0.62, [0.95, 1.45, 0.55], 0.1],
     // Mei's cooking gear (Batch 20, closing spr-006): a seasoned wok + ladle +
     // chopsticks at the left of the counter, where she works the bowls.
@@ -1459,6 +1524,7 @@ export function buildWorld(scene) {
   // Mei's produce baskets (spr-039) and grain-sack stack (spr-040), now REAL geometry — no
   // longer flat cutouts. Added to the stall group so they inherit its place; each base sits
   // where the cutout's base sat (heaped baskets on counter/ground, the sacks slumped beside it).
+  stall.add(buildNoodleBowl(0.55, 0.9, 0.42, -0.15).root);               // Mei's bowl, up on the counter top
   stall.add(buildProduceBasket(-0.6, 0.9, 0.42, 0.83, "fruit").root);     // up on the counter top
   stall.add(buildProduceBasket(-1.95, 0.0, 1.2, 0.78, "veg").root);       // on the ground beside the stall
   stall.add(buildSackStack(1.8, 0.0, 1.2).root);                          // grain sacks slumped on the ground
