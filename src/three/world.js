@@ -2441,6 +2441,73 @@ function buildCrocks(x, z, yaw = 0) {
   return { root };
 }
 
+// ── A fishmonger's slab (spr-061): a timber trestle table with a back & side lip, a bed
+// of crushed ice, and the morning's silver catch laid out in a fan (each fish a scaled
+// ellipsoid body with a little tail fin, wrapped in its own yawed group). Replaces the
+// flat PROP_Market_FishSlab cutout. Root at the ground, builds upward.
+function buildFishSlab(x, z, yaw = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, 0, z);
+  root.rotation.y = yaw;
+  const wood = new THREE.MeshStandardMaterial({ color: 0x6e5634, roughness: 0.85 });
+  const ice = new THREE.MeshStandardMaterial({ color: 0xc6d6e0, roughness: 0.4, emissive: 0x223038, emissiveIntensity: 0.3 });
+  const fishMat = new THREE.MeshStandardMaterial({ color: 0xb2bcc4, roughness: 0.45, metalness: 0.25 });
+  const add = (g, m, px, py, pz) => { const o = new THREE.Mesh(g, m); o.position.set(px, py, pz); o.castShadow = true; o.receiveShadow = true; root.add(o); return o; };
+  const TY = 0.72, Lx = 1.5, D = 0.7;
+  add(new THREE.BoxGeometry(Lx, 0.06, D), wood, 0, TY, 0);                              // tabletop
+  for (const lx of [-(Lx / 2 - 0.08), Lx / 2 - 0.08]) for (const lz of [-(D / 2 - 0.08), D / 2 - 0.08]) add(new THREE.BoxGeometry(0.06, TY, 0.06), wood, lx, TY / 2, lz); // 4 legs
+  add(new THREE.BoxGeometry(Lx, 0.12, 0.04), wood, 0, TY + 0.06, -(D / 2 - 0.02));      // back lip
+  for (const lx of [-(Lx / 2 - 0.02), Lx / 2 - 0.02]) add(new THREE.BoxGeometry(0.04, 0.1, D), wood, lx, TY + 0.05, 0); // side lips
+  add(new THREE.BoxGeometry(Lx - 0.1, 0.06, D - 0.1), ice, 0, TY + 0.06, 0.02);         // crushed-ice bed
+  const fishData = [[-0.45, -0.05], [-0.2, 0.09], [0.05, -0.03], [0.3, 0.08], [0.5, -0.06]];
+  for (let i = 0; i < fishData.length; i++) {
+    const [fx, fz] = fishData[i];
+    const fg = new THREE.Group(); fg.position.set(fx, TY + 0.12, fz); fg.rotation.y = (i - 2) * 0.24;
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), fishMat); body.scale.set(1.7, 0.5, 0.42); body.castShadow = true; fg.add(body);
+    const tail = new THREE.Mesh(new THREE.ConeGeometry(0.075, 0.13, 6), fishMat); tail.position.set(-0.26, 0, 0); tail.rotation.z = -Math.PI / 2; fg.add(tail);
+    root.add(fg);
+  }
+  return { root };
+}
+
+// ── A cheesemonger's stacked wheels (spr-061): a low timber crate carrying a pyramid of
+// six waxed cheese wheels (flat cylinders) in varied golden tones. Replaces the flat
+// PROP_Market_Cheese cutout.
+function buildCheese(x, z, yaw = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, 0, z);
+  root.rotation.y = yaw;
+  const wood = new THREE.MeshStandardMaterial({ color: 0x6e5230, roughness: 0.85 });
+  const add = (g, m, px, py, pz) => { const o = new THREE.Mesh(g, m); o.position.set(px, py, pz); o.castShadow = true; o.receiveShadow = true; root.add(o); return o; };
+  add(new THREE.BoxGeometry(0.92, 0.42, 0.64), wood, 0, 0.21, 0);                       // crate the wheels stack on
+  const wheels = [
+    [0xd8b85a, -0.26, 0.0, 0.49, 0.21], [0xceae50, 0.0, -0.04, 0.49, 0.21], [0xdcc068, 0.27, 0.03, 0.49, 0.2],
+    [0xd2b258, -0.12, 0.02, 0.63, 0.19], [0xd8bc62, 0.16, -0.02, 0.63, 0.19],
+    [0xe0c46e, 0.02, 0.0, 0.77, 0.18],
+  ];
+  for (const [c, px, pz, py, r] of wheels) add(new THREE.CylinderGeometry(r, r, 0.13, 18), new THREE.MeshStandardMaterial({ color: c, roughness: 0.6 }), px, py, pz);
+  return { root };
+}
+
+// ── A baker's basket of loaves (spr-061): an open woven basket heaped with round bloomers
+// (scaled ellipsoids) and long baguettes (capsules laid flat at varied angles) in golden
+// crust tones. Replaces the flat PROP_Market_Bread cutout.
+function buildBread(x, z, yaw = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, 0, z);
+  root.rotation.y = yaw;
+  const wicker = new THREE.MeshStandardMaterial({ color: 0xa9854e, roughness: 0.9, side: THREE.DoubleSide });
+  const crust = (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.7 });
+  const add = (g, m, px, py, pz, rx = 0, ry = 0, rz = 0) => { const o = new THREE.Mesh(g, m); o.position.set(px, py, pz); o.rotation.set(rx, ry, rz); o.castShadow = true; o.receiveShadow = true; root.add(o); return o; };
+  add(new THREE.CylinderGeometry(0.44, 0.34, 0.3, 18, 1, true), wicker, 0, 0.15, 0);    // basket wall (open)
+  add(new THREE.CylinderGeometry(0.34, 0.34, 0.04, 18), wicker, 0, 0.02, 0);            // basket base
+  const round = [[0xc89a5a, -0.16, -0.08, 0.15], [0xb98a48, 0.14, 0.1, 0.16], [0xceaa66, 0.02, -0.14, 0.14], [0xbf935a, -0.1, 0.12, 0.13]];
+  for (const [c, px, pz, s] of round) { const o = add(new THREE.SphereGeometry(s, 10, 8), crust(c), px, 0.32, pz); o.scale.set(1.2, 0.8, 1.0); }
+  const long = [[0xc89a5a, 0.0, 0.0, 0.4, 0.34], [0xb98a48, -0.05, 0.06, -0.5, 0.3], [0xceaa66, 0.1, -0.05, 1.0, 0.28]];
+  for (const [c, px, pz, ry, len] of long) add(new THREE.CapsuleGeometry(0.05, len, 4, 8), crust(c), px, 0.42, pz, 0, ry, Math.PI / 2); // baguette laid flat
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -4008,26 +4075,24 @@ export function buildWorld(scene) {
 
   // ── The market's wares (Batch 52): the Old Harbour is a working dock AND a
   // market — Mei's noodle-stall stands mid-street — but almost nothing on the quay
-  // reads as goods for sale; the palette runs grey timber and rust end to end. Three
-  // painted cutouts add the food-trade colour Mei's produce baskets don't: a
-  // fishmonger's slab of the morning's silver catch landed at the water's edge, a
-  // cheesemonger's stacked wheels and a baker's basket of golden loaves along the
-  // shopfront kerb. Same GROUND-PLANTED camera-facing-billboard idiom as the cargo and
-  // comforts, each on a soft contact-shadow blob; tucked into the gaps clear of the
-  // cargo (water-side z −24/−4/14), the building barrow (z 6) and the bench/pump
-  // (z −16/−28). The fish slab gets a touch more emissive (0.24) so the silver catch
-  // and crushed ice glint.
+  // reads as goods for sale; the palette runs grey timber and rust end to end. The
+  // food-trade colour Mei's produce baskets don't carry is now REAL geometry (spr-061,
+  // buildFishSlab/buildCheese/buildBread above) — no longer billboards: a fishmonger's
+  // slab of the morning's silver catch landed at the water's edge, a cheesemonger's
+  // stacked wheels and a baker's basket of golden loaves along the shopfront kerb. Each
+  // still rests on a soft contact-shadow blob; tucked into the gaps clear of the cargo
+  // (water-side z −24/−4/14), the building barrow (z 6) and the bench/pump (z −16/−28).
   const wares = [
-    // [file, w, h, x, z, shadowR, emissive]
-    ["PROP_Market_FishSlab", 1.5, 0.7, -9.8, -12, 0.72, 0.24], // the morning catch on ice at the water's edge (img 2.13:1)
-    ["PROP_Market_Cheese", 1.15, 0.9, 6.8, 0, 0.56, 0.2], // a cheesemonger's stacked wheels by the shopfronts (img 1.28:1)
-    ["PROP_Market_Bread", 1.35, 0.73, 6.8, 11, 0.64, 0.2], // a baker's basket of loaves down the kerb (img 1.86:1)
+    // [kind, x, z, shadowR, yaw]
+    ["fish", -9.8, -12, 0.72, 0.3],   // the morning catch on ice at the water's edge
+    ["cheese", 6.8, 0, 0.56, -0.4],   // a cheesemonger's stacked wheels by the shopfronts
+    ["bread", 6.8, 11, 0.64, 0.5],    // a baker's basket of loaves down the kerb
   ];
-  for (const [file, w, h, x, z, shadowR, emissive] of wares) {
-    const item = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive, alphaTest: 0.4 });
-    item.position.set(x, h / 2, z);
-    scene.add(item);
-    billboards.push(item); // main.js turns it to face the camera each frame
+  for (const [kind, x, z, shadowR, yaw] of wares) {
+    const built = kind === "fish" ? buildFishSlab(x, z, yaw)
+      : kind === "cheese" ? buildCheese(x, z, yaw)
+        : buildBread(x, z, yaw);
+    scene.add(built.root);
 
     const blob = new THREE.Mesh(
       new THREE.CircleGeometry(shadowR, 16),
