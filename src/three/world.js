@@ -1419,6 +1419,30 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // Seated idlers on the sea-wall (spr-031): until now every body in the harbour STOOD —
+  // nobody ever sat. These two perch on the coping, legs dangling over the water, watching
+  // it. Real rounded bodies in a real rest pose (`createFigure(..., {seated:true})` early-
+  // returns to a sitting update in player.js — no knee joint needed, the legs simply hang).
+  // The coping top is y=0.90 and the hip sits there, so root.y = 0.90 − HIP_Y(0.82) = 0.08.
+  // Placed at the west edge of the coping (x≈−11.8, clear of the x=−11.1 bollards) facing
+  // roughly west to the open water; z 6.5 / −13 dodge the perched gulls (z −6,3,12,−19,25),
+  // the cat (z 9) and the heron (z 18). Propless roles so no cane floats over the water.
+  // Seat at the very west lip of the coping (x=−11.95, the wall face is x=−12.0) so the
+  // forward-dangling legs clear the stone almost at once — sitting an inboard 0.2 m buries
+  // the thighs in the wall (no knee to fold them). The bum overhangs the edge a touch, as
+  // it does on a real wall. The player meets them from the street (east), seeing their back.
+  const sitters = [
+    { role: "Sailor", x: -11.95, z: 6.5,  yaw: -Math.PI / 2 + 0.25 },
+    { role: "Youth",  x: -11.95, z: -13,  yaw: -Math.PI / 2 - 0.2 },
+  ];
+  for (const s of sitters) {
+    const seed = (((s.x * 9.1 + s.z * 4.7) % 1) + 1) % 1;
+    const fig = createFigure(s.role, { castShadow: false, seed, seated: true });
+    fig.root.position.set(s.x, 0.08, s.z);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, s.yaw));
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like

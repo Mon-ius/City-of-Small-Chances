@@ -433,6 +433,7 @@ export function createFigure(look = "player", opts = {}) {
   // longer all stand to attention. Prop-carriers keep arms at the side so the held item
   // reads clean. Walkers and the player (seed 0) are always stance 0, i.e. unchanged.
   const seed = opts.seed ?? 0;
+  const seated = opts.seated === true;   // perched on a wall, legs dangling (spr-031)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
   if (p.prop) stance = 0;
@@ -498,6 +499,7 @@ export function createFigure(look = "player", opts = {}) {
     _propPivot: propPivot,              // a worked tool's hand-pivot, or null (spr-019)
     _propLeaf: propLeaf,                // a ledger's turning page-leaf, or null (spr-030)
     _propAnim: propAnim,                // "stir" | "turn" | "read" | null
+    _seated: seated,                    // perched on the sea-wall, legs dangling (spr-031)
     update(dt, speed = 0) {
       const moving = speed > 0.05;
       // Stride cadence scales with pace (sqrt so it eases off), so a laden trudge steps
@@ -505,6 +507,27 @@ export function createFigure(look = "player", opts = {}) {
       // old fixed 7.5 — the player runs faster than that, so the hero's gait is unchanged.
       const cadence = moving ? 4.7 + 2.1 * Math.sqrt(Math.min(speed, 1.78)) : this._idleRate;
       this._phase += dt * cadence;
+      // Seated idlers (spr-031) — figures perched on the sea-wall, legs dangling over the
+      // water, never walking. The player is never seated (no opts.seated), so this branch is
+      // dead code for the hero and its gait stays byte-for-byte unchanged. Legs hang forward
+      // off the coping and sway in a slow, slightly-staggered idle kick; hands rest on the
+      // thighs; the head drifts as it watches the water. Returns early — no stride, walking
+      // lean or weight-shift, which is what would read wrong on a sitting body.
+      if (this._seated) {
+        const k = this._phase;
+        // Forward = +z local = the figure's front (it faces the water); a foot swings to +z
+        // for NEGATIVE rotation.x, so the legs hang forward off the coping with −0.5 and the
+        // hands rest forward on the thighs likewise.
+        legL.rotation.x = -0.5 + Math.sin(k * 0.8) * 0.06;
+        legR.rotation.x = -0.5 + Math.sin(k * 0.8 + 1.1) * 0.06;
+        armL.rotation.x = -0.5; armL.rotation.z = 0.06;
+        armR.rotation.x = -0.5; armR.rotation.z = -0.06;
+        body.position.y = Math.sin(k) * 0.008;
+        body.rotation.x = 0; body.rotation.z = 0;
+        this.headPivot.rotation.x = 0;
+        this.headPivot.rotation.y = Math.sin(k * 0.3 + this._gazePhase) * 0.35;
+        return;
+      }
       // Stride heft (spr-017) — a broad, heavy-set frame plants a deeper, more laboured
       // step: it bobs lower and swings a little longer than a slight one, reading as a
       // laden trudge against a light quick walk. Centred on build=1 (the player and the
