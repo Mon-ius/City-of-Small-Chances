@@ -849,6 +849,62 @@ function buildPennant(segments = 6, length = 1.9, hoist = 0.5, color = 0xc0392b)
   };
 }
 
+// ── A cluster of rope fenders hung over the quay-side wall face — real capsule cylinders
+// drooping from short lanyards at the coping, the kind a working berth keeps to cushion
+// a hull. Replaces the flat PROP_Quay_Fenders cutout. Hung against the wall's east face
+// (default x=−10.8) at depth z0 along the wall.
+function buildFenders(z0, copingY = 0.9, wallFaceX = -10.8) {
+  const root = new THREE.Group();
+  const fenderMat = new THREE.MeshStandardMaterial({ color: 0x7a6a48, roughness: 0.92, metalness: 0 });
+  const lanyardMat = new THREE.MeshStandardMaterial({ color: 0x4a4036, roughness: 0.95 });
+  const spots = [
+    { dz: -0.55, len: 0.42, r: 0.12 },
+    { dz: 0.0, len: 0.50, r: 0.13 },
+    { dz: 0.52, len: 0.40, r: 0.11 },
+  ];
+  for (const s of spots) {
+    const fx = wallFaceX + s.r + 0.02;             // hang just proud of the wall face
+    const topY = copingY - 0.06;                    // crown just below the coping lip
+    const cy = topY - s.r - s.len / 2;              // capsule centre (total height = len + 2r)
+    const fender = new THREE.Mesh(new THREE.CapsuleGeometry(s.r, s.len, 6, 12), fenderMat);
+    fender.position.set(fx, cy, z0 + s.dz);
+    fender.castShadow = false;
+    root.add(fender);
+    const lanyard = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.16, 6), lanyardMat);
+    lanyard.position.set(fx, topY + 0.05, z0 + s.dz);
+    lanyard.castShadow = false;
+    root.add(lanyard);
+  }
+  return { root };
+}
+
+// ── A fixed quay access ladder — two steel side-rails rising past the parapet into a grab
+// bar, with rungs from the deck to the coping. Real cylinders, mounted flat on the wall's
+// quay-side face. Replaces the flat PROP_Quay_Ladder cutout.
+function buildQuayLadder(z0, copingY = 0.9, wallFaceX = -10.8) {
+  const root = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color: 0x5a626a, roughness: 0.5, metalness: 0.35 }); // galvanised steel
+  const railGap = 0.42, railH = 1.5, rx = wallFaceX + 0.11; // stand proud of the wall (and clear the graffiti decal at z=10)
+  const railTopY = copingY + 0.55;                  // rails rise past the parapet as grab-rails
+  const railCy = railTopY - railH / 2;
+  for (const dz of [-railGap / 2, railGap / 2]) {
+    const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, railH, 8), mat);
+    rail.position.set(rx, railCy, z0 + dz);
+    rail.castShadow = false;
+    root.add(rail);
+  }
+  // Rungs from just above the deck up to the coping, plus a top grab bar above the parapet.
+  const rungYs = [0.15, 0.37, 0.59, 0.81, 1.03, railTopY - 0.07];
+  for (const ry of rungYs) {
+    const rung = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.026, railGap, 7), mat);
+    rung.rotation.x = Math.PI / 2;                  // lie across z, between the rails
+    rung.position.set(rx, ry, z0);
+    rung.castShadow = false;
+    root.add(rung);
+  }
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -1380,25 +1436,14 @@ export function buildWorld(scene) {
     scene.add(c);
   }
 
-  // ── Quay-edge safety & mooring gear (Batch 55): the sea-wall the near craft tie up
-  // against. Two FIXED side-profile cutouts (the same Batch-42 quayClutter idiom — broad
-  // face turned to the walkable quay, NOT billboarded) dress the bare coping: a timber
-  // quay ladder with its foot on the deck and grab-hoops rising past the wall top, and a
-  // cluster of fenders hung from a lashing at the coping draping down the wall face. (The
-  // life-ring that once rode here is now real geometry — see buildLifeRing below.) Slotted
-  // into the long empty stretches clear of the bollards (z∈{−34…30 step 8}), the perched
-  // gulls (z∈{−6,3,12,−19,25}) and the existing clutter (net z=24).
-  const quayEdgeGear = [
-    // [file, w, h, [x, y, z], yaw, emissive]
-    ["PROP_Quay_Fenders", 0.635, 0.9, [-10.72, 0.45, 0], Math.PI / 2, 0.1], // fenders hung over the coping, lashing at wall top
-    ["PROP_Quay_Ladder", 0.45, 1.6, [-10.7, 0.8, 10], Math.PI / 2, 0.1], // access ladder, foot on the deck, grab-hoops above the parapet
-  ];
-  for (const [file, w, h, [x, y, z], yaw, emissive] of quayEdgeGear) {
-    const c = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive, alphaTest: 0.4 });
-    c.position.set(x, y, z);
-    c.rotation.y = yaw;
-    scene.add(c);
-  }
+  // ── Quay-edge safety & mooring gear (Batch 55, now all REAL geometry — spr-036 retired
+  // the last two cutouts here): the sea-wall the near craft tie up against. A fixed steel
+  // access ladder rises from the deck past the parapet into a grab bar (z=10), and a cluster
+  // of rope fenders droops from the coping down the quay-side wall face (z=0). Both mount on
+  // the wall's east face (x≈−10.8), in the long empty stretches clear of the bollards
+  // (z∈{−34…34 step 8}), the perched gulls (z∈{−6,3,12,−19,25}) and the net (z=24).
+  scene.add(buildFenders(0).root);                  // rope fenders hung over the coping
+  scene.add(buildQuayLadder(10).root);              // steel access ladder, foot on the deck
 
   // ── The water's-edge mooring & safety gear, now built as REAL geometry (spr-034) rather
   // than billboarded cutouts: a cork life-ring on its station board mounted over the coping,
