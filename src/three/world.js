@@ -3996,6 +3996,32 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // ── A sailor glancing back over the shoulder, halted mid-quay (spr-082): the harbour's FIRST pose
+  // built around a head turned AWAY from where the body faces — caught mid-step at a shout from
+  // behind, the trunk still squared forward up the quay while the face cranks ~60° back over one
+  // shoulder. Body-only ({glancing:true}); Sailor carries no ROLE_PROP, so the easy-hanging hands
+  // hold nothing — zero prop-snap exposure. Set in an open mid-quay gap at (-1.5,-2): a clear 1.5m
+  // off both the x=0.5 and x=-3 patrol lanes and >11m from the nearest static figure (portering
+  // DockWorker -4,-20; bowing Innkeeper 3,9), the lamps and the board. yaw -π/2+0.7 squares the
+  // body WNW (up the quay, away) so the cranked-back face turns toward a player coming up from the
+  // south — they catch the divergence of body and gaze as the over-the-shoulder glance, the tell.
+  {
+    const gx = -1.5, gz = -2.0, yaw = -Math.PI / 2 + 0.7; // body squared WNW up the quay; the head cranks ~60° back so the divergence reads to a player approaching from the south
+    const seed = (((gx * 5.9 + gz * 7.3) % 1) + 1) % 1;
+    const fig = createFigure("Sailor", { castShadow: false, seed, glancing: true });
+    fig.root.position.set(gx, 0, gz);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(gx, 0.02, gz); // a grounding shadow under the planted feet
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like

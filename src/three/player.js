@@ -451,6 +451,7 @@ export function createFigure(look = "player", opts = {}) {
   const watching = opts.watching === true; // at ease on watch, both arms swept back, hands clasped behind the spine (spr-079)
   const shading = opts.shading === true; // at the sea-wall, chin tipped UP and one flat hand thrown up as a brow-visor, peering out past the low sun (spr-080)
   const bowing = opts.bowing === true;   // folded forward from the hips in a deferent doffing bow, head dropped low, both arms hanging slack and clear of the thighs (spr-081)
+  const glancing = opts.glancing === true; // halted mid-quay, head twisted hard back over one shoulder at a shout from behind, body squared forward, arms hanging easy (spr-082)
   const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
@@ -535,6 +536,7 @@ export function createFigure(look = "player", opts = {}) {
     _watching: watching,                  // at ease on watch, both arms swept back, hands clasped behind the spine (spr-079)
     _shading: shading,                    // at the sea-wall, chin up and one hand a brow-visor against the low sun, peering out (spr-080)
     _bowing: bowing,                      // folded forward from the hips in a deferent doffing bow, head dropped low, arms hanging slack and clear of the thighs (spr-081)
+    _glancing: glancing,                  // halted mid-quay, head twisted hard back over one shoulder at a shout from behind, body squared forward, arms hanging easy (spr-082)
     _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
     _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
     update(dt, speed = 0) {
@@ -954,6 +956,29 @@ export function createFigure(look = "player", opts = {}) {
         armR.rotation.x = -0.04 - this._armBias; armR.rotation.z = 0.06;  // ...a hair OUTBOARD so the slack hands clear the thighs
         this.headPivot.rotation.x = 0.32 + nod * 0.14;             // head drops with the bow, crown down-and-forward (positive = down)
         this.headPivot.rotation.y = Math.sin(k * 0.3 + this._gazePhase) * 0.05; // an almost-still bowed head
+        return;
+      }
+      // Glancing back over the shoulder (spr-082) — the harbour's FIRST pose to turn the head
+      // AWAY from where the body faces. Every shipped pose looks ALONG its facing (forward, down
+      // at work, or up at sky/boat); this one twists the head ~60° over one shoulder to look
+      // BACK at a shout from behind while the body stays squared forward, arms hanging easy.
+      // Pure head-and-shoulder drama: headPivot.rotation.y = -1.05 (the head pivot is a free hinge,
+      // no joint forbidden — a realistic neck twist, not a look fully behind) is the whole tell,
+      // kept alive by a slow sway; a faint shoulder DROP toward the turned side (body.rotation.z)
+      // sells it as a real over-the-shoulder glance, not a detached head-spin. Body-only, no prop
+      // to snap. The player never glances, so this is dead code for the hero and its gait is
+      // byte-for-byte unchanged. Returns early — no stride or weight-shift.
+      if (this._glancing) {
+        const k = this._phase;
+        body.rotation.x = 0;                                       // no hip-fold — the trunk stays squared, upright
+        body.rotation.z = 0.05 + Math.sin(k * 0.5 + this._swayPhase) * 0.015; // a faint shoulder DROP toward the turned side, the small trunk lean that sells a real over-the-shoulder glance
+        body.position.y = Math.sin(k) * 0.006;                     // a quiet breath
+        legL.rotation.x = -0.02; legL.rotation.z = -0.06;          // one foot a touch back, as if caught mid-turn, feet a touch apart
+        legR.rotation.x = 0.06;  legR.rotation.z = 0.07;
+        armL.rotation.x = -0.10 + this._armBias; armL.rotation.z = 0.10;  // arms hang easy and asymmetric (a body caught in a pause,
+        armR.rotation.x = -0.06 - this._armBias; armR.rotation.z = -0.12; // not posed) — near-straight down beside the hips, one a hair more forward
+        this.headPivot.rotation.x = -0.04;                         // level-to-a-hair-up eyeline, as if meeting an eye behind (negative = up)
+        this.headPivot.rotation.y = -1.05 + Math.sin(k * 0.4 + this._gazePhase) * 0.10; // THE POSE: head turned HARD back over the shoulder, the slow sway keeping it alive
         return;
       }
       // Stride heft (spr-017) — a broad, heavy-set frame plants a deeper, more laboured
