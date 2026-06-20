@@ -446,6 +446,7 @@ export function createFigure(look = "player", opts = {}) {
   const pointing = opts.pointing === true; // one arm thrown out level, head tracking it, showing the way (spr-074)
   const catching = opts.catching === true; // bent over near-straight legs, hands braced on the thighs, head up — winded (spr-075)
   const grounded = opts.grounded === true; // sat down on the bare cobbles, legs stretched out flat, hands on the thighs (spr-076)
+  const casting = opts.casting === true;   // at the sea-wall, both hands on a rod, a line dropped over the water (spr-077)
   const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
@@ -525,6 +526,7 @@ export function createFigure(look = "player", opts = {}) {
     _pointing: pointing,                 // one arm thrown out level, head tracking it, showing the way (spr-074)
     _catching: catching,                 // bent over near-straight legs, hands braced on the thighs, head up — winded (spr-075)
     _grounded: grounded,                 // sat down on the bare cobbles, legs stretched out flat, hands on the thighs (spr-076)
+    _casting: casting,                    // at the sea-wall, both hands on a rod, a line dropped over the water (spr-077)
     _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
     _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
     update(dt, speed = 0) {
@@ -823,6 +825,28 @@ export function createFigure(look = "player", opts = {}) {
         armL.rotation.z = 0.22; armR.rotation.z = -0.22;          // inward-clasp signs (+L / −R) tuck each hand onto its thigh
         this.headPivot.rotation.x = -0.02;                         // an easy, near-level gaze out over the water
         this.headPivot.rotation.y = Math.sin(k * 0.3 + this._gazePhase) * 0.30; // a slow, idle wander along the quay
+        return;
+      }
+      // Casting a line over the sea-wall (spr-077) — the harbour's FIRST figure working a long TOOL
+      // and the FIRST to engage the WATER itself: a fisher stood square to the sea, BOTH hands gripping
+      // a rod butt side-by-side at one height (the warming-pose convergence — never a stacked diagonal
+      // grip the no-elbow rig can't make), the rod canting out and up over the water with a static line
+      // dropped from its tip. The rod + line are a rigid assembly parented to the body at the fixed
+      // grip point (built at the call site), so they ride the breath but NEVER track a swinging hand —
+      // and CRITICALLY this branch keeps body.rotation.x = 0 (no hip-fold), because a forward fold would
+      // tip the rod while the dropped line's apparent water-end stayed put, reading as a snapped line.
+      // The player is never casting, so this is dead code for the hero and its gait is unchanged.
+      if (this._casting) {
+        const k = this._phase;
+        body.rotation.x = 0;                                        // CRITICAL — upright, never fold; protects the rod+line
+        body.rotation.z = Math.sin(k * 0.3) * 0.008;               // a near-still waiting settle
+        body.position.y = Math.sin(k) * 0.004;                     // a quiet breath
+        legL.rotation.x = -0.04; legL.rotation.z = -0.06;         // feet planted square to the water, a touch apart
+        legR.rotation.x = -0.04; legR.rotation.z = 0.06;
+        armL.rotation.x = -1.32; armL.rotation.z = 0.16;          // both hands brought up and INBOARD (+z.L / −z.R) to meet
+        armR.rotation.x = -1.32; armR.rotation.z = -0.16;         // side-by-side at the rod butt, ~chest height, near x=0
+        this.headPivot.rotation.x = -0.06;                        // eyeline level-to-slightly-up, on the rod tip / horizon
+        this.headPivot.rotation.y = Math.sin(k * 0.22 + this._gazePhase) * 0.18; // a slow, idle scan of the water
         return;
       }
       // Stride heft (spr-017) — a broad, heavy-set frame plants a deeper, more laboured

@@ -3826,6 +3826,53 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // ── A fisher casting a line over the sea-wall (spr-077): the harbour's FIRST figure working a long
+  // TOOL and the FIRST to engage the WATER. Stood at the far-south sea-wall corner (x=-10.3, OUTSIDE
+  // the walkable bounds, so the player reads its BACK against the open sea), both hands on a rod butt,
+  // the rod canting up-and-out over the water with a hair-thin line dropped from the tip to the surface.
+  // The rod+line are a rigid assembly parented to fig.body at the fixed grip — they ride the breath but
+  // never track a swinging hand (player.js prop contract), and the {casting:true} branch keeps the body
+  // upright (no fold) so the dropped line never reads snapped. Far clear of the gazers (z=-4,-26), the
+  // hailer (z=-18) and every patrol lane. Fisher (propless, so no ROLE_PROP fights the hand-built rod).
+  {
+    const fx = -10.3, fz = -31, yaw = -Math.PI / 2 + 0.05; // back to the street, face the open water, faint cant
+    const seed = (((fx * 5.9 + fz * 7.3) % 1) + 1) % 1;
+    const fig = createFigure("Fisher", { castShadow: false, seed, casting: true });
+    fig.root.position.set(fx, 0, fz);
+    // The rod+line, built at the fixed grip point and hung on the body (rides the breath, never tracks).
+    const GRIP = new THREE.Vector3(0, 1.40, 0.42);   // body-local point where the two posed hands meet
+    const ROD_LEN = 2.4, ROD_TILT = 1.05;            // +x rotation cants the rod's +y length UP and FORWARD (+z = seaward)
+    const WL = -0.05;                                // water surface y (matches the water plane)
+    const rodGroup = new THREE.Group();
+    rodGroup.position.copy(GRIP);
+    rodGroup.rotation.x = ROD_TILT;
+    const rod = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.012, 0.022, ROD_LEN, 8),       // thin tip → thicker butt
+      new THREE.MeshStandardMaterial({ color: 0x5a4326, roughness: 0.7, metalness: 0 }),
+    );
+    rod.position.y = ROD_LEN / 2;                     // butt at the group origin (the hands), tip out along +y
+    rodGroup.add(rod);
+    fig.body.add(rodGroup);
+    // tip in body-local space, then a vertical line straight down to the water
+    const tip = GRIP.clone().add(new THREE.Vector3(0, ROD_LEN * Math.cos(ROD_TILT), ROD_LEN * Math.sin(ROD_TILT)));
+    const line = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.004, 0.004, tip.y - WL, 5),
+      new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.6, metalness: 0 }),
+    );
+    line.position.set(tip.x, (tip.y + WL) / 2, tip.z); // spans from the rod tip down to the sea surface
+    fig.body.add(line);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.45, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(fx - 0.1, 0.02, fz); // feet a touch off the wall (−x)
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like
