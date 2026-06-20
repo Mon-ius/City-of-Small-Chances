@@ -447,6 +447,7 @@ export function createFigure(look = "player", opts = {}) {
   const catching = opts.catching === true; // bent over near-straight legs, hands braced on the thighs, head up — winded (spr-075)
   const grounded = opts.grounded === true; // sat down on the bare cobbles, legs stretched out flat, hands on the thighs (spr-076)
   const casting = opts.casting === true;   // at the sea-wall, both hands on a rod, a line dropped over the water (spr-077)
+  const portering = opts.portering === true; // a load balanced on the crown, both arms up and inboard steadying it (spr-078)
   const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
@@ -527,6 +528,7 @@ export function createFigure(look = "player", opts = {}) {
     _catching: catching,                 // bent over near-straight legs, hands braced on the thighs, head up — winded (spr-075)
     _grounded: grounded,                 // sat down on the bare cobbles, legs stretched out flat, hands on the thighs (spr-076)
     _casting: casting,                    // at the sea-wall, both hands on a rod, a line dropped over the water (spr-077)
+    _portering: portering,                // a load balanced on the crown, both arms up and inboard steadying it (spr-078)
     _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
     _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
     update(dt, speed = 0) {
@@ -847,6 +849,30 @@ export function createFigure(look = "player", opts = {}) {
         armR.rotation.x = -1.32; armR.rotation.z = -0.16;         // side-by-side at the rod butt, ~chest height, near x=0
         this.headPivot.rotation.x = -0.06;                        // eyeline level-to-slightly-up, on the rod tip / horizon
         this.headPivot.rotation.y = Math.sin(k * 0.22 + this._gazePhase) * 0.18; // a slow, idle scan of the water
+        return;
+      }
+      // Carrying a load on the head (spr-078) — the harbour's FIRST porter to bear a burden balanced on
+      // the CROWN: a dock-hand stood square under a wicker basket, BOTH arms swung up overhead (the hail/
+      // stretch band, ~-2.78) and INBOARD so the hands steady its rim. The clasp convention pulls the
+      // hands TOGETHER (+z.L / −z.R), the exact opposite of the stretch's open splayed-OUT Y — that
+      // inward-vs-outward sign is what tells the two arms-up poses apart at a glance. The basket is a
+      // static rigid assembly parented to the body at a fixed crown offset (built at the call site), so
+      // it rides the breath but NEVER tracks the arms or the head; CRITICALLY this branch holds
+      // body.rotation.x = 0 and the head near-level, because any forward fold or bowed head would tip the
+      // crown out from under the static basket and read as a load hovering off it (the head-borne cousin
+      // of the casting branch's snapped-line trap). The player never porters, so this is dead code.
+      if (this._portering) {
+        const k = this._phase;
+        const settle = Math.sin(k * 0.9) * 0.012;                  // a tiny steadying micro-shift under the load
+        body.rotation.x = 0;                                        // CRITICAL — upright, never fold; keeps the crown under the load
+        body.rotation.z = Math.sin(k * 0.35) * 0.008;             // a near-still weight settle, sub-1°
+        body.position.y = Math.sin(k) * 0.004;                     // a quiet shallow breath; small so the basket rides steady
+        legL.rotation.x = 0.03; legL.rotation.z = -0.07;          // feet planted square, a touch apart, braced under the weight
+        legR.rotation.x = 0.03; legR.rotation.z = 0.07;
+        armL.rotation.x = -2.78 + settle; armL.rotation.z = 0.15; // BOTH arms up overhead (the hail/stretch band) and...
+        armR.rotation.x = -2.78 - settle; armR.rotation.z = -0.15;// ...INBOARD (+z.L / −z.R) so the hands meet at the basket rim
+        this.headPivot.rotation.x = -0.02;                        // chin near-level — must NOT bow, or the load reads as floating
+        this.headPivot.rotation.y = Math.sin(k * 0.22 + this._gazePhase) * 0.12; // a slow, small idle scan along the quay
         return;
       }
       // Stride heft (spr-017) — a broad, heavy-set frame plants a deeper, more laboured

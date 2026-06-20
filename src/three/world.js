@@ -3873,6 +3873,49 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // ── A porter carrying a load on her head (spr-078): the harbour's FIRST figure to bear a burden
+  // balanced on the CROWN — a third hauler stood beside the south sack-pair (z=-20), both arms swung up
+  // and INBOARD to steady a wicker basket of produce on the head. The basket is a static rigid assembly
+  // parented to fig.body at a fixed crown offset (the warming/casting prop idiom — it rides the breath,
+  // never tracks the arms), and the {portering:true} branch holds the body upright with a level head so
+  // the crown never pitches out from under it (no floating/snapped-load read). x=-4 sits 1m off the -5/-3
+  // patrol lanes (the scatterer's precedented clearance) and ~3.3m from the nearest sack-carrier.
+  // DockWorker — propless (no ROLE_PROP) and a burly build that reads as a porter.
+  {
+    const px = -4.0, pz = -20.0, yaw = 0.5; // three-quarter front to a southbound player, load clear against the deck
+    const seed = (((px * 5.9 + pz * 7.3) % 1) + 1) % 1;
+    const fig = createFigure("DockWorker", { castShadow: false, seed, portering: true });
+    fig.root.position.set(px, 0, pz);
+    // A wicker basket of produce, built at the crown and hung on the body (rides the breath, never tracks).
+    const CROWN = 1.97;                              // body-local base height — just above the cap dome (HEAD_TOP 1.88 + cap)
+    const wicker = new THREE.MeshStandardMaterial({ color: 0xb08544, roughness: 0.85, metalness: 0 });
+    const basket = new THREE.Group();
+    basket.position.set(0, CROWN, 0);
+    const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.16, 0.20, 16, 1, true), wicker); // open-topped wicker
+    bowl.position.y = 0.11;                          // bowl centre, rim ~0.21 above the base
+    basket.add(bowl);
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.02, 16), wicker);
+    base.position.y = 0.01;                          // closes the bottom so it doesn't read hollow from the front
+    basket.add(base);
+    const load = new THREE.Mesh(
+      new THREE.SphereGeometry(0.15, 12, 10),
+      new THREE.MeshStandardMaterial({ color: 0x7a8a4a, roughness: 0.8, metalness: 0 }), // a low mound of muted produce
+    );
+    load.scale.set(1, 0.5, 1); load.position.y = 0.21; // sat at the bowl mouth
+    basket.add(load);
+    fig.body.add(basket);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(px, 0.02, pz); // centred under the planted feet (the load rides over the feet)
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like
