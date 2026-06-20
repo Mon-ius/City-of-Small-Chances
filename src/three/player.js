@@ -435,6 +435,7 @@ export function createFigure(look = "player", opts = {}) {
   const seed = opts.seed ?? 0;
   const seated = opts.seated === true;   // perched on a wall, legs dangling (spr-031)
   const benched = opts.benched === true; // sat back on a bench, legs raked to the floor (spr-065)
+  const leaning = opts.leaning === true; // loafing back against a wall, feet planted (spr-066)
   const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
@@ -503,6 +504,7 @@ export function createFigure(look = "player", opts = {}) {
     _propAnim: propAnim,                // "stir" | "turn" | "read" | null
     _seated: seated,                    // perched on the sea-wall, legs dangling (spr-031)
     _benched: benched,                  // sat back on a bench, legs raked to the floor (spr-065)
+    _leaning: leaning,                  // loafing back against a wall, feet planted (spr-066)
     _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
     _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
     update(dt, speed = 0) {
@@ -551,6 +553,24 @@ export function createFigure(look = "player", opts = {}) {
         body.rotation.x = 0; body.rotation.z = 0;
         this.headPivot.rotation.x = 0.05;                          // a level-to-low gaze over the harbour
         this.headPivot.rotation.y = Math.sin(k * 0.3 + this._gazePhase) * 0.3;
+        return;
+      }
+      // Leaning idlers (spr-066) — a body loafing with its back to a wall: the upper body
+      // tips BACK onto the stone while the legs counter-rotate to stay near-upright so the
+      // feet stay planted on the deck (root.y = 0). Hands rest low, loosely clasped; the gaze
+      // drifts easily along the quay. The player is never leaning, so this branch is dead code
+      // for the hero and its gait is byte-for-byte unchanged. Returns early — no stride.
+      if (this._leaning) {
+        const k = this._phase;
+        body.rotation.x = -0.18;                                    // back and shoulders tipped onto the wall
+        body.rotation.z = Math.sin(k * 0.4) * 0.012;               // a faint, slow settle
+        body.position.y = Math.sin(k) * 0.005;
+        legL.rotation.x = 0.06; legL.rotation.z = -0.04;           // legs counter the lean to stay upright, feet a touch apart
+        legR.rotation.x = 0.06; legR.rotation.z = 0.04;
+        armL.rotation.x = -0.15; armL.rotation.z = 0.28;           // hands rest low, loosely clasped at the waist
+        armR.rotation.x = -0.15; armR.rotation.z = -0.28;
+        this.headPivot.rotation.x = 0.04;                          // a level, easy gaze along the quay
+        this.headPivot.rotation.y = Math.sin(k * 0.22 + this._gazePhase) * 0.28;
         return;
       }
       // Stride heft (spr-017) — a broad, heavy-set frame plants a deeper, more laboured

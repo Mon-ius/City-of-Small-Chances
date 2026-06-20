@@ -3471,6 +3471,37 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // Leaning idlers (spr-066): the harbour has people who stand (spr-009), perch (spr-031),
+  // sit (spr-065) and talk (spr-032) — but nobody who LOAFS. These two prop the building
+  // fronts up: back and shoulders tipped onto the wall, feet planted a little forward, hands
+  // loosely clasped, watching the quay. `createFigure(..., {leaning:true})` early-returns to
+  // a leaning update in player.js (a sibling of the seated/benched rest poses). Backed onto
+  // PLAIN wall stretches of the x≈9 façades (which face −x toward the street) — a sailor on
+  // the south warehouse front (z−26) and a docker by the north building (z12) — WELL clear of
+  // every shopfront fitting (doors z2.25/−7.5/21.5, windows z−18.5/−10.2/4.9, crates z20.5/
+  // −16.3, door topiary z1/3.5/−8.6/−6.4) and the row-end trees (z−30/27). At x8.7 they sit
+  // just off the wall, OUTSIDE the walkable bounds (maxX 6.5), so the player only sees their
+  // front. Yaw −π/2 turns the back to the wall; root.y stays 0 (feet on the deck).
+  const leaners = [
+    { role: "Sailor",     x: 8.7, z: -26, yaw: -Math.PI / 2 }, // off-watch, propping up the warehouse wall
+    { role: "DockWorker", x: 8.7, z: 12,  yaw: -Math.PI / 2 }, // a docker taking the weight off, by the north front
+  ];
+  for (const s of leaners) {
+    const seed = (((s.x * 6.3 + s.z * 8.9) % 1) + 1) % 1;
+    const fig = createFigure(s.role, { castShadow: false, seed, leaning: true });
+    fig.root.position.set(s.x, 0, s.z);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, s.yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.45, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(s.x - 0.1, 0.02, s.z); // feet sit a touch off the wall (−x)
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like
