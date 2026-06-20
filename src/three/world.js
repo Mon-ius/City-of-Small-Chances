@@ -3554,6 +3554,59 @@ export function buildWorld(scene) {
     citizens.push(makeStanding(fig, yaw));
   }
 
+  // A washerwoman scrubbing at her tub (spr-069): the seated net-mender (spr-068) gave the
+  // harbour its first working hands; this is its first STANDING worker. She stands at the
+  // quay-wall edge (x−10.0, clear of the patrol lanes which run x−7…4) folded deep over a
+  // wooden washtub, driving cloth up and down a board in a brisk two-handed scrub. The tub is
+  // built inline here (a hooped wooden tub, soapy water, a ridged board and a draped wet
+  // cloth) — like the net/fenders/planters it is a real prop, not a billboard. `createFigure(
+  // ..., {scrubbing:true})` early-returns to the bent-over scrubbing pose in player.js. She
+  // faces EAST (yaw +π/2) toward the street so the player sees her at the work; the tub sits
+  // just east of her where her hands fall. z=7 is a clear gap (Fisherman −10.2,4 is 3 m south,
+  // the W knot ≥3 m east). A propless Washerwoman; a contact blob carries her shadow.
+  {
+    const wx = -10.0, wz = 7, yaw = Math.PI / 2;     // she faces +x (east, the street)
+    const tx = wx + 0.52, tz = wz;                   // the tub sits just in front of her hands
+    const woodT = new THREE.MeshStandardMaterial({ color: 0x6e4f33, roughness: 0.78, metalness: 0 });
+    const ironT = new THREE.MeshStandardMaterial({ color: 0x3a3a3e, roughness: 0.55, metalness: 0.6 });
+    const tub = new THREE.Group();
+    const tbody = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.27, 0.5, 18), woodT);
+    tbody.position.y = 0.25; tub.add(tbody);
+    for (const hy of [0.12, 0.42]) {                 // two iron hoops banding the staves
+      const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.315 - (0.42 - hy) * 0.05, 0.016, 8, 22), ironT);
+      hoop.rotation.x = Math.PI / 2; hoop.position.y = hy; tub.add(hoop);
+    }
+    const water = new THREE.Mesh(                     // soapy water near the rim
+      new THREE.CircleGeometry(0.295, 18),
+      new THREE.MeshStandardMaterial({ color: 0xb9c4c2, roughness: 0.3, metalness: 0 }),
+    );
+    water.rotation.x = -Math.PI / 2; water.position.y = 0.485; tub.add(water);
+    const board = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.36, 0.025), woodT); // washboard against the far rim
+    board.position.set(0.1, 0.42, 0); board.rotation.z = 0.6; tub.add(board);      // top tips toward her (−x)
+    const cloth = new THREE.Mesh(                     // a wet cloth draped over the near rim
+      new THREE.BoxGeometry(0.02, 0.12, 0.22),
+      new THREE.MeshStandardMaterial({ color: 0xd8d2c2, roughness: 0.9, metalness: 0 }),
+    );
+    cloth.position.set(-0.3, 0.42, 0.06); tub.add(cloth);
+    tub.position.set(tx, 0, tz);
+    tub.traverse((o) => { if (o.isMesh) o.castShadow = false; }); // shares the quay's blob-shadow economy
+    scene.add(tub);
+
+    const seed = (((wx * 5.3 + wz * 8.1) % 1) + 1) % 1;
+    const fig = createFigure("Washerwoman", { castShadow: false, seed, scrubbing: true });
+    fig.root.position.set(wx, 0, wz);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(wx + 0.15, 0.02, wz);          // her feet sit a touch toward the tub
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like

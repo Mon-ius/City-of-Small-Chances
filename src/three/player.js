@@ -438,6 +438,7 @@ export function createFigure(look = "player", opts = {}) {
   const leaning = opts.leaning === true; // loafing back against a wall, feet planted (spr-066)
   const gazing = opts.gazing === true;   // tipped forward over the sea-wall rail, watching the water (spr-067)
   const mending = opts.mending === true; // seated, bowed over the lap, working a net through the hands (spr-068)
+  const scrubbing = opts.scrubbing === true; // standing, bent over a washtub, scrubbing cloth on a board (spr-069)
   const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
@@ -509,6 +510,7 @@ export function createFigure(look = "player", opts = {}) {
     _leaning: leaning,                  // loafing back against a wall, feet planted (spr-066)
     _gazing: gazing,                    // tipped forward over the sea-wall rail, watching the water (spr-067)
     _mending: mending,                  // seated, bowed over the lap, working a net through the hands (spr-068)
+    _scrubbing: scrubbing,              // standing, bent over a washtub, scrubbing cloth on a board (spr-069)
     _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
     _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
     update(dt, speed = 0) {
@@ -619,6 +621,27 @@ export function createFigure(look = "player", opts = {}) {
         armR.rotation.x = -1.0 - pull * 0.16; armR.rotation.z = -0.22;  // right hand draws the twine across, antiphase
         this.headPivot.rotation.x = 0.34;                          // head bowed, eyes on the hands
         this.headPivot.rotation.y = Math.sin(k * 0.5) * 0.06;      // a small follow of the working hands
+        return;
+      }
+      // Washerwomen (spr-069) — a STANDING worker to set beside the seated mender: bent deep
+      // over a washtub, scrubbing cloth up and down a board in a brisk two-handed rhythm. The
+      // whole body folds forward at the feet (no waist joint — the rig bends as one over the
+      // tub), legs braced and a touch apart to take the effort, hands driving the quick scrub
+      // stroke while the torso gives a small bob with each push, head down on the wash. The
+      // player is never scrubbing, so this branch is dead code for the hero and its gait stays
+      // byte-for-byte unchanged. Returns early — no stride, lean or weight-shift.
+      if (this._scrubbing) {
+        const k = this._phase;
+        body.rotation.x = 0.6;                                      // folded deep over the tub
+        body.rotation.z = 0;
+        const scrub = Math.sin(k * 4.6);                           // the brisk scrub stroke
+        body.position.y = scrub * 0.012;                          // a small bob with each push of the cloth
+        legL.rotation.x = 0.0; legL.rotation.z = -0.07;            // feet braced a touch apart
+        legR.rotation.x = 0.0; legR.rotation.z = 0.07;
+        armL.rotation.x = -0.62 + scrub * 0.34; armL.rotation.z = 0.16;  // both hands drive the cloth up the board...
+        armR.rotation.x = -0.62 + scrub * 0.34; armR.rotation.z = -0.16; // ...and draw it back, together
+        this.headPivot.rotation.x = 0.16;                          // head down on the wash (the body bow does the rest)
+        this.headPivot.rotation.y = Math.sin(k * 0.6) * 0.05;
         return;
       }
       // Stride heft (spr-017) — a broad, heavy-set frame plants a deeper, more laboured
