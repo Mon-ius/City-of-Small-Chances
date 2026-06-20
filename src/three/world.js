@@ -4104,6 +4104,38 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // A dockmaster halted on the open cobbles mid-quay, reading a folded manifest held flat
+  // between both forward hands at chest height, head dipped to the page (spr-086). Faces SSE
+  // so a player coming up the quay from the south sees the held letter, the converged hands
+  // and the dipped head in three-quarter front. The letter is parented to fig.body and rides
+  // only the breath — the body holds near-still, so it never world-anchors and cannot snap.
+  {
+    const cx = -1.25, cz = -16.0, yaw = Math.PI - 0.5; // face SSE — held letter + dipped head turn toward a player coming up the quay from the south
+    const seed = (((cx * 5.9 + cz * 7.3) % 1) + 1) % 1;
+    const fig = createFigure("Dockmaster", { castShadow: false, seed, reading: true });
+    fig.root.position.set(cx, 0, cz);
+    // a folded manifest cradled flat between the two converged hands — parented to the body so
+    // it rides only the quiet breath; the steady-handed read means it never snaps
+    const letter = new THREE.Mesh(
+      new THREE.BoxGeometry(0.18, 0.13, 0.004),
+      new THREE.MeshStandardMaterial({ color: 0xcabf9e, roughness: 0.9, metalness: 0 }),
+    );
+    letter.position.set(0, 1.27, 0.555);
+    letter.rotation.x = -1.15; // tilted face-up to the reader, nestled under the two hands
+    letter.castShadow = false;
+    fig.body.add(letter);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(cx, 0.02, cz); // a grounding shadow under the planted feet
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like

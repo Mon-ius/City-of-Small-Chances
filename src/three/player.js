@@ -455,6 +455,7 @@ export function createFigure(look = "player", opts = {}) {
   const listening = opts.listening === true; // stood at a slight angle, head CANTED hard to one cocked ear and held there, arms hanging slack — caught listening to something off to the side (spr-083)
   const craning = opts.craning === true; // chin craned hard UP to follow the gulls over the rigging, both arms hanging slack — an open upward stare, no shading hand (spr-084)
   const counting = opts.counting === true; // a vendor counting coins, trickling them between two cupped palms held low at the waist, head dipped to the count (spr-085)
+  const reading = opts.reading === true; // a dockmaster halted on the quay reading a manifest held flat between both forward hands at chest height, head bowed to the page (spr-086)
   const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
@@ -543,6 +544,7 @@ export function createFigure(look = "player", opts = {}) {
     _listening: listening,                // head canted to one cocked ear and held, arms slack and easy — a body caught listening hard to a sound off to the side (spr-083)
     _craning: craning,                    // chin craned UP to the wheeling gulls, arms slack, an open upward stare — the deepest sustained up-gaze, no brow-visor hand (spr-084)
     _counting: counting,                  // a vendor counting coins, trickling them between two cupped palms held low at the waist, the right hand drifting while the left holds steady, head dipped to the count (spr-085)
+    _reading: reading,                    // a dockmaster halted on the quay reading a manifest held flat between both forward hands at chest height, head dipped to the page — the FIRST flat document held between two STEADY hands and the FIRST fully-static two-handed idle (spr-086)
     _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
     _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
     update(dt, speed = 0) {
@@ -1058,6 +1060,33 @@ export function createFigure(look = "player", opts = {}) {
         armR.rotation.x = -0.78 + trickle * 0.06; armR.rotation.z = -0.30; // ...the RIGHT hand drifts a hair toward it and back, trickling the coins across (clasp signs +z.L / −z.R bring both hands together near x=0)
         this.headPivot.rotation.x = 0.24;                          // head dipped to watch the count in the hands (gentler than bowing's +0.32, aimed at the low hands not the floor)
         this.headPivot.rotation.y = trickle * 0.04;               // a tiny follow of the trickling hand, locked to the transfer cadence
+        return;
+      }
+      // Reading a manifest, halted on the quay (spr-086) — the harbour's FIRST pose to hold a
+      // flat document STEADY between two hands, and the FIRST fully-static two-handed idle.
+      // Both arms come forward and INBOARD (+z.L / −z.R) so the hands meet side-by-side at
+      // chest height (hand y≈1.23, z≈0.56, ~0.28m apart — not stacked), cradling a folded
+      // letter that is parented to the body and rides ONLY the breath, so it never world-
+      // anchors and cannot snap. Unlike counting (low cupped hands, the right one drifting),
+      // both hands here hold dead steady — the only motion is a sub-degree weight settle, a
+      // quiet breath, and a tiny line-scan of the head down and across the page. The head dip
+      // (+0.22) is shallower than bowing's +0.32 and aimed at the chest-high paper, not the
+      // floor; head-roll is reset to 0 (listening leaves it canted). Propless role (Dockmaster
+      // carries no ROLE_PROP). The player never reads, so this is dead code for the hero and
+      // its gait stays byte-for-byte unchanged. Returns early — no stride, lean or weight-shift.
+      if (this._reading) {
+        const k = this._phase;
+        const scan = Math.sin(k * 0.4 + this._gazePhase);          // a slow line-scan down the page, kept alive but tiny
+        body.rotation.x = 0.05;                                    // a faint stoop to the page — never a fold; protects the held letter
+        body.rotation.z = Math.sin(k * 0.4 + this._swayPhase) * 0.012; // a sub-1° weight settle on the feet
+        body.position.y = Math.sin(k) * 0.005;                     // a quiet, even breath
+        legL.rotation.x = -0.03; legL.rotation.z = -0.06;          // feet planted, a touch apart, weight even
+        legR.rotation.x = -0.03; legR.rotation.z = 0.06;
+        armL.rotation.x = -1.18; armL.rotation.z = 0.24;           // BOTH hands brought forward and INBOARD (+z.L / −z.R) to meet
+        armR.rotation.x = -1.18; armR.rotation.z = -0.24;          // side-by-side at chest height (hand y≈1.23, z≈0.56), holding the letter STEADY — no antiphase, no drift
+        this.headPivot.rotation.x = 0.22;                          // head dipped to read the page in the hands (gentler than bowing's +0.32, aimed at the chest-high paper not the floor)
+        this.headPivot.rotation.y = scan * 0.03;                   // a tiny line-scan across the page, locked to the slow gaze cadence
+        this.headPivot.rotation.z = 0;                             // no head-roll (listening's branch leaves this canted — reset it here)
         return;
       }
       // Stride heft (spr-017) — a broad, heavy-set frame plants a deeper, more laboured
