@@ -3634,6 +3634,34 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // ── A sailor hailing a boat from the sea-wall (spr-071): the harbour's FIRST silhouette to
+  // break the shoulder line — every figure so far keeps its arms at or below the shoulder
+  // (rest, lean, gaze, scrub, warm); this one flings one arm clear overhead and waves it out
+  // to a boat on the water, the other hanging low as a counterweight, chin lifted along the
+  // line of the call (`hailing:true` early-returns in player.js). He stands on the deck just
+  // off the parapet at x−10.3 (the rail-gazers' strip, OUTSIDE walkable bounds' minX −10.5),
+  // back to the street and face to the open water, so the player — who can't pass −10.5 —
+  // reads the raised arm in clean silhouette against the sea. z=−18 is a long clear stretch:
+  // 8 m from each rail-gazer (Fisher z−4 is far north, Widow z−26 to the south) and the
+  // Beggar (z−10), 2 m off the z−16 bollard, with no wall prop at that span (life-ring z−22,
+  // buoys z−13). A propless Sailor; a contact blob carries his shadow. root.y stays 0.
+  {
+    const hx = -10.3, hz = -18, yaw = -Math.PI / 2 + 0.1; // back to the street, face the water
+    const seed = (((hx * 7.7 + hz * 5.1) % 1) + 1) % 1;
+    const fig = createFigure("Sailor", { castShadow: false, seed, hailing: true });
+    fig.root.position.set(hx, 0, hz);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.45, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(hx, 0.02, hz);
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like
