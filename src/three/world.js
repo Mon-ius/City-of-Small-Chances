@@ -3800,6 +3800,32 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // ── A deckhand sat down on the bare cobbles (spr-076): the harbour's FIRST figure resting on the
+  // GROUND itself, not on any furniture — a young deckhand flopped onto the quay stones, bottom on the
+  // cobbles, legs stretched flat in front, hands on the thighs, gazing out. A genuinely new resting
+  // CLASS beside the wall-perch (legs dangling) and the bench-sit (a raised seat). The body is dropped
+  // onto the stones with root.y = -0.66 (hip to world y≈0.16), exactly as the bench-sitter uses root.y
+  // to ride its seat; the {grounded:true} branch then rakes the legs flat and rests the hands on the
+  // lap. Youth (propless, so nothing floats over the lowered lap). Placed ~3.8 m north of the winded
+  // dock-hand (spr-075) and clear of the x=-7 patrol lane; three-quartered (yaw 2.30) so a player
+  // coming south from spawn reads the legs-out, eased-back profile in clean silhouette.
+  {
+    const gx = -8.6, gz = 10.0, yaw = 2.30;
+    const seed = (((gx * 6.7 + gz * 4.9) % 1) + 1) % 1;
+    const fig = createFigure("Youth", { castShadow: false, seed, grounded: true });
+    fig.root.position.set(gx, -0.66, gz);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.6, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(gx + Math.sin(yaw) * 0.45, 0.02, gz + Math.cos(yaw) * 0.45); // forward, under the stretched legs
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like

@@ -445,6 +445,7 @@ export function createFigure(look = "player", opts = {}) {
   const stretching = opts.stretching === true; // both arms flung up overhead, an end-of-shift stretch (spr-073)
   const pointing = opts.pointing === true; // one arm thrown out level, head tracking it, showing the way (spr-074)
   const catching = opts.catching === true; // bent over near-straight legs, hands braced on the thighs, head up — winded (spr-075)
+  const grounded = opts.grounded === true; // sat down on the bare cobbles, legs stretched out flat, hands on the thighs (spr-076)
   const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
@@ -523,6 +524,7 @@ export function createFigure(look = "player", opts = {}) {
     _stretching: stretching,            // both arms flung up overhead, an end-of-shift stretch (spr-073)
     _pointing: pointing,                 // one arm thrown out level, head tracking it, showing the way (spr-074)
     _catching: catching,                 // bent over near-straight legs, hands braced on the thighs, head up — winded (spr-075)
+    _grounded: grounded,                 // sat down on the bare cobbles, legs stretched out flat, hands on the thighs (spr-076)
     _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
     _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
     update(dt, speed = 0) {
@@ -793,6 +795,34 @@ export function createFigure(look = "player", opts = {}) {
         armR.rotation.z = -0.28;                                    // onto its own thigh — braced, not splayed
         this.headPivot.rotation.x = -0.22 + heave * 0.04;         // chin UP off the bent back, lifting on the deep breath
         this.headPivot.rotation.y = Math.sin(k * 0.45 + this._gazePhase) * 0.10; // a small weary drift
+        return;
+      }
+      // Sat down on the cobbles (spr-076) — the harbour's FIRST figure resting on the bare ground
+      // rather than any furniture: a young deckhand flopped down on the quay stones, bottom on the
+      // cobbles, both legs stretched straight out in front, torso eased gently back, hands resting on
+      // the thighs, head easy and gazing out. It is a genuinely new posture CLASS — distinct from the
+      // sea-wall perch (legs dangle DOWN over the water), the bench-sit (a raised 0.49 m seat, back
+      // upright) and every hip-fold. The body is dropped onto the stones by root.y at the call site;
+      // here the legs simply RAKE FLAT forward (negative leg.rotation.x throws the rigid capsules out
+      // to +z, the same idiom the bench-sitter uses to reach the floor) and the hands rest on the
+      // thighs in body-LOCAL space (the proven bench/catching contact). There is no backward ground-
+      // prop — the rigid no-elbow arms can't reach the stones behind a seated body without floating,
+      // so the weight rests through the legs and the hands lie easy on the lap. The player is never
+      // grounded, so this is dead code for the hero and its gait stays byte-for-byte unchanged.
+      if (this._grounded) {
+        const k = this._phase;
+        const settle = (Math.sin(k) + 1) * 0.5;                     // a slow 0→1 breathing settle
+        body.rotation.x = -0.10 - settle * 0.03;                    // torso eased gently BACK (negative reclines)
+        body.rotation.z = 0;
+        body.position.y = Math.sin(k) * 0.005;                      // a quiet breath
+        legL.rotation.x = -1.42 + Math.sin(k * 0.6) * 0.03;        // legs raked FLAT forward along the stones (negative → +z),
+        legR.rotation.x = -1.42 + Math.sin(k * 0.6 + 1.0) * 0.03;  // a slow staggered ease so they aren't one frozen block
+        legL.rotation.z = -0.10; legR.rotation.z = 0.10;           // legs a touch apart, not a single slab
+        armL.rotation.x = -0.58 + Math.sin(k) * 0.02;             // arms forward-down so the hands come to rest ON the thighs,
+        armR.rotation.x = -0.58 + Math.sin(k) * 0.02;             // breath-matched so they stay planted through the settle
+        armL.rotation.z = 0.22; armR.rotation.z = -0.22;          // inward-clasp signs (+L / −R) tuck each hand onto its thigh
+        this.headPivot.rotation.x = -0.02;                         // an easy, near-level gaze out over the water
+        this.headPivot.rotation.y = Math.sin(k * 0.3 + this._gazePhase) * 0.30; // a slow, idle wander along the quay
         return;
       }
       // Stride heft (spr-017) — a broad, heavy-set frame plants a deeper, more laboured
