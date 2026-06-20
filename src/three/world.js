@@ -3607,6 +3607,33 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // ── A docker warming his hands at the brazier (spr-070): the harbour's FIRST figure to
+  // relate to a world prop rather than the rail or a tub of his own. He stands square to the
+  // dockers' coal brazier at (−9.8,14) — REUSING that existing prop, no new geometry — torso
+  // tipped a touch toward the heat, both hands held forward over the glowing coals, head bowed
+  // to the warmth (the `warming:true` pose early-returns in player.js). He faces the fire (yaw
+  // points at the brazier), so the player approaching from the street reads a three-quarter
+  // front. z≈13 is a clear gap on the open quay: the brazier is ~0.9 m north (a prop, faced
+  // not overlapped), the standing Washerwoman (−8.4,11.2) ~2.2 m SE, and x=−9.55 sits off every
+  // patrol lane. A propless DockWorker (a burly build 1.14); a contact blob carries his shadow.
+  {
+    const wx = -9.55, wz = 13.1;
+    const yaw = Math.atan2(-9.8 - wx, 14 - wz);      // turn to face the brazier's coals
+    const seed = (((wx * 5.3 + wz * 8.1) % 1) + 1) % 1;
+    const fig = createFigure("DockWorker", { castShadow: false, seed, warming: true });
+    fig.root.position.set(wx, 0, wz);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(wx - 0.05, 0.02, wz + 0.12);   // weight a touch toward the fire
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like

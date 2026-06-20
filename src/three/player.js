@@ -439,6 +439,7 @@ export function createFigure(look = "player", opts = {}) {
   const gazing = opts.gazing === true;   // tipped forward over the sea-wall rail, watching the water (spr-067)
   const mending = opts.mending === true; // seated, bowed over the lap, working a net through the hands (spr-068)
   const scrubbing = opts.scrubbing === true; // standing, bent over a washtub, scrubbing cloth on a board (spr-069)
+  const warming = opts.warming === true; // stood at the brazier, hands held forward over the coals (spr-070)
   const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
@@ -511,6 +512,7 @@ export function createFigure(look = "player", opts = {}) {
     _gazing: gazing,                    // tipped forward over the sea-wall rail, watching the water (spr-067)
     _mending: mending,                  // seated, bowed over the lap, working a net through the hands (spr-068)
     _scrubbing: scrubbing,              // standing, bent over a washtub, scrubbing cloth on a board (spr-069)
+    _warming: warming,                  // stood at the brazier, hands held forward over the coals (spr-070)
     _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
     _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
     update(dt, speed = 0) {
@@ -642,6 +644,28 @@ export function createFigure(look = "player", opts = {}) {
         armR.rotation.x = -0.62 + scrub * 0.34; armR.rotation.z = -0.16; // ...and draw it back, together
         this.headPivot.rotation.x = 0.16;                          // head down on the wash (the body bow does the rest)
         this.headPivot.rotation.y = Math.sin(k * 0.6) * 0.05;
+        return;
+      }
+      // Warming at the brazier (spr-070) — the harbour's FIRST figure to relate to a world
+      // prop: a docker stood square to the coal brazier, torso tipped a touch toward the heat,
+      // BOTH arms reaching forward-and-down so the open hands hover over the coals, head bowed
+      // to the warmth. A near-upright body (not the deep washtub fold) with the two hands
+      // meeting at a point in front of the chest — the 'hands to the fire' shape none of the
+      // rest-poses strike; the hands chafe gently antiphase. The player is never warming, so
+      // this branch is dead code for the hero and its gait stays byte-for-byte unchanged.
+      // Returns early — no stride, lean or weight-shift.
+      if (this._warming) {
+        const k = this._phase;
+        body.rotation.x = 0.12;                                     // a small inclination toward the heat
+        body.rotation.z = 0;
+        body.position.y = Math.sin(k) * 0.005;                     // an easy, resting breath
+        legL.rotation.x = 0.04; legL.rotation.z = -0.06;            // feet planted, braced a touch apart
+        legR.rotation.x = 0.04; legR.rotation.z = 0.06;
+        const rub = Math.sin(k * 1.6) * 0.05;                      // a slow chafe of the hands at the fire
+        armL.rotation.x = -0.95 + rub; armL.rotation.z = 0.18;     // both hands held forward and down...
+        armR.rotation.x = -0.95 - rub; armR.rotation.z = -0.18;    // ...over the coals, rubbing antiphase
+        this.headPivot.rotation.x = 0.30;                          // eyes down on the glowing coals
+        this.headPivot.rotation.y = Math.sin(k * 0.4) * 0.08;      // a small drift over the warmth
         return;
       }
       // Stride heft (spr-017) — a broad, heavy-set frame plants a deeper, more laboured
