@@ -3713,6 +3713,35 @@ export function buildWorld(scene) {
     scene.add(flockBlob);
   }
 
+  // ── An off-watch sailor stretching (spr-073): the UPWARD counterpart to the crumb-scatterer's
+  // deepest downward fold (spr-072). Where the fishwife bows to the cobbles, this body straightens
+  // up at the end of a shift — BOTH arms flung overhead and splayed into an open Y, chin lifted to
+  // the sky, the frame easing back onto the balls of the feet in a slow reach-and-release swell
+  // (`stretching:true` early-returns in player.js). The rig has no spine to arch, so the stretch is
+  // carried entirely by the two raised arms + the lifted chin — what tells it apart from the one-
+  // armed hail (spr-071) and every arms-down idler. Placed on the working south deck at (−2,−12),
+  // ~3.5 m clear of every neighbour (a blob-occupancy sweep found it), among the dock crew (the
+  // loader at −11, Rafiq at −12, the veteran at −16) so it reads as one of THEM knocking off, and
+  // squarely on the player's southward path ~9 m past the scatterer. Faces north-west (yaw −0.18π),
+  // a three-quarter front toward the approaching player and out over the open water. A propless
+  // Sailor; a contact blob carries the shadow.
+  {
+    const sx = -2.0, sz = -12.0, yaw = -Math.PI * 0.18;  // a three-quarter front toward the approach + the water
+    const seed = (((sx * 6.1 + sz * 9.7) % 1) + 1) % 1;
+    const fig = createFigure("Sailor", { castShadow: false, seed, stretching: true });
+    fig.root.position.set(sx, 0, sz);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(sx, 0.02, sz);
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like

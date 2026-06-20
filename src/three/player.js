@@ -442,6 +442,7 @@ export function createFigure(look = "player", opts = {}) {
   const warming = opts.warming === true; // stood at the brazier, hands held forward over the coals (spr-070)
   const hailing = opts.hailing === true; // at the sea-wall, one arm flung up hailing a boat (spr-071)
   const scattering = opts.scattering === true; // folded deep at the hips, flicking crumbs to the flock (spr-072)
+  const stretching = opts.stretching === true; // both arms flung up overhead, an end-of-shift stretch (spr-073)
   const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
@@ -517,6 +518,7 @@ export function createFigure(look = "player", opts = {}) {
     _warming: warming,                  // stood at the brazier, hands held forward over the coals (spr-070)
     _hailing: hailing,                  // at the sea-wall, one arm flung up hailing a boat (spr-071)
     _scattering: scattering,            // folded deep at the hips, flicking crumbs to the flock (spr-072)
+    _stretching: stretching,            // both arms flung up overhead, an end-of-shift stretch (spr-073)
     _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
     _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
     update(dt, speed = 0) {
@@ -712,6 +714,31 @@ export function createFigure(look = "player", opts = {}) {
         armL.rotation.z = 0.34;                                    // ...cupping the feed across the lap
         this.headPivot.rotation.x = 0.30;                          // head bowed, eyes down-forward on the birds
         this.headPivot.rotation.y = Math.sin(k * 0.6) * 0.18;      // a small follow, tracking which bird she feeds
+        return;
+      }
+      // Weary stretch (spr-073) — the upward counterpart to the crumb-scatterer's downward fold:
+      // an off-watch body straightening up at the end of a shift, BOTH arms flung up and splayed
+      // into an open Y overhead, chin lifted to the sky, the whole frame easing back a touch onto
+      // the reach. The single rigid torso can't curve a true spine arch, so the stretch is carried
+      // by the TWO raised arms + the lifted chin (what tells it apart from the one-armed hail and
+      // the arms-down wall-lean), with only a gentle back-tip — never enough to read as toppling.
+      // The player is never stretching, so this branch is dead code for the hero and its gait stays
+      // byte-for-byte unchanged. Returns early — no stride, lean or weight-shift.
+      if (this._stretching) {
+        const k = this._phase;
+        const reach = (Math.sin(k * 0.8) + 1) * 0.5;               // a slow 0→1 stretch swell
+        body.rotation.x = -0.07 - reach * 0.08;                    // eases gently BACK at the peak of the reach
+        body.rotation.z = 0;
+        body.position.y = reach * 0.02;                            // rises onto the balls of the feet
+        legL.rotation.x = 0.05; legL.rotation.z = -0.07;           // feet planted, a touch apart, hips eased forward
+        legR.rotation.x = 0.05; legR.rotation.z = 0.07;
+        armL.rotation.x = -2.84 - reach * 0.12;                    // BOTH arms flung up overhead...
+        armR.rotation.x = -2.84 - reach * 0.12;
+        armL.rotation.z = -(0.40 + reach * 0.20);                  // ...splayed OUT into an open Y (note the
+        armR.rotation.z = 0.40 + reach * 0.20;                     // outward signs — the clasp poses pull IN),
+        // ...the Y widening as the reach swells to its peak.
+        this.headPivot.rotation.x = -0.30 - reach * 0.10;          // chin lifted, face to the sky at the peak
+        this.headPivot.rotation.y = 0;
         return;
       }
       // Stride heft (spr-017) — a broad, heavy-set frame plants a deeper, more laboured
