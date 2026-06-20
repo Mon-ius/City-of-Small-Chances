@@ -3916,6 +3916,30 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // ── A foreman standing watch at the harbour's north mouth (spr-079): the FIRST figure to take its hands
+  // BEHIND the back — an open-chested parade-rest, both arms swept rearward to clasp low behind the spine, a
+  // wide planted stance, the head scanning slowly down the quay. Body-only ({watching:true}); the pose is
+  // sold entirely in body-local space (the two hands ride the breath together, never a snapping prop), so it
+  // sidesteps the prop-snap that sank the rejected yoke/plank/mooring candidates. Set at the open north end
+  // (z=28) overseeing the whole quay the player explores; x=-2 sits 1m off the -3 patrol lane (precedented)
+  // and ~9m from the nearest figure (mending Fisher -11,22). DockWorker — propless (the hands are occupied).
+  {
+    const wx = -2.0, wz = 28.0, yaw = Math.PI - 0.5; // 3/4 to a player coming up the quay — front + the arms-gone-behind
+    const seed = (((wx * 5.9 + wz * 7.3) % 1) + 1) % 1;
+    const fig = createFigure("DockWorker", { castShadow: false, seed, watching: true });
+    fig.root.position.set(wx, 0, wz);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(wx, 0.02, wz); // a grounding shadow under the planted feet
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like

@@ -448,6 +448,7 @@ export function createFigure(look = "player", opts = {}) {
   const grounded = opts.grounded === true; // sat down on the bare cobbles, legs stretched out flat, hands on the thighs (spr-076)
   const casting = opts.casting === true;   // at the sea-wall, both hands on a rod, a line dropped over the water (spr-077)
   const portering = opts.portering === true; // a load balanced on the crown, both arms up and inboard steadying it (spr-078)
+  const watching = opts.watching === true; // at ease on watch, both arms swept back, hands clasped behind the spine (spr-079)
   const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
@@ -529,6 +530,7 @@ export function createFigure(look = "player", opts = {}) {
     _grounded: grounded,                 // sat down on the bare cobbles, legs stretched out flat, hands on the thighs (spr-076)
     _casting: casting,                    // at the sea-wall, both hands on a rod, a line dropped over the water (spr-077)
     _portering: portering,                // a load balanced on the crown, both arms up and inboard steadying it (spr-078)
+    _watching: watching,                  // at ease on watch, both arms swept back, hands clasped behind the spine (spr-079)
     _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
     _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
     update(dt, speed = 0) {
@@ -873,6 +875,31 @@ export function createFigure(look = "player", opts = {}) {
         armR.rotation.x = -2.78 - settle; armR.rotation.z = -0.15;// ...INBOARD (+z.L / −z.R) so the hands meet at the basket rim
         this.headPivot.rotation.x = -0.02;                        // chin near-level — must NOT bow, or the load reads as floating
         this.headPivot.rotation.y = Math.sin(k * 0.22 + this._gazePhase) * 0.12; // a slow, small idle scan along the quay
+        return;
+      }
+      // Standing watch, hands clasped behind the back (spr-079) — the harbour's FIRST pose to take the
+      // hands BEHIND the body. Every clasp/brace so far meets at the FRONT (warming, casting, portering),
+      // the thighs (catching, grounded) or hangs at the side; this sweeps BOTH arms rearward (POSITIVE
+      // arm.rotation.x swings the rigid capsule BACK — negative would throw the hands forward into the
+      // plain idle stance, the trap) and pulls them INBOARD (+z.L / −z.R) so the hands meet low behind the
+      // spine: a constable's open-chested parade-rest. The tells that part it from plain idle: a SQUARE,
+      // faintly reclined chest (never a forward fold), a WIDE planted stance, and a slow wide head-scan
+      // along the quay — a figure on watch. Body-only, no prop. The player never watches, so dead code.
+      if (this._watching) {
+        const k = this._phase;
+        const shift = Math.sin(k * 0.55 + this._swayPhase);         // a slow foot-to-foot weight rock
+        const breath = Math.sin(k);
+        body.rotation.x = -0.03;                                     // a hair BACK — open chest; NEVER a forward fold
+        body.rotation.z = shift * 0.02;                            // sub-1.5° weight settle, the only trunk motion
+        body.position.y = breath * 0.006;                           // a shallow standing breath
+        legL.rotation.x = 0.02; legL.rotation.z = -0.12;          // feet planted in a WIDE, set parade stance
+        legR.rotation.x = 0.02; legR.rotation.z = 0.12;
+        armL.rotation.x = 0.55 + shift * 0.015;                   // BOTH arms swung BACK (positive = rearward) so the
+        armR.rotation.x = 0.55 - shift * 0.015;                   // hands come low behind the hips (~y0.93, z−0.32)...
+        armL.rotation.z = 0.30;                                   // ...and INBOARD (+z.L / −z.R) to clasp behind the
+        armR.rotation.z = -0.30;                                  // spine — the tell that parts it from the front-hands idle
+        this.headPivot.rotation.x = -0.02;                        // near-level eyeline, scanning out — never bowed
+        this.headPivot.rotation.y = Math.sin(k * 0.18 + this._gazePhase) * 0.34; // a slow, WIDE watch-sweep of the quay
         return;
       }
       // Stride heft (spr-017) — a broad, heavy-set frame plants a deeper, more laboured
