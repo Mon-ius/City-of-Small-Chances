@@ -3940,6 +3940,35 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // ── A lookout shading the eyes at the far-north sea-wall (spr-080): the harbour's FIRST pose built
+  // AROUND a head tipped genuinely UP. A sailor at the water's edge throws one flat hand up as a
+  // brow-visor against the low sun and tips the chin to the horizon, scanning the sky-line for what
+  // comes in off the sea — the off arm hangs low as a clear counterweight so the silhouette reads
+  // ONE-hand-to-the-brow, never the two-handed warm/clasp. Body-only ({shading:true}); Sailor is
+  // propless (no ROLE_PROP), so the up-thrown empty hand reads as a visor exactly the way the empty
+  // hand reads in hailing/pointing — zero prop-snap exposure. Set at the empty far-north sea-wall
+  // (z=30, north of the mending Fisher z=22; casting is far south at z=-31); x=-10.3 stands at the
+  // water's edge (minX=-10.5) clear of every patrol lane. yaw -π/2-0.7 faces WSW/SW — out over the water
+  // toward the harbour mouth, turned SOUTH so the figure's LEFT side (which carries the raised brow-visor,
+  // see player.js _shading) turns TOWARD a player coming up the quay from the south: they catch the up-chin
+  // + raised arm as a front-three-quarter against the bright sea, not the back of the head.
+  {
+    const sx = -10.3, sz = 30.0, yaw = -Math.PI / 2 - 0.7; // face WSW/SW — out over the water toward the harbour mouth, turned SOUTH so the raised LEFT-hand visor faces a player coming up the quay from the south
+    const seed = (((sx * 5.9 + sz * 7.3) % 1) + 1) % 1;
+    const fig = createFigure("Sailor", { castShadow: false, seed, shading: true });
+    fig.root.position.set(sx, 0, sz);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(sx, 0.02, sz); // a grounding shadow under the planted feet
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like

@@ -449,6 +449,7 @@ export function createFigure(look = "player", opts = {}) {
   const casting = opts.casting === true;   // at the sea-wall, both hands on a rod, a line dropped over the water (spr-077)
   const portering = opts.portering === true; // a load balanced on the crown, both arms up and inboard steadying it (spr-078)
   const watching = opts.watching === true; // at ease on watch, both arms swept back, hands clasped behind the spine (spr-079)
+  const shading = opts.shading === true; // at the sea-wall, chin tipped UP and one flat hand thrown up as a brow-visor, peering out past the low sun (spr-080)
   const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
@@ -531,6 +532,7 @@ export function createFigure(look = "player", opts = {}) {
     _casting: casting,                    // at the sea-wall, both hands on a rod, a line dropped over the water (spr-077)
     _portering: portering,                // a load balanced on the crown, both arms up and inboard steadying it (spr-078)
     _watching: watching,                  // at ease on watch, both arms swept back, hands clasped behind the spine (spr-079)
+    _shading: shading,                    // at the sea-wall, chin up and one hand a brow-visor against the low sun, peering out (spr-080)
     _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
     _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
     update(dt, speed = 0) {
@@ -900,6 +902,33 @@ export function createFigure(look = "player", opts = {}) {
         armR.rotation.z = -0.30;                                  // spine — the tell that parts it from the front-hands idle
         this.headPivot.rotation.x = -0.02;                        // near-level eyeline, scanning out — never bowed
         this.headPivot.rotation.y = Math.sin(k * 0.18 + this._gazePhase) * 0.34; // a slow, WIDE watch-sweep of the quay
+        return;
+      }
+      // Shading the eyes, a lookout at the sea-wall (spr-080) — the harbour's FIRST pose built
+      // AROUND a head tipped genuinely UP. Catching and hailing brush the chin upward, but only as
+      // a side-effect of a fold or a flung arm; here the up-gaze IS the pose. The LEFT hand is thrown
+      // UP-and-FORWARD to brow height (armL.rotation.x ≈ -1.88 → hand y≈1.64, z≈+0.57: a visor held
+      // OUT in front of the brow, never on it — the rig forbids hand-to-face; the left hand is used so
+      // the WSW yaw turns the raised arm TOWARD a player coming up the quay, not onto the far side).
+      // NEGATIVE headPivot.x
+      // tips the chin up to the horizon (positive would bow it down, the trap), and the head scans the
+      // sky-line slow and wide under the shading hand. The off arm hangs low as a clear counterweight
+      // so the silhouette reads ONE-hand-to-the-brow, not the two-handed warm/clasp. Body near-upright,
+      // a hair into the squint. The player never shades, so this is dead code and the hero's gait is
+      // byte-for-byte unchanged. Returns early — no stride, walking lean or weight-shift.
+      if (this._shading) {
+        const k = this._phase;
+        const scan = Math.sin(k * 0.24 + this._gazePhase);          // a slow, wide sweep of the sky-line
+        body.rotation.x = 0.04;                                     // a hair forward into the squint, near-still
+        body.rotation.z = Math.sin(k * 0.3 + this._swayPhase) * 0.012; // a faint waiting settle on the feet
+        body.position.y = Math.sin(k) * 0.005;                      // a quiet breath
+        legL.rotation.x = -0.04; legL.rotation.z = -0.06;           // feet planted square to the water, a touch apart
+        legR.rotation.x = -0.04; legR.rotation.z = 0.06;
+        armL.rotation.x = -1.88 + scan * 0.03;                      // the visor on the LEFT hand (the side the WSW yaw turns toward an approaching player): thrown UP-and-FORWARD to brow height (y≈1.64, z≈+0.58)...
+        armL.rotation.z = 0.22;                                     // ...and INBOARD across to the brow CENTRELINE (+z = inboard for the left arm; hand x≈-0.07), so it shades the eyes, not waves beside the head — still 0.58 clear of the head sphere
+        armR.rotation.x = -0.10 - this._armBias; armR.rotation.z = -0.18; // the off (right) arm hangs low, an easy counterweight
+        this.headPivot.rotation.x = -0.32;                         // chin UP — eyeline out to the horizon under the hand (negative = up)
+        this.headPivot.rotation.y = scan * 0.18;                   // a slow horizon scan, tracking what comes in off the sea
         return;
       }
       // Stride heft (spr-017) — a broad, heavy-set frame plants a deeper, more laboured
