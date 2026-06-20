@@ -452,6 +452,7 @@ export function createFigure(look = "player", opts = {}) {
   const shading = opts.shading === true; // at the sea-wall, chin tipped UP and one flat hand thrown up as a brow-visor, peering out past the low sun (spr-080)
   const bowing = opts.bowing === true;   // folded forward from the hips in a deferent doffing bow, head dropped low, both arms hanging slack and clear of the thighs (spr-081)
   const glancing = opts.glancing === true; // halted mid-quay, head twisted hard back over one shoulder at a shout from behind, body squared forward, arms hanging easy (spr-082)
+  const listening = opts.listening === true; // stood at a slight angle, head CANTED hard to one cocked ear and held there, arms hanging slack — caught listening to something off to the side (spr-083)
   const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
@@ -537,6 +538,7 @@ export function createFigure(look = "player", opts = {}) {
     _shading: shading,                    // at the sea-wall, chin up and one hand a brow-visor against the low sun, peering out (spr-080)
     _bowing: bowing,                      // folded forward from the hips in a deferent doffing bow, head dropped low, arms hanging slack and clear of the thighs (spr-081)
     _glancing: glancing,                  // halted mid-quay, head twisted hard back over one shoulder at a shout from behind, body squared forward, arms hanging easy (spr-082)
+    _listening: listening,                // head canted to one cocked ear and held, arms slack and easy — a body caught listening hard to a sound off to the side (spr-083)
     _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
     _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
     update(dt, speed = 0) {
@@ -979,6 +981,30 @@ export function createFigure(look = "player", opts = {}) {
         armR.rotation.x = -0.06 - this._armBias; armR.rotation.z = -0.12; // not posed) — near-straight down beside the hips, one a hair more forward
         this.headPivot.rotation.x = -0.04;                         // level-to-a-hair-up eyeline, as if meeting an eye behind (negative = up)
         this.headPivot.rotation.y = -1.05 + Math.sin(k * 0.4 + this._gazePhase) * 0.10; // THE POSE: head turned HARD back over the shoulder, the slow sway keeping it alive
+        return;
+      }
+      // Listening, head canted to one side (spr-083) — the harbour's FIRST pose to ROLL the head.
+      // Every shipped pose pitches (.x: shading/bowing/warming) or twists (.y: glancing) the head;
+      // none has ever tipped it sideways. Here headPivot.rotation.z cants the crown hard toward one
+      // cocked ear (~24°) and HOLDS it, kept alive by a slow sway so it reads as attending, not a
+      // frozen tic; a matching shoulder TILT (body.rotation.z) and a slight head TURN toward the same
+      // side sell the cant as a real listening lean, locked to one cadence so ear-cock and turn agree.
+      // The arms deliberately do NOTHING — slack, near-straight, asymmetric (a body caught, not posed)
+      // — so all the drama is in the head. Body-only, no prop to snap. The player never listens, so this
+      // is dead code for the hero and its gait is byte-for-byte unchanged. Returns early — no stride.
+      if (this._listening) {
+        const k = this._phase;
+        const cant = Math.sin(k * 0.4 + this._gazePhase);          // one slow cadence drives the whole cocked-ear cant
+        body.rotation.x = 0.02;                                    // a hair forward, a small lean of attention toward the sound (never a fold)
+        body.rotation.z = 0.04 + Math.sin(k * 0.4 + this._swayPhase) * 0.012; // a fixed shoulder TILT toward the cocked-ear side, plus a slow settle on the feet
+        body.position.y = Math.sin(k) * 0.005;                     // a quiet, even breath
+        legL.rotation.x = -0.02; legL.rotation.z = -0.05;          // one foot a touch back, weight gently shifted — an attentive stand
+        legR.rotation.x = 0.03;  legR.rotation.z = 0.06;
+        armL.rotation.x = -0.10 + this._armBias; armL.rotation.z = 0.08;  // arms hang slack, near-straight down beside the hips (hand y≈0.84),
+        armR.rotation.x = -0.06 - this._armBias; armR.rotation.z = -0.10; // slightly asymmetric — a body caught mid-attention, not posed; no reach, no clasp
+        this.headPivot.rotation.x = -0.03;                         // eyeline near-level-to-a-hair-up, attending (negative = up)
+        this.headPivot.rotation.y = 0.20 + cant * 0.04;            // a slight TURN toward the sound, locked to the cant's cadence so ear-cock and turn agree
+        this.headPivot.rotation.z = 0.42 + cant * 0.05;            // THE POSE: head CANTED hard to one side (~24°), the slow sway keeping the cocked ear alive
         return;
       }
       // Stride heft (spr-017) — a broad, heavy-set frame plants a deeper, more laboured

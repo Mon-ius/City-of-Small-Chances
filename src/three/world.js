@@ -4022,6 +4022,33 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // ── A widow listening, head canted to one cocked ear (spr-083): the harbour's FIRST pose built
+  // around a head ROLLED sideways — every prior pose only pitched the head down (bowing/shading) or
+  // twisted it round (glancing); this one tips the crown ~24° toward one ear and holds it, a body
+  // caught attending to a sound off to the side, arms hanging slack and doing nothing. Body-only
+  // ({listening:true}); Widow carries no ROLE_PROP, so nothing is parented or world-anchored — zero
+  // prop-snap. Set in the empty far-NORTH east interior at (5.8,27): a clear 1.8m off the x=4 patrol
+  // lane (whose walkers do brush north to z≈28 — so the extra margin keeps them passing well clear),
+  // ~8m from the watching DockWorker (-2,28), clear of lamps and the building row (fronts x≈8.45, so
+  // 2.6m of front clearance). yaw π-0.5 faces SE so a player coming up the quay from the south
+  // catches the canted head and matching shoulder-tilt in three-quarter silhouette.
+  {
+    const lx = 5.8, lz = 27.0, yaw = Math.PI - 0.5; // face SE — the sideways head-cant and shoulder-tilt both show to a player approaching from the south
+    const seed = (((lx * 5.9 + lz * 7.3) % 1) + 1) % 1;
+    const fig = createFigure("Widow", { castShadow: false, seed, listening: true });
+    fig.root.position.set(lx, 0, lz);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(lx, 0.02, lz); // a grounding shadow under the planted feet
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like
