@@ -444,6 +444,7 @@ export function createFigure(look = "player", opts = {}) {
   const scattering = opts.scattering === true; // folded deep at the hips, flicking crumbs to the flock (spr-072)
   const stretching = opts.stretching === true; // both arms flung up overhead, an end-of-shift stretch (spr-073)
   const pointing = opts.pointing === true; // one arm thrown out level, head tracking it, showing the way (spr-074)
+  const catching = opts.catching === true; // bent over near-straight legs, hands braced on the thighs, head up — winded (spr-075)
   const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
@@ -521,6 +522,7 @@ export function createFigure(look = "player", opts = {}) {
     _scattering: scattering,            // folded deep at the hips, flicking crumbs to the flock (spr-072)
     _stretching: stretching,            // both arms flung up overhead, an end-of-shift stretch (spr-073)
     _pointing: pointing,                 // one arm thrown out level, head tracking it, showing the way (spr-074)
+    _catching: catching,                 // bent over near-straight legs, hands braced on the thighs, head up — winded (spr-075)
     _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
     _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
     update(dt, speed = 0) {
@@ -766,6 +768,31 @@ export function createFigure(look = "player", opts = {}) {
         armL.rotation.x = -0.12; armL.rotation.z = 0.16;            // the off arm low, an easy counterweight
         this.headPivot.rotation.x = -0.04;                         // level eyeline OUT along the arm, not bowed, not lifted
         this.headPivot.rotation.y = 0.46 + point * 0.08;           // THE TELL: head turned to TRACK its own hand (same side)
+        return;
+      }
+      // Catching breath (spr-075) — a winded laborer stopped mid-quay, bent moderately at the hips
+      // over near-straight legs with the heels of both hands braced on the thighs, and the giveaway:
+      // the HEAD IS UP, chin lifted off the bent back. It is the deliberate inverse of the crumb-
+      // scatterer (head DOWN, hands at the ground reaching out) — here nothing is reached for, the hands
+      // tuck inboard at the hips and the gaze stays forward. The rig has no elbow, so "bracing on the
+      // thighs" cannot be sold by a propped-up bent arm; it lives entirely on the hand-spheres kissing
+      // the thigh-capsules, so contact is solved in body-LOCAL space (the fold pitches arm and thigh
+      // together) and the breath swing on the arms is matched to the body swing so the hands stay
+      // planted through the whole heave. The player is never catching, so this is dead code for the hero.
+      if (this._catching) {
+        const k = this._phase;
+        const heave = Math.sin(k * 0.9);                            // a slow recovery breath swelling the fold
+        body.rotation.x = 0.34 + heave * 0.05;                      // a MODERATE hip-fold — deeper than the warmer,
+        body.rotation.z = 0;                                        // shallower than the scrubber/scatterer; it heaves on each breath
+        body.position.y = heave * 0.012;                            // the chest heaves, not a walk-bob
+        legL.rotation.x = -0.06; legL.rotation.z = -0.06;          // legs near-straight, raked a hair back to counter the fold,
+        legR.rotation.x = -0.06; legR.rotation.z = 0.06;          // feet a touch apart to brace the weight
+        armL.rotation.x = -0.30 + heave * 0.05;                    // both arms nearly straight down with a small forward
+        armR.rotation.x = -0.30 + heave * 0.05;                    // pitch so the hand-spheres land ON the upper thighs, riding the heave
+        armL.rotation.z = 0.28;                                     // inward-clasp signs (+L / −R) bring each hand inboard
+        armR.rotation.z = -0.28;                                    // onto its own thigh — braced, not splayed
+        this.headPivot.rotation.x = -0.22 + heave * 0.04;         // chin UP off the bent back, lifting on the deep breath
+        this.headPivot.rotation.y = Math.sin(k * 0.45 + this._gazePhase) * 0.10; // a small weary drift
         return;
       }
       // Stride heft (spr-017) — a broad, heavy-set frame plants a deeper, more laboured

@@ -3774,6 +3774,32 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // ── A winded dock-hand catching breath (spr-075): the harbour's first figure caught
+  // mid-RECOVERY rather than mid-work — bent moderately at the hips over near-straight
+  // legs, the heels of both hands braced on the thighs, head lifted off the bent back.
+  // It is the deliberate inverse of the crumb-scatterer (head down, hands reaching the
+  // ground): here the gaze is UP and the hands tuck inboard at the hips, reaching for
+  // nothing. Body-only — no prop, no anchor; the read lives entirely in the silhouette,
+  // so it's placed three-quartered (yaw 2.40) to face a player coming south from spawn,
+  // who reads the bent back with the head turned up toward them. DockWorker (a propless
+  // working role who'd plausibly be winded). Clear of the x=-7 patrol lane and the lamp pool.
+  {
+    const px = -8.4, pz = 6.2, yaw = 2.40;
+    const seed = (((px * 5.7 + pz * 8.3) % 1) + 1) % 1;
+    const fig = createFigure("DockWorker", { castShadow: false, seed, catching: true });
+    fig.root.position.set(px, 0, pz);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(px, 0.02, pz);
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like
