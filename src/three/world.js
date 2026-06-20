@@ -2666,6 +2666,44 @@ function buildSaltBarrel(x, z, yaw = 0) {
   return { root };
 }
 
+// ── The dockers' coal brazier (spr-064): a splay-legged iron tripod carrying a riveted
+// fire-bowl of glowing coals — the LAST flat quay prop. Replaces the PROP_Quay_Brazier
+// cutout; the Batch-64 firelight pool + halo FX (driven by the day cycle) are SEPARATE and
+// stay, layered over the real coals (basket rim ≈0.8, under the halo at y0.85). The coals
+// are self-lit (emissive) so they read hot by day and night. Root at the ground.
+function buildBrazier(x, z, yaw = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, 0, z);
+  root.rotation.y = yaw;
+  const iron = new THREE.MeshStandardMaterial({ color: 0x2c2a27, roughness: 0.62, metalness: 0.55 });
+  const coal = new THREE.MeshStandardMaterial({ color: 0x3a1606, roughness: 0.85, emissive: 0xff5012, emissiveIntensity: 1.25 });
+  const ember = new THREE.MeshStandardMaterial({ color: 0x4a1c08, roughness: 0.8, emissive: 0xff7a1e, emissiveIntensity: 1.5 });
+  const add = (g, m, px, py, pz, ry = 0, rz = 0) => { const o = new THREE.Mesh(g, m); o.position.set(px, py, pz); o.rotation.set(0, ry, rz); o.castShadow = true; o.receiveShadow = true; root.add(o); return o; };
+  // Three splayed legs from a base foot-ring up under the bowl (oriented via a local spar).
+  const spar = (ax, ay, az, bx, by, bz, r, m) => {
+    const a = new THREE.Vector3(ax, ay, az), dir = new THREE.Vector3(bx - ax, by - ay, bz - az), len = dir.length();
+    const o = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 7), m);
+    o.position.copy(a).addScaledVector(dir, 0.5);
+    o.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+    o.castShadow = true; root.add(o); return o;
+  };
+  for (let i = 0; i < 3; i++) {
+    const a = i * (2 * Math.PI / 3) + 0.4;
+    spar(Math.cos(a) * 0.3, 0, Math.sin(a) * 0.3, Math.cos(a) * 0.12, 0.55, Math.sin(a) * 0.12, 0.028, iron);
+  }
+  const ring = add(new THREE.TorusGeometry(0.3, 0.022, 6, 18), iron, 0, 0.05, 0); ring.rotation.x = Math.PI / 2; // base foot-ring
+  add(new THREE.CylinderGeometry(0.22, 0.22, 0.04, 16), iron, 0, 0.53, 0);          // bowl floor
+  add(new THREE.CylinderGeometry(0.33, 0.22, 0.3, 16, 1, true), iron, 0, 0.68, 0);  // open fire-bowl wall
+  const rim = add(new THREE.TorusGeometry(0.33, 0.025, 6, 20), iron, 0, 0.82, 0); rim.rotation.x = Math.PI / 2; // rolled rim
+  const heap = add(new THREE.IcosahedronGeometry(0.26, 1), coal, 0, 0.74, 0); heap.scale.set(1.0, 0.5, 1.0); // glowing coal heap
+  // A scatter of brighter embers on the heap, deterministic (no Math.random).
+  for (let i = 0; i < 5; i++) {
+    const a = i * 2.399, rr = 0.05 + 0.14 * ((i * 0.27) % 1);
+    add(new THREE.IcosahedronGeometry(0.045 + 0.02 * ((i * 0.13) % 1), 0), ember, Math.cos(a) * rr, 0.8, Math.sin(a) * rr, a, a);
+  }
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -4146,33 +4184,28 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
-  // ── Quayside comforts for the people who work it (Batch 51; made solid spr-059): the
-  // stones are dressed for cargo, nature and gear, but there is something for the
-  // labourers themselves — a back to rest, water to drink, a fire to warm cold hands. A
+  // ── Quayside comforts for the people who work it (Batch 51; made solid spr-059 →
+  // spr-064): the stones are dressed for cargo, nature and gear, but there is something for
+  // the labourers themselves — a back to rest, water to drink, a fire to warm cold hands. A
   // slatted timber bench on cast-iron ends sits on the building kerb and again along the
   // water-side promenade, a black cast-iron parish pump stands at the south kerb, and a
-  // dockers' coal brazier burns out on the open quay. The bench & pump are now REAL
-  // geometry (buildBench/buildPump above); the brazier ALONE stays a ground-planted
-  // camera-facing billboard, because its strong emissive (0.6) coals are wired to the
-  // Batch-64 firelight glow/halo FX below. Each still rests on a soft contact-shadow blob.
+  // dockers' coal brazier burns out on the open quay. All three are now REAL geometry
+  // (buildBench/buildPump/buildBrazier above) — spr-064 retired the brazier cutout, the LAST
+  // flat quay prop. The Batch-64 firelight pool + halo FX below are SEPARATE (day-cycle
+  // driven) and stay, layered over the brazier's self-lit coals. Each rests on a soft
+  // contact-shadow blob.
   const comforts = [
-    // [kind, x, z, shadowR, yaw] — bench & pump now REAL geometry (spr-059); the brazier
-    // alone stays a camera-facing billboard so its Batch-64 firelight glow/halo FX hold.
+    // [kind, x, z, shadowR, yaw] — all REAL geometry now (bench/pump spr-059, brazier spr-064).
     ["bench", 6.5, -16, 0.72, -Math.PI / 2], // a bench by the shopfronts, back to the building, facing the quay
     ["bench", -9.7, 20, 0.68, Math.PI / 2],  // a second bench along the water-side promenade
     ["pump", 6.7, -28, 0.32, -Math.PI / 2],  // a parish standpipe at the south kerb, spout to the open quay
-    ["brazier", -9.8, 14, 0.46, 0],          // a dockers' brazier on the open quay, coals aglow — KEPT billboard
+    ["brazier", -9.8, 14, 0.46, 0.5],        // a dockers' brazier on the open quay, coals aglow
   ];
   for (const [kind, x, z, shadowR, yaw] of comforts) {
-    if (kind === "brazier") {
-      const item = cutoutPlane(`${PROP_SPRITE_DIR}PROP_Quay_Brazier.png`, 0.94, 1.0, { emissive: 0.6, alphaTest: 0.4 });
-      item.position.set(x, 0.5, z);
-      scene.add(item);
-      billboards.push(item); // main.js turns it to face the camera each frame
-    } else {
-      const built = kind === "bench" ? buildBench(x, z, yaw) : buildPump(x, z, yaw);
-      scene.add(built.root);
-    }
+    const built = kind === "bench" ? buildBench(x, z, yaw)
+      : kind === "pump" ? buildPump(x, z, yaw)
+      : buildBrazier(x, z, yaw);
+    scene.add(built.root);
 
     const blob = new THREE.Mesh(
       new THREE.CircleGeometry(shadowR, 16),
@@ -4185,8 +4218,9 @@ export function buildWorld(scene) {
   }
 
   // ── Firelight from the brazier (Batch 64): the dockers' coal brazier above (at
-  // −9.8,14) glows by its own albedo (emissive 0.6) but throws NO light on the stones
-  // around it or into the air — the same gap Batch 62 fixed for the street lamps. Lay
+  // −9.8,14) glows by its own self-lit coals (buildBrazier's emissive heap) but throws NO
+  // light on the stones around it or into the air — the same gap Batch 62 fixed for the
+  // street lamps. Lay
   // a HOT fire-glow at the brazier: a flat ground pool on the cobbles around the coals
   // (the player looks DOWN at the quay, so a flat decal reads here — the Batch-62
   // lamp-pool idiom, NOT the grazing-angle water of Batch 63) AND an upright camera-
@@ -4198,7 +4232,7 @@ export function buildWorld(scene) {
   const brazierGlows = [];
   const brazierTex = _texLoader.load(`${FX_DIR}FX_Light_BrazierGlow.png`);
   brazierTex.colorSpace = THREE.SRGBColorSpace;
-  const BRZ_X = -9.8, BRZ_Z = 14; // matches the PROP_Quay_Brazier placement above
+  const BRZ_X = -9.8, BRZ_Z = 14; // matches the buildBrazier placement above
   // (1) the hot pool of firelight on the cobbles around the coals.
   const brazierPool = new THREE.Mesh(
     new THREE.PlaneGeometry(3.4, 3.4),
