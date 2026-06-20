@@ -4049,6 +4049,33 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // ── A sailor craning up at the gulls (spr-084): the harbour's FIRST pose built around a deep,
+  // SUSTAINED upward stare. Bowing drops the head DOWN and shading tips the chin up but lives on a
+  // raised brow-VISOR hand; this throws the face back to the rigging (head ~31.5° up) and leaves BOTH
+  // arms slack at the sides — the silhouette is a bare upward gaze, not the brow-shade. A slow sky-scan
+  // keeps it alive (gulls wheeling), never frozen. Body-only ({craning:true}); Sailor carries no
+  // ROLE_PROP, so nothing is parented or world-anchored — zero prop-snap. Set in the empty deep-south
+  // EAST interior at (5.5,-29): a clear 1.5m off the x=4 patrol lane (so its walkers pass well clear),
+  // ~13m from the portering DockWorker (-4,-20) and ~16m from the casting Fisher (-10.3,-31), clear of
+  // lamps and the building row (fronts x≈8.45, so ~3m of front clearance). yaw π+0.5 turns the craned
+  // face toward the water/SW so a player coming up the quay from the south catches it in 3/4 front.
+  {
+    const cx = 5.5, cz = -29.0, yaw = Math.PI + 0.5; // face SW over the water — the up-craned face shows to a player approaching from the south
+    const seed = (((cx * 5.9 + cz * 7.3) % 1) + 1) % 1;
+    const fig = createFigure("Sailor", { castShadow: false, seed, craning: true });
+    fig.root.position.set(cx, 0, cz);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(cx, 0.02, cz); // a grounding shadow under the planted feet
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like

@@ -453,6 +453,7 @@ export function createFigure(look = "player", opts = {}) {
   const bowing = opts.bowing === true;   // folded forward from the hips in a deferent doffing bow, head dropped low, both arms hanging slack and clear of the thighs (spr-081)
   const glancing = opts.glancing === true; // halted mid-quay, head twisted hard back over one shoulder at a shout from behind, body squared forward, arms hanging easy (spr-082)
   const listening = opts.listening === true; // stood at a slight angle, head CANTED hard to one cocked ear and held there, arms hanging slack — caught listening to something off to the side (spr-083)
+  const craning = opts.craning === true; // chin craned hard UP to follow the gulls over the rigging, both arms hanging slack — an open upward stare, no shading hand (spr-084)
   const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
@@ -539,6 +540,7 @@ export function createFigure(look = "player", opts = {}) {
     _bowing: bowing,                      // folded forward from the hips in a deferent doffing bow, head dropped low, arms hanging slack and clear of the thighs (spr-081)
     _glancing: glancing,                  // halted mid-quay, head twisted hard back over one shoulder at a shout from behind, body squared forward, arms hanging easy (spr-082)
     _listening: listening,                // head canted to one cocked ear and held, arms slack and easy — a body caught listening hard to a sound off to the side (spr-083)
+    _craning: craning,                    // chin craned UP to the wheeling gulls, arms slack, an open upward stare — the deepest sustained up-gaze, no brow-visor hand (spr-084)
     _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
     _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
     update(dt, speed = 0) {
@@ -1005,6 +1007,31 @@ export function createFigure(look = "player", opts = {}) {
         this.headPivot.rotation.x = -0.03;                         // eyeline near-level-to-a-hair-up, attending (negative = up)
         this.headPivot.rotation.y = 0.20 + cant * 0.04;            // a slight TURN toward the sound, locked to the cant's cadence so ear-cock and turn agree
         this.headPivot.rotation.z = 0.42 + cant * 0.05;            // THE POSE: head CANTED hard to one side (~24°), the slow sway keeping the cocked ear alive
+        return;
+      }
+      // Craning up at the gulls (spr-084) — the harbour's FIRST pose built around a deep,
+      // SUSTAINED upward stare with the hands doing nothing. Where bowing drops the head DOWN
+      // and shading tips the chin up but lives on a raised brow-VISOR hand, this throws the
+      // face back to the rigging (headPivot.x = -0.55, ~31.5° up — deeper than any side-
+      // effect chin-lift: hailing -0.18, shading -0.32, catching -0.22, stretch peak -0.40) and
+      // leaves BOTH arms slack at the sides — the silhouette is unmistakably a bare upward gaze,
+      // not the brow-shade. The body eases a hair BACK to carry the stare; the head keeps a slow
+      // sky-scan so it reads ALIVE (gulls wheeling), never frozen. Body-only: Sailor is propless,
+      // zero snap. The player never cranes, so this is dead code for the hero — its gait stays
+      // byte-for-byte unchanged. Returns early; sets headPivot.z = 0 (listening left it canted).
+      if (this._craning) {
+        const k = this._phase;
+        const sky = Math.sin(k * 0.3 + this._gazePhase);            // one slow cadence: keeps the up-stare alive (gulls wheeling)
+        body.rotation.x = -0.06;                                    // eased a HAIR back to carry the upward gaze (negative reclines), far short of toppling
+        body.rotation.z = Math.sin(k * 0.35 + this._swayPhase) * 0.012; // a faint settle on the feet, sub-1°
+        body.position.y = Math.sin(k) * 0.005;                      // a quiet, even breath
+        legL.rotation.x = 0.04; legL.rotation.z = -0.06;            // hips eased forward (positive) to balance the back-tip, feet a touch apart
+        legR.rotation.x = 0.04; legR.rotation.z = 0.06;
+        armL.rotation.x = -0.08 + this._armBias; armL.rotation.z = 0.08;  // both arms hang SLACK, near-straight down beside the hips (hand y≈0.84),
+        armR.rotation.x = -0.06 - this._armBias; armR.rotation.z = -0.10; // faintly asymmetric — a body caught gazing up, not posed; no reach, no visor hand
+        this.headPivot.rotation.x = -0.55 + sky * 0.04;            // THE POSE: chin craned HARD UP to the rigging/gulls (negative = up), kept alive by the slow breath-sway
+        this.headPivot.rotation.y = Math.sin(k * 0.4 + this._gazePhase) * 0.20; // a slow scan of the wheeling birds across the sky
+        this.headPivot.rotation.z = 0;                             // no head-roll (listening's branch leaves this canted — reset it here)
         return;
       }
       // Stride heft (spr-017) — a broad, heavy-set frame plants a deeper, more laboured
