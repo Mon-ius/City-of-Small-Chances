@@ -2595,6 +2595,77 @@ function buildQuayTree(x, z, yaw = 0, s = 1) {
   return { root };
 }
 
+// ── The coaling point (spr-063): a low wide heap of angular black coal lumps banked
+// against a three-plank timber retaining kerb, a smooth mound under a scatter of faceted
+// anthracite (faceted icosahedra, detail 0) catching a faint sheen. Replaces the flat
+// PROP_Quay_CoalHeap cutout. Root at the ground.
+function buildCoalHeap(x, z, yaw = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, 0, z);
+  root.rotation.y = yaw;
+  const plank = new THREE.MeshStandardMaterial({ color: 0x46361f, roughness: 0.92 });
+  const coalA = new THREE.MeshStandardMaterial({ color: 0x1b1b1f, roughness: 0.78, metalness: 0.18 });
+  const coalB = new THREE.MeshStandardMaterial({ color: 0x26262c, roughness: 0.7, metalness: 0.22 });
+  const add = (g, m, px, py, pz, ry = 0, rz = 0) => { const o = new THREE.Mesh(g, m); o.position.set(px, py, pz); o.rotation.set(0, ry, rz); o.castShadow = true; o.receiveShadow = true; root.add(o); return o; };
+  // A low three-plank kerb (back + two sides), open to the quay (front, −z).
+  add(new THREE.BoxGeometry(1.5, 0.26, 0.08), plank, 0, 0.13, 0.62);                 // back board
+  add(new THREE.BoxGeometry(0.08, 0.26, 1.2), plank, -0.71, 0.13, 0.04);             // left board
+  add(new THREE.BoxGeometry(0.08, 0.26, 1.2), plank, 0.71, 0.13, 0.04);             // right board
+  // The smooth banked mound under the loose lumps.
+  const mound = add(new THREE.IcosahedronGeometry(0.72, 1), coalA, 0, 0.04, 0.18);
+  mound.scale.set(1.0, 0.42, 0.78);
+  // A scatter of angular coal lumps, deterministic (sin/cos, no Math.random).
+  for (let i = 0; i < 11; i++) {
+    const a = i * 2.399, rr = 0.18 + 0.42 * ((i * 0.193) % 1);                       // golden-angle spiral
+    const lx = Math.cos(a) * rr, lz = 0.18 + Math.sin(a) * rr * 0.7;
+    const sz = 0.1 + 0.09 * ((i * 0.137) % 1);
+    add(new THREE.IcosahedronGeometry(sz, 0), i % 2 ? coalB : coalA, lx, 0.12 + sz * 0.5, lz, a, a * 0.5);
+  }
+  return { root };
+}
+
+// ── The pitch cask (spr-063): a hooped oak barrel of black caulking tar — bulged lathed
+// staves, three iron hoops, a wet near-black pitch surface (faint sheen) open at the top
+// and a wooden stirring paddle stood in it. Replaces the flat PROP_Quay_TarBarrel cutout.
+function buildTarBarrel(x, z, yaw = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, 0, z);
+  root.rotation.y = yaw;
+  const wood = new THREE.MeshStandardMaterial({ color: 0x5e4126, roughness: 0.9 });
+  const iron = new THREE.MeshStandardMaterial({ color: 0x33302a, roughness: 0.6, metalness: 0.45 });
+  const tar = new THREE.MeshStandardMaterial({ color: 0x121214, roughness: 0.35, metalness: 0.25 });
+  const add = (g, m, px, py, pz, rx = 0, rz = 0) => { const o = new THREE.Mesh(g, m); o.position.set(px, py, pz); o.rotation.set(rx, 0, rz); o.castShadow = true; o.receiveShadow = true; root.add(o); return o; };
+  const prof = [], R = 0.32, H = 0.82, N = 6;
+  for (let i = 0; i <= N; i++) { const t = i / N; prof.push(new THREE.Vector2(R * (0.82 + 0.18 * Math.sin(Math.PI * t)), t * H)); }
+  add(new THREE.LatheGeometry(prof, 18), wood, 0, 0, 0);                             // bulged staved cask
+  for (const hy of [0.1, 0.41, 0.72]) add(new THREE.TorusGeometry(R * (hy === 0.41 ? 1.0 : 0.86), 0.02, 6, 18), iron, 0, hy, 0, Math.PI / 2); // 3 hoops
+  add(new THREE.CylinderGeometry(R * 0.82, R * 0.82, 0.03, 18), tar, 0, H - 0.03, 0); // wet pitch surface
+  add(new THREE.CylinderGeometry(0.018, 0.022, 0.6, 6), wood, 0.07, H + 0.2, 0.04, 0.32, 0.18); // stirring paddle
+  return { root };
+}
+
+// ── The salt cask (spr-063): a hooped cask heaped with coarse grey-white curing salt —
+// bulged lathed staves, three iron hoops, a faceted salt mound rising over the rim and a
+// wooden hand-scoop dug into it. Replaces the flat PROP_Quay_SaltBarrel cutout.
+function buildSaltBarrel(x, z, yaw = 0) {
+  const root = new THREE.Group();
+  root.position.set(x, 0, z);
+  root.rotation.y = yaw;
+  const wood = new THREE.MeshStandardMaterial({ color: 0x73512f, roughness: 0.9 });
+  const iron = new THREE.MeshStandardMaterial({ color: 0x33302a, roughness: 0.6, metalness: 0.45 });
+  const salt = new THREE.MeshStandardMaterial({ color: 0xe6e2d6, roughness: 1.0 });
+  const add = (g, m, px, py, pz, rx = 0, rz = 0) => { const o = new THREE.Mesh(g, m); o.position.set(px, py, pz); o.rotation.set(rx, 0, rz); o.castShadow = true; o.receiveShadow = true; root.add(o); return o; };
+  const prof = [], R = 0.34, H = 0.78, N = 6;
+  for (let i = 0; i <= N; i++) { const t = i / N; prof.push(new THREE.Vector2(R * (0.82 + 0.18 * Math.sin(Math.PI * t)), t * H)); }
+  add(new THREE.LatheGeometry(prof, 18), wood, 0, 0, 0);                             // bulged staved cask
+  for (const hy of [0.1, 0.39, 0.7]) add(new THREE.TorusGeometry(R * (hy === 0.39 ? 1.0 : 0.86), 0.02, 6, 18), iron, 0, hy, 0, Math.PI / 2); // 3 hoops
+  const mound = add(new THREE.IcosahedronGeometry(0.3, 1), salt, 0, H - 0.04, 0);   // heaped salt over the rim
+  mound.scale.set(1.0, 0.62, 1.0);
+  add(new THREE.CylinderGeometry(0.07, 0.06, 0.06, 10), wood, 0.16, H + 0.05, 0.05); // scoop cup
+  add(new THREE.CylinderGeometry(0.014, 0.016, 0.28, 6), wood, 0.24, H + 0.16, 0.05, 0, 0.5); // scoop handle
+  return { root };
+}
+
 export function buildWorld(scene) {
   // ── Sky dome: a vertical gradient painted to a canvas, mapped inside a sphere.
   // paintSky() lets the day cycle recolour it as the hours pass.
@@ -4228,30 +4299,30 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
-  // ── The working materials of the port (Batch 59): the quay now STORES (rope,
-  // nets, casks, anchor), WORKS (capstan, derrick, deals), feeds and rests its
+  // ── The working materials of the port (Batch 59 → spr-063): the quay now STORES
+  // (rope, nets, casks, anchor), WORKS (capstan, derrick, deals), feeds and rests its
   // people (brazier, bench, pump) and sells (fish, cheese, bread) — but the three
   // commonplace bulk materials a steam-and-sail port is actually heaped with were
-  // missing: COAL to fire the boats, TAR to caulk the hulls, SALT to cure the
-  // catch. Three painted cutouts add them as a south-quay stores corner, clustered
-  // on the open deck just inboard of the Batch-53 working berth (capstan −9.8,−30 ·
-  // derrick −10.1,−34) so the heavy-labour end of the harbour reads complete. Same
-  // GROUND-PLANTED camera-facing-billboard idiom as the cargo/comforts/wares/dockWork
-  // (pushed to `billboards`, base on the image bottom at y = h/2, each on a soft
-  // contact-shadow blob); planes sized to each cutout's true aspect (coal a low wide
-  // heap 1.59:1, the tar and salt casks tall 0.71/0.76:1). Honest dull palette —
-  // black coal, dull pitch, grey-white salt — so low emissive, no glow.
+  // missing: COAL to fire the boats, TAR to caulk the hulls, SALT to cure the catch.
+  // This began as three painted cutouts; spr-063 rebuilds them as REAL geometry — the
+  // loop's own ask, "real … instead of faced picture with fake 3D" — so the heavy-labour
+  // corner stands in the round. They cluster as a south-quay stores corner on the open
+  // deck just inboard of the Batch-53 working berth (capstan −9.8,−30 · derrick −10.1,−34)
+  // so the working end of the harbour reads complete. Each builder roots itself at the
+  // ground at (x,z); GROUND-PLANTED like the cargo/comforts/wares/dockWork, so each still
+  // gets a soft contact-shadow blob. Honest dull palette — black coal, wet pitch, grey
+  // salt — no glow.
   const workMaterials = [
-    // [file, w, h, x, z, shadowR, emissive]
-    ["PROP_Quay_CoalHeap", 1.6, 1.01, -4.2, -30.0, 0.85, 0.16], // the coaling point — fuel for the steam boats
-    ["PROP_Quay_TarBarrel", 0.82, 1.15, -2.5, -30.8, 0.4, 0.16], // a pitch cask for caulking the hulls
-    ["PROP_Quay_SaltBarrel", 0.86, 1.13, -5.7, -31.0, 0.44, 0.18], // coarse salt for curing the catch
+    // [kind, x, z, shadowR, yaw] — now REAL geometry (spr-063), no longer billboards.
+    ["coal", -4.2, -30.0, 0.85, 0.3], // the coaling point — fuel for the steam boats
+    ["tar", -2.5, -30.8, 0.4, -0.4], // a pitch cask for caulking the hulls
+    ["salt", -5.7, -31.0, 0.44, 0.5], // coarse salt for curing the catch
   ];
-  for (const [file, w, h, x, z, shadowR, emissive] of workMaterials) {
-    const item = cutoutPlane(`${PROP_SPRITE_DIR}${file}.png`, w, h, { emissive, alphaTest: 0.4 });
-    item.position.set(x, h / 2, z);
-    scene.add(item);
-    billboards.push(item); // main.js turns it to face the camera each frame
+  for (const [kind, x, z, shadowR, yaw] of workMaterials) {
+    const built = kind === "coal" ? buildCoalHeap(x, z, yaw)
+      : kind === "tar" ? buildTarBarrel(x, z, yaw)
+      : buildSaltBarrel(x, z, yaw);
+    scene.add(built.root);
 
     const blob = new THREE.Mesh(
       new THREE.CircleGeometry(shadowR, 16),
