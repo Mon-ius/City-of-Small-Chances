@@ -3969,6 +3969,33 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // ── An innkeeper bent in a deferent bow on the quay-side (spr-081): the harbour's FIRST pose built
+  // around a body folded DEEP from the hips with the head dropped. An innkeeper, set back off the
+  // water on the EAST side of the quay (clear of the crowded west sea-wall), folds into a courtesy
+  // doffing bow toward the open quay — greeting arrivals coming up from the notice board — slowly
+  // bobbing lower and rising so it reads as an ACTIVE bow, not a frozen stoop. Body-only
+  // ({bowing:true}); Innkeeper has NO ROLE_PROP, so both hands hang slack and empty (reaching for
+  // nothing) with zero prop-snap exposure. Placed at (3,9): a clear EAST-side gap a full 1.0m off
+  // both the x=2 and x=4 patrol lanes and well clear of the building row (fronts x≈8.45). yaw π-0.5
+  // faces SE — folding toward a player on the open quay / by the board (5,-6), so they catch the deep
+  // fold and dropped crown as a clear front read, not the back of a bent spine.
+  {
+    const bx = 3.0, bz = 9.0, yaw = Math.PI - 0.5; // face SE — bow folds toward the open quay where the player and notice board are, so the deep fold + dropped head read front-on
+    const seed = (((bx * 5.9 + bz * 7.3) % 1) + 1) % 1;
+    const fig = createFigure("Innkeeper", { castShadow: false, seed, bowing: true });
+    fig.root.position.set(bx, 0, bz);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(bx, 0.02, bz); // a grounding shadow under the planted feet
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like

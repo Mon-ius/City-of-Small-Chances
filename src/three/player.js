@@ -450,6 +450,7 @@ export function createFigure(look = "player", opts = {}) {
   const portering = opts.portering === true; // a load balanced on the crown, both arms up and inboard steadying it (spr-078)
   const watching = opts.watching === true; // at ease on watch, both arms swept back, hands clasped behind the spine (spr-079)
   const shading = opts.shading === true; // at the sea-wall, chin tipped UP and one flat hand thrown up as a brow-visor, peering out past the low sun (spr-080)
+  const bowing = opts.bowing === true;   // folded forward from the hips in a deferent doffing bow, head dropped low, both arms hanging slack and clear of the thighs (spr-081)
   const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
@@ -533,6 +534,7 @@ export function createFigure(look = "player", opts = {}) {
     _portering: portering,                // a load balanced on the crown, both arms up and inboard steadying it (spr-078)
     _watching: watching,                  // at ease on watch, both arms swept back, hands clasped behind the spine (spr-079)
     _shading: shading,                    // at the sea-wall, chin up and one hand a brow-visor against the low sun, peering out (spr-080)
+    _bowing: bowing,                      // folded forward from the hips in a deferent doffing bow, head dropped low, arms hanging slack and clear of the thighs (spr-081)
     _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
     _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
     update(dt, speed = 0) {
@@ -929,6 +931,29 @@ export function createFigure(look = "player", opts = {}) {
         armR.rotation.x = -0.10 - this._armBias; armR.rotation.z = -0.18; // the off (right) arm hangs low, an easy counterweight
         this.headPivot.rotation.x = -0.32;                         // chin UP — eyeline out to the horizon under the hand (negative = up)
         this.headPivot.rotation.y = scan * 0.18;                   // a slow horizon scan, tracking what comes in off the sea
+        return;
+      }
+      // A deferent doffing bow (spr-081) — the body folds DEEP from the hips (a courtesy
+      // bow, ~26°→36°) and slowly dips lower and rises, so the silhouette reads as an
+      // ACTIVE, repeated bob of respect rather than a frozen stoop. The head drops with it,
+      // its crown turning down-and-forward — that head-DOWN drop is the doffing tell. Both
+      // arms hang slack and dead-straight, splayed a hair OUTBOARD so the dangling hands
+      // stay clear of the thigh capsules (reaching for nothing — an empty, deferent bow),
+      // which is what keeps it apart from the winded hands-on-thighs catch. The legs stay
+      // near-straight and planted. The player never bows, so this is dead code and the
+      // hero's gait is byte-for-byte unchanged. Returns early — no stride or weight-shift.
+      if (this._bowing) {
+        const k = this._phase;
+        const nod = (Math.sin(k * 0.7) + 1) * 0.5;                 // a slow 0→1 dip-and-rise of the bow
+        body.rotation.x = 0.46 + nod * 0.16;                       // a deep hip-fold that bobs lower and rises (~26°→36°)
+        body.rotation.z = Math.sin(k * 0.3 + this._swayPhase) * 0.01; // a faint settle on the feet
+        body.position.y = Math.sin(k) * 0.005;                     // a quiet breath
+        legL.rotation.x = -0.05; legL.rotation.z = -0.06;          // legs near-straight, planted a touch apart
+        legR.rotation.x = -0.05; legR.rotation.z = 0.06;
+        armL.rotation.x = -0.04 + this._armBias; armL.rotation.z = -0.06; // arms hang dead-straight, splayed...
+        armR.rotation.x = -0.04 - this._armBias; armR.rotation.z = 0.06;  // ...a hair OUTBOARD so the slack hands clear the thighs
+        this.headPivot.rotation.x = 0.32 + nod * 0.14;             // head drops with the bow, crown down-and-forward (positive = down)
+        this.headPivot.rotation.y = Math.sin(k * 0.3 + this._gazePhase) * 0.05; // an almost-still bowed head
         return;
       }
       // Stride heft (spr-017) — a broad, heavy-set frame plants a deeper, more laboured
