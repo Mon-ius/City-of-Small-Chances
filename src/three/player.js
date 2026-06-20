@@ -443,6 +443,7 @@ export function createFigure(look = "player", opts = {}) {
   const hailing = opts.hailing === true; // at the sea-wall, one arm flung up hailing a boat (spr-071)
   const scattering = opts.scattering === true; // folded deep at the hips, flicking crumbs to the flock (spr-072)
   const stretching = opts.stretching === true; // both arms flung up overhead, an end-of-shift stretch (spr-073)
+  const pointing = opts.pointing === true; // one arm thrown out level, head tracking it, showing the way (spr-074)
   const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
@@ -519,6 +520,7 @@ export function createFigure(look = "player", opts = {}) {
     _hailing: hailing,                  // at the sea-wall, one arm flung up hailing a boat (spr-071)
     _scattering: scattering,            // folded deep at the hips, flicking crumbs to the flock (spr-072)
     _stretching: stretching,            // both arms flung up overhead, an end-of-shift stretch (spr-073)
+    _pointing: pointing,                 // one arm thrown out level, head tracking it, showing the way (spr-074)
     _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
     _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
     update(dt, speed = 0) {
@@ -739,6 +741,31 @@ export function createFigure(look = "player", opts = {}) {
         // ...the Y widening as the reach swells to its peak.
         this.headPivot.rotation.x = -0.30 - reach * 0.10;          // chin lifted, face to the sky at the peak
         this.headPivot.rotation.y = 0;
+        return;
+      }
+      // Showing the way (spr-074) — a harbour hand pausing to point a newcomer down the quay to the
+      // notice board. A point held at the HORIZONTAL is the rig's native shape: one rigid arm-capsule
+      // swung level from the shoulder, the hand-sphere at its tip clear of the head — no elbow implied
+      // (the trap that sinks folded-arms and the shoulder-load), no rise toward the head (the salute
+      // trap). The whole tell that reads "directing" not "reaching" is that the HEAD turns to follow its
+      // OWN pointing hand: head.y and the arm share one slow phase so they sweep as a single unit, a calm
+      // repeated "that way, down by the board." The off arm hangs low as a clear counterweight so the
+      // silhouette stays unmistakably ONE-arm-out (never the two-handed talk shape). The player is never
+      // pointing, so this is dead code for the hero and its gait stays byte-for-byte unchanged.
+      if (this._pointing) {
+        const k = this._phase;
+        const point = Math.sin(k * 0.5);                            // one slow ~12s "that-way" beat, shared by hand + head
+        body.rotation.x = 0.06;                                     // a faint commitment forward, toward the way shown
+        body.rotation.z = point * 0.012;                            // an easy settle of the weight
+        body.position.y = Math.sin(k) * 0.006;                      // a quiet breath
+        legL.rotation.x = -0.04; legL.rotation.z = -0.06;           // feet planted, a touch apart, weight even
+        legR.rotation.x = -0.04; legR.rotation.z = 0.06;
+        armR.rotation.x = -1.52 + point * 0.05;                     // POINTING arm held LEVEL — clamped to the safe
+        armR.rotation.z = 0.50 + point * 0.10;                      // ...horizontal band, carried OUT to the figure's RIGHT-
+        // ...front (positive z swings it that way), with a slow azimuth re-aim — never up toward -1.7 (the salute read).
+        armL.rotation.x = -0.12; armL.rotation.z = 0.16;            // the off arm low, an easy counterweight
+        this.headPivot.rotation.x = -0.04;                         // level eyeline OUT along the arm, not bowed, not lifted
+        this.headPivot.rotation.y = 0.46 + point * 0.08;           // THE TELL: head turned to TRACK its own hand (same side)
         return;
       }
       // Stride heft (spr-017) — a broad, heavy-set frame plants a deeper, more laboured

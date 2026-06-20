@@ -3742,6 +3742,38 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // ── An innkeeper showing the way (spr-074): the harbour's FIRST figure whose gesture points at
+  // ANOTHER piece of the world. The hail (spr-071) called to open water, the scatterer (spr-072) to
+  // a flock at her feet, the stretcher (spr-073) to the sky — each bound to something soft or absent.
+  // This one's right arm is thrown out LEVEL and aimed across the deck at the REAL notice board at
+  // (5,−6), the lit jobs board the player is already walking toward; the head turns to track its own
+  // hand, so it reads as "the work's posted that way, down by the board" — directing, not reaching.
+  // A point at the horizontal is the rig's native shape (one rigid arm-capsule, no elbow implied, the
+  // hand clear of the head), which is why it beat the shoulder-load (needs an elbow to clamp the sack),
+  // the arms-fold (needs an elbow to tuck), and the hands-behind-back (armless from the front approach)
+  // in an adversarial pose vet. Placed on the open central-south deck at (−2.5,−8): ~5 m south of the
+  // scatterer (−0.5,−3), ~4 m north-east of the stretcher (−2,−12), on the INBOARD edge clear of every
+  // patrol lane. A sturdy propless **Innkeeper** (a publican knows the harbour) — no prop, no new
+  // geometry; it points at the board already built and lit. Faces NE (yaw +0.81) so the southbound
+  // player reads the FRONT, the level arm, AND the board it aims at all on one sightline — a live
+  // arm-vector probe put the point dead on the board (0.1°) with the head tracking it (2.3°). A contact blob.
+  {
+    const px = -2.5, pz = -8.0, yaw = 0.81;  // body three-quartered NE — front to the player, arm out toward the board
+    const seed = (((px * 4.3 + pz * 11.2) % 1) + 1) % 1;
+    const fig = createFigure("Innkeeper", { castShadow: false, seed, pointing: true });
+    fig.root.position.set(px, 0, pz);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(px, 0.02, pz);
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like
