@@ -3502,6 +3502,39 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // Rail-gazers on the sea-wall (spr-067): the iconic harbour image still missing — a body
+  // propped over the parapet, watching the water. The seated idlers (spr-031) sit ON the
+  // coping with their legs dangling; these STAND on the deck just inboard of it and lean
+  // FORWARD over the rail, forearms on the stone. `createFigure(..., {gazing:true})` early-
+  // returns to the forward-tipping gaze pose in player.js (the counterpart to the back-lean).
+  // The quay wall caps at y=0.90, its deck-side face at x=−10.8; feet plant at x=−10.3 (just
+  // off the wall, OUTSIDE the walkable bounds' minX −10.5) so the figure props the rail and
+  // the player — who can't pass −10.5 — only ever sees its back, the natural read for someone
+  // gazing out to sea. Yaw ≈ −π/2 turns the back to the street and the face to the open water.
+  // z −4 and −26 sit on clear stretches: between the perched gulls (z −6,3) and the fenders
+  // (z 0) for one, and between the life-ring (z −22) and the south lamp (z −28) for the other,
+  // each ≥2 m off the nearest bollard (z multiples of 8). Propless roles — a fisher reading the
+  // water and a widow keeping her watch — so nothing floats over the parapet. root.y stays 0.
+  const railGazers = [
+    { role: "Fisher", x: -10.3, z: -4,  yaw: -Math.PI / 2 + 0.15 }, // a fisher reading the weather off the water
+    { role: "Widow",  x: -10.3, z: -26, yaw: -Math.PI / 2 - 0.12 }, // a widow keeping her watch on the empty sea
+  ];
+  for (const s of railGazers) {
+    const seed = (((s.x * 7.7 + s.z * 5.1) % 1) + 1) % 1;
+    const fig = createFigure(s.role, { castShadow: false, seed, gazing: true });
+    fig.root.position.set(s.x, 0, s.z);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, s.yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.45, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(s.x, 0.02, s.z);
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like

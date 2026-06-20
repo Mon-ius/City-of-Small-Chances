@@ -436,6 +436,7 @@ export function createFigure(look = "player", opts = {}) {
   const seated = opts.seated === true;   // perched on a wall, legs dangling (spr-031)
   const benched = opts.benched === true; // sat back on a bench, legs raked to the floor (spr-065)
   const leaning = opts.leaning === true; // loafing back against a wall, feet planted (spr-066)
+  const gazing = opts.gazing === true;   // tipped forward over the sea-wall rail, watching the water (spr-067)
   const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
@@ -505,6 +506,7 @@ export function createFigure(look = "player", opts = {}) {
     _seated: seated,                    // perched on the sea-wall, legs dangling (spr-031)
     _benched: benched,                  // sat back on a bench, legs raked to the floor (spr-065)
     _leaning: leaning,                  // loafing back against a wall, feet planted (spr-066)
+    _gazing: gazing,                    // tipped forward over the sea-wall rail, watching the water (spr-067)
     _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
     _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
     update(dt, speed = 0) {
@@ -571,6 +573,28 @@ export function createFigure(look = "player", opts = {}) {
         armR.rotation.x = -0.15; armR.rotation.z = -0.28;
         this.headPivot.rotation.x = 0.04;                          // a level, easy gaze along the quay
         this.headPivot.rotation.y = Math.sin(k * 0.22 + this._gazePhase) * 0.28;
+        return;
+      }
+      // Rail-gazers (spr-067) — the forward-tipping counterpart to the wall-lean: a body
+      // propped over the sea-wall parapet, weight forward, forearms resting on the coping,
+      // watching the water. Where the leaner tips BACK onto a wall behind it, this tips
+      // FORWARD over the rail in front of it (head/torso toward +z local = out to sea). The
+      // whole figure pivots at the feet, so the boots stay planted while the body forms a
+      // forward diagonal and the legs angle back a touch to take the weight. Arms reach
+      // forward-and-down onto the coping; the head LIFTS off the forward tip to level the
+      // gaze on the horizon. The player is never gazing, so this branch is dead code for the
+      // hero and its gait stays byte-for-byte unchanged. Returns early — no stride.
+      if (this._gazing) {
+        const k = this._phase;
+        body.rotation.x = 0.26;                                     // tipped forward, propped over the rail
+        body.rotation.z = Math.sin(k * 0.35) * 0.01;               // a faint settle of the weight
+        body.position.y = Math.sin(k) * 0.005;
+        legL.rotation.x = -0.09; legL.rotation.z = -0.05;          // legs angle back off the forward tip, feet a touch apart
+        legR.rotation.x = -0.09; legR.rotation.z = 0.05;
+        armL.rotation.x = -0.52; armL.rotation.z = 0.1;            // forearms come forward and down to rest on the coping
+        armR.rotation.x = -0.52; armR.rotation.z = -0.1;
+        this.headPivot.rotation.x = -0.16;                          // head lifts off the forward tip to watch the horizon
+        this.headPivot.rotation.y = Math.sin(k * 0.24 + this._gazePhase) * 0.3;
         return;
       }
       // Stride heft (spr-017) — a broad, heavy-set frame plants a deeper, more laboured
