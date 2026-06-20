@@ -3535,6 +3535,25 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // A net-mender on the sea-wall (spr-068): the harbour's FIRST working body. Every figure so
+  // far rests — stands, perches, sits, leans, gazes, talks — but none labours. This one perches
+  // on the coping like the spr-031 sitters (hip on the y=0.90 cap, root.y = 0.90 − HIP_Y 0.82 =
+  // 0.08) but BOWED over its lap, hands working a slow alternating mending rhythm — the trade of
+  // the drying trawl net hung just north at (−10.7, 24). `createFigure(..., {mending:true})`
+  // early-returns to the bowed working pose in player.js. Seated at z=22 — 2 m clear of the z=24
+  // bollard (and its net) and the z=16 one — and faced EAST (yaw +π/2) toward the deck so the
+  // player walking the quay sees the front and the working hands, legs dangling toward the
+  // cobbles. A propless `Fisher`, so nothing floats; sits on the wall like the other sitters
+  // (no contact blob — the coping carries it).
+  {
+    const x = -11.0, z = 22, yaw = Math.PI / 2;
+    const seed = (((x * 9.1 + z * 4.7) % 1) + 1) % 1;
+    const fig = createFigure("Fisher", { castShadow: false, seed, mending: true });
+    fig.root.position.set(x, 0.08, z);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, yaw));
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like

@@ -437,6 +437,7 @@ export function createFigure(look = "player", opts = {}) {
   const benched = opts.benched === true; // sat back on a bench, legs raked to the floor (spr-065)
   const leaning = opts.leaning === true; // loafing back against a wall, feet planted (spr-066)
   const gazing = opts.gazing === true;   // tipped forward over the sea-wall rail, watching the water (spr-067)
+  const mending = opts.mending === true; // seated, bowed over the lap, working a net through the hands (spr-068)
   const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
@@ -507,6 +508,7 @@ export function createFigure(look = "player", opts = {}) {
     _benched: benched,                  // sat back on a bench, legs raked to the floor (spr-065)
     _leaning: leaning,                  // loafing back against a wall, feet planted (spr-066)
     _gazing: gazing,                    // tipped forward over the sea-wall rail, watching the water (spr-067)
+    _mending: mending,                  // seated, bowed over the lap, working a net through the hands (spr-068)
     _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
     _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
     update(dt, speed = 0) {
@@ -595,6 +597,28 @@ export function createFigure(look = "player", opts = {}) {
         armR.rotation.x = -0.52; armR.rotation.z = -0.1;
         this.headPivot.rotation.x = -0.16;                          // head lifts off the forward tip to watch the horizon
         this.headPivot.rotation.y = Math.sin(k * 0.24 + this._gazePhase) * 0.3;
+        return;
+      }
+      // Net-menders (spr-068) — the harbour's first WORKING body: every other pose RESTS
+      // (stands, perches, sits, leans, gazes, talks) but nobody labours. This one sits on the
+      // coping (legs dangling like the spr-031 perch) but BOWED over its lap, hands working a
+      // net through a slow mending rhythm — one draws the twine across while the other feeds,
+      // antiphase, the head down on the work. Placed beside the draped net on the north wall.
+      // The player is never mending, so this branch is dead code for the hero and its gait
+      // stays byte-for-byte unchanged. Returns early — no stride, lean or weight-shift.
+      if (this._mending) {
+        const k = this._phase;
+        legL.rotation.x = -0.5 + Math.sin(k * 0.7) * 0.04;          // legs hang over the water, a faint rest-kick
+        legR.rotation.x = -0.5 + Math.sin(k * 0.7 + 1.1) * 0.04;
+        legL.rotation.z = 0; legR.rotation.z = 0;
+        body.rotation.x = 0.24;                                     // bowed forward over the lap and the work
+        body.rotation.z = 0;
+        body.position.y = Math.sin(k) * 0.005;
+        const pull = Math.sin(k * 1.4);                             // the working rhythm of the hands
+        armL.rotation.x = -1.0 + pull * 0.16; armL.rotation.z = 0.22;   // left hand feeds/holds, in over the lap
+        armR.rotation.x = -1.0 - pull * 0.16; armR.rotation.z = -0.22;  // right hand draws the twine across, antiphase
+        this.headPivot.rotation.x = 0.34;                          // head bowed, eyes on the hands
+        this.headPivot.rotation.y = Math.sin(k * 0.5) * 0.06;      // a small follow of the working hands
         return;
       }
       // Stride heft (spr-017) — a broad, heavy-set frame plants a deeper, more laboured
