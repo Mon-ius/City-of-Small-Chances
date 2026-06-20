@@ -454,6 +454,7 @@ export function createFigure(look = "player", opts = {}) {
   const glancing = opts.glancing === true; // halted mid-quay, head twisted hard back over one shoulder at a shout from behind, body squared forward, arms hanging easy (spr-082)
   const listening = opts.listening === true; // stood at a slight angle, head CANTED hard to one cocked ear and held there, arms hanging slack — caught listening to something off to the side (spr-083)
   const craning = opts.craning === true; // chin craned hard UP to follow the gulls over the rigging, both arms hanging slack — an open upward stare, no shading hand (spr-084)
+  const counting = opts.counting === true; // a vendor counting coins, trickling them between two cupped palms held low at the waist, head dipped to the count (spr-085)
   const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
@@ -541,6 +542,7 @@ export function createFigure(look = "player", opts = {}) {
     _glancing: glancing,                  // halted mid-quay, head twisted hard back over one shoulder at a shout from behind, body squared forward, arms hanging easy (spr-082)
     _listening: listening,                // head canted to one cocked ear and held, arms slack and easy — a body caught listening hard to a sound off to the side (spr-083)
     _craning: craning,                    // chin craned UP to the wheeling gulls, arms slack, an open upward stare — the deepest sustained up-gaze, no brow-visor hand (spr-084)
+    _counting: counting,                  // a vendor counting coins, trickling them between two cupped palms held low at the waist, the right hand drifting while the left holds steady, head dipped to the count (spr-085)
     _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
     _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
     update(dt, speed = 0) {
@@ -1032,6 +1034,30 @@ export function createFigure(look = "player", opts = {}) {
         this.headPivot.rotation.x = -0.55 + sky * 0.04;            // THE POSE: chin craned HARD UP to the rigging/gulls (negative = up), kept alive by the slow breath-sway
         this.headPivot.rotation.y = Math.sin(k * 0.4 + this._gazePhase) * 0.20; // a slow scan of the wheeling birds across the sky
         this.headPivot.rotation.z = 0;                             // no head-roll (listening's branch leaves this canted — reset it here)
+        return;
+      }
+      // Counting coins (spr-085) — the harbour's FIRST pose to use held-steady-vs-drifting
+      // ASYMMETRIC pair work: both hands cup low and INBOARD at the waist (y≈1.04, z≈0.42 —
+      // below warming's y≈1.105 forward-over-coals and casting's y≈1.30 rod-grip), and the
+      // RIGHT hand alone tips a hair toward the left on a slow ~6s sine while the left holds
+      // steady, reading as coins trickled from one palm to the other and back. Every prior
+      // two-handed pose either couples both hands antiphase (warming/mending/scrubbing) or
+      // braces them static (catching/grounded); this single-hand drift is wholly new. Propless
+      // (Merchant has no ROLE_PROP), body barely stoops (+0.05, never a fold) and never world-
+      // anchors anything — zero snap. The player never counts, so this is dead code for the hero
+      // and its gait stays byte-for-byte unchanged. Returns early — no stride, lean or weight-shift.
+      if (this._counting) {
+        const k = this._phase;
+        const trickle = Math.sin(k * 1.05);                        // a slow ~6s coin-transfer cadence on the right hand alone
+        body.rotation.x = 0.05;                                    // a faint stoop over the cupped hands — never a fold
+        body.rotation.z = Math.sin(k * 0.4 + this._swayPhase) * 0.012; // a sub-1° weight settle on the feet
+        body.position.y = Math.sin(k) * 0.005;                     // a quiet, even breath
+        legL.rotation.x = -0.03; legL.rotation.z = -0.06;          // feet planted, a touch apart, weight even
+        legR.rotation.x = -0.03; legR.rotation.z = 0.06;
+        armL.rotation.x = -0.78; armL.rotation.z = 0.30;           // LEFT hand holds steady, cupped low and INBOARD at the belly (hand y≈1.04, z≈0.42)...
+        armR.rotation.x = -0.78 + trickle * 0.06; armR.rotation.z = -0.30; // ...the RIGHT hand drifts a hair toward it and back, trickling the coins across (clasp signs +z.L / −z.R bring both hands together near x=0)
+        this.headPivot.rotation.x = 0.24;                          // head dipped to watch the count in the hands (gentler than bowing's +0.32, aimed at the low hands not the floor)
+        this.headPivot.rotation.y = trickle * 0.04;               // a tiny follow of the trickling hand, locked to the transfer cadence
         return;
       }
       // Stride heft (spr-017) — a broad, heavy-set frame plants a deeper, more laboured

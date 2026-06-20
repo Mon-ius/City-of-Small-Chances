@@ -4076,6 +4076,34 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // ── A merchant counting coins (spr-085): the harbour's FIRST pose to use held-steady-vs-drifting
+  // ASYMMETRIC pair work. Both hands cup low and inboard at the waist (y≈1.04, well below warming's
+  // hands-over-coals and casting's rod-grip) and the RIGHT hand alone tips a hair toward the left on a
+  // slow loop while the left holds steady — coins trickled palm to palm; every prior two-handed pose
+  // either couples both hands antiphase or braces them static, so this single-hand drift is wholly new.
+  // The head dips to the count (shallower than a bow). Body-only ({counting:true}); Merchant carries no
+  // ROLE_PROP, so nothing is parented or world-anchored — zero prop-snap. Set in the empty MID-quay EAST
+  // strip at (5.8,-14): 1.8m off the x=4 patrol lane (walkers pass clear), ~8m from the notice board
+  // (5,-6), ~15m from the craning Sailor (5.5,-29), clear of lamps and the building row (fronts x≈8.45,
+  // so ~2.6m of front clearance) — open cobbles, no tree/bollard. yaw π-0.6 faces SW so a player coming
+  // up the quay from the south sees the cupped hands and dipped head in three-quarter front.
+  {
+    const cx = 5.8, cz = -14.0, yaw = Math.PI - 0.6; // face SW — the cupped low hands and dipped head show to a player approaching from the south
+    const seed = (((cx * 5.9 + cz * 7.3) % 1) + 1) % 1;
+    const fig = createFigure("Merchant", { castShadow: false, seed, counting: true });
+    fig.root.position.set(cx, 0, cz);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(cx, 0.02, cz); // a grounding shadow under the planted feet
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like
