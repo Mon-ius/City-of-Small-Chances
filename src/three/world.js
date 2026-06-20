@@ -4217,6 +4217,35 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // ── Bench-sitters (spr-065): the two quay benches above (by the shopfronts and along the
+  // water-side promenade) were somewhere to rest with nobody resting — every seat in the
+  // harbour stood empty while the crowd only ever STOOD. Now a body sits on each, back to the
+  // building/water, legs stretched to the cobbles, taking the air. `createFigure(...,
+  // {benched:true})` early-returns to a sitting update in player.js (the sea-wall perch's
+  // sibling). The hip rides the 0.49 m seat top, so root.y = 0.49 − HIP_Y(0.82) = −0.33, and
+  // the sitter shares the bench's yaw so it faces the way the seat faces (front = +z local).
+  // Propless roles so no tool floats over the lap; a small contact blob grounds the feet,
+  // set ~0.55 m forward (+z local) where the raked legs actually plant.
+  const benchSitters = [
+    { role: "Merchant", x: 6.5,  z: -16, yaw: -Math.PI / 2 }, // a gentleman taking the air by the shopfronts
+    { role: "Fisher",   x: -9.7, z: 20,  yaw: Math.PI / 2 },  // a fisher between tides on the promenade
+  ];
+  for (const s of benchSitters) {
+    const seed = (((s.x * 7.7 + s.z * 5.3) % 1) + 1) % 1;
+    const fig = createFigure(s.role, { castShadow: false, seed, benched: true });
+    fig.root.position.set(s.x, -0.33, s.z);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, s.yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(s.x + Math.sin(s.yaw) * 0.55, 0.02, s.z + Math.cos(s.yaw) * 0.55); // forward, under the feet
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Firelight from the brazier (Batch 64): the dockers' coal brazier above (at
   // −9.8,14) glows by its own self-lit coals (buildBrazier's emissive heap) but throws NO
   // light on the stones around it or into the air — the same gap Batch 62 fixed for the

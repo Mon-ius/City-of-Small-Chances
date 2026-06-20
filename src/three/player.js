@@ -434,6 +434,7 @@ export function createFigure(look = "player", opts = {}) {
   // reads clean. Walkers and the player (seed 0) are always stance 0, i.e. unchanged.
   const seed = opts.seed ?? 0;
   const seated = opts.seated === true;   // perched on a wall, legs dangling (spr-031)
+  const benched = opts.benched === true; // sat back on a bench, legs raked to the floor (spr-065)
   const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
@@ -501,6 +502,7 @@ export function createFigure(look = "player", opts = {}) {
     _propLeaf: propLeaf,                // a ledger's turning page-leaf, or null (spr-030)
     _propAnim: propAnim,                // "stir" | "turn" | "read" | null
     _seated: seated,                    // perched on the sea-wall, legs dangling (spr-031)
+    _benched: benched,                  // sat back on a bench, legs raked to the floor (spr-065)
     _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
     _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
     update(dt, speed = 0) {
@@ -529,6 +531,26 @@ export function createFigure(look = "player", opts = {}) {
         body.rotation.x = 0; body.rotation.z = 0;
         this.headPivot.rotation.x = 0;
         this.headPivot.rotation.y = Math.sin(k * 0.3 + this._gazePhase) * 0.35;
+        return;
+      }
+      // Bench-sitters (spr-065) — unlike the sea-wall perch (legs dangling over the water),
+      // a body on the low quay benches sits BACK with its legs raked forward to plant on the
+      // cobbles: there is a floor to meet. No knee to fold, so the rigid legs simply rake
+      // forward (rotation.x ≈ −0.9 reaches from the 0.49 m seat down to y=0, ~0.63 m ahead of
+      // the hip), the hands rest along the thighs and the head drifts as it takes the air. The
+      // player is never benched, so this branch is dead code for the hero and its gait is
+      // byte-for-byte unchanged. Returns early — no stride, walking lean or weight-shift.
+      if (this._benched) {
+        const k = this._phase;
+        legL.rotation.x = -0.9 + Math.sin(k * 0.7) * 0.05;
+        legR.rotation.x = -0.9 + Math.sin(k * 0.7 + 1.3) * 0.05;   // staggered — a slow restful shift
+        legL.rotation.z = -0.16; legR.rotation.z = 0.16;           // knees splayed so the two legs read apart, not as one block
+        armL.rotation.x = -0.62; armL.rotation.z = 0.1;            // forearms come to rest on the lap
+        armR.rotation.x = -0.62; armR.rotation.z = -0.1;
+        body.position.y = Math.sin(k) * 0.006;
+        body.rotation.x = 0; body.rotation.z = 0;
+        this.headPivot.rotation.x = 0.05;                          // a level-to-low gaze over the harbour
+        this.headPivot.rotation.y = Math.sin(k * 0.3 + this._gazePhase) * 0.3;
         return;
       }
       // Stride heft (spr-017) — a broad, heavy-set frame plants a deeper, more laboured
