@@ -456,6 +456,7 @@ export function createFigure(look = "player", opts = {}) {
   const craning = opts.craning === true; // chin craned hard UP to follow the gulls over the rigging, both arms hanging slack — an open upward stare, no shading hand (spr-084)
   const counting = opts.counting === true; // a vendor counting coins, trickling them between two cupped palms held low at the waist, head dipped to the count (spr-085)
   const reading = opts.reading === true; // a dockmaster halted on the quay reading a manifest held flat between both forward hands at chest height, head bowed to the page (spr-086)
+  const cradling = opts.cradling === true; // ONE arm crooked HIGH across the chest cradling a bundle while the OTHER steadies it LOW from below — an over-and-under asymmetric two-hand carry, the bundle body-parented and rising only on the breath (spr-087)
   const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
@@ -545,6 +546,7 @@ export function createFigure(look = "player", opts = {}) {
     _craning: craning,                    // chin craned UP to the wheeling gulls, arms slack, an open upward stare — the deepest sustained up-gaze, no brow-visor hand (spr-084)
     _counting: counting,                  // a vendor counting coins, trickling them between two cupped palms held low at the waist, the right hand drifting while the left holds steady, head dipped to the count (spr-085)
     _reading: reading,                    // a dockmaster halted on the quay reading a manifest held flat between both forward hands at chest height, head dipped to the page — the FIRST flat document held between two STEADY hands and the FIRST fully-static two-handed idle (spr-086)
+    _cradling: cradling,                  // a market woman carrying a bundle against the chest — the LEFT arm cradles HIGH and inboard over a body-parented bundle while the RIGHT steadies it LOW from below, two hands at two heights bracketing the load (0.21m apart, never stacked), head dipped to the bundle — the FIRST one-arm-over/one-arm-under asymmetric CARRY, distinct from portering's symmetric crown-load and reading's side-by-side flat document; bundle rides only the breath so it cannot snap (spr-087)
     _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
     _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
     update(dt, speed = 0) {
@@ -1086,6 +1088,33 @@ export function createFigure(look = "player", opts = {}) {
         armR.rotation.x = -1.18; armR.rotation.z = -0.24;          // side-by-side at chest height (hand y≈1.23, z≈0.56), holding the letter STEADY — no antiphase, no drift
         this.headPivot.rotation.x = 0.22;                          // head dipped to read the page in the hands (gentler than bowing's +0.32, aimed at the chest-high paper not the floor)
         this.headPivot.rotation.y = scan * 0.03;                   // a tiny line-scan across the page, locked to the slow gaze cadence
+        this.headPivot.rotation.z = 0;                             // no head-roll (listening's branch leaves this canted — reset it here)
+        return;
+      }
+      // Cradling a bundle against the chest (spr-087) — the harbour's FIRST one-arm-over,
+      // one-arm-under asymmetric CARRY. Portering balances a load on the CROWN with both
+      // arms swung symmetrically up; reading holds a flat document between two SIDE-BY-SIDE
+      // hands at one height; counting cups both hands LOW. This crooks the LEFT arm HIGH and
+      // inboard so its hand comes up under the bundle's far rim (y≈1.30), while the RIGHT arm
+      // steadies it LOW from below (y≈1.09) — two hands at two heights, 0.21m apart, never
+      // stacked, bracketing a body-parented bundle. The bundle parents to fig.body and rides
+      // ONLY the breath (the reading-letter / casting-rod idiom), and the body barely stoops
+      // (+0.06, never a fold) — so it never world-anchors and cannot snap. The right hand keeps
+      // a slow live support-loop so the carry reads ACTIVE, not a frozen clutch. The player
+      // never cradles, so this is dead code for the hero and its gait stays byte-for-byte
+      // unchanged. Returns early — no stride, walking lean or weight-shift.
+      if (this._cradling) {
+        const k = this._phase;
+        const support = Math.sin(k * 0.5);                          // a slow live support-shift on the lower hand — the tell that reads an ACTIVE cradle, not a stiff grip
+        body.rotation.x = 0.06;                                     // a faint protective stoop over the load — never a fold; protects the body-parented bundle
+        body.rotation.z = Math.sin(k * 0.4 + this._swayPhase) * 0.012; // a sub-1° weight settle on the feet
+        body.position.y = Math.sin(k) * 0.005;                      // a quiet, even breath — the bundle rides this and ONLY this
+        legL.rotation.x = -0.02; legL.rotation.z = -0.06;          // feet planted, a touch apart, even under the carried weight
+        legR.rotation.x = -0.02; legR.rotation.z = 0.06;
+        armL.rotation.x = -1.30; armL.rotation.z = 0.34;          // LEFT arm cradles HIGH and INBOARD across the chest, hand up under the far rim (hand y≈1.30, z≈0.56)
+        armR.rotation.x = -0.90 + support * 0.03; armR.rotation.z = -0.30; // RIGHT arm steadies it LOW from below, the slow support-loop keeping the carry alive (hand y≈1.09, z≈0.46) — two hands at two heights, never stacked
+        this.headPivot.rotation.x = 0.14;                          // head dipped to the bundle in her arms (between the cradle and the read dip), aimed at the chest-high load not the floor
+        this.headPivot.rotation.y = Math.sin(k * 0.3 + this._gazePhase) * 0.12; // a small, easy drift, occasionally checking the load
         this.headPivot.rotation.z = 0;                             // no head-roll (listening's branch leaves this canted — reset it here)
         return;
       }

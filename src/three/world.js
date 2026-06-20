@@ -4136,6 +4136,47 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // A market woman halted in the open north-centre cobbles, cradling a wrapped bundle of
+  // linens against her chest (spr-087) — the LEFT arm crooked HIGH over its top rim, the
+  // RIGHT steadying it LOW from below, an over-and-under asymmetric carry. Faces SSW so a
+  // player coming up the quay from the south reads the over/under hands three-quarter-front.
+  // The bundle is parented to fig.body and rides only the breath — the body holds near-still,
+  // so it never world-anchors and cannot snap. Placed clear of the Fisher/Merchant talkers
+  // (≥3.9m), the brazier (8.3m) and every patrol lane (≥1.5m) in the open north-centre strip.
+  {
+    const cx = -1.5, cz = 15.0, yaw = Math.PI + 0.4; // face SSW — the over/under cradle turns toward a player coming up the quay from the south
+    const seed = (((cx * 5.9 + cz * 7.3) % 1) + 1) % 1;
+    const fig = createFigure("Washerwoman", { castShadow: false, seed, cradling: true });
+    fig.root.position.set(cx, 0, cz);
+    // a wrapped bundle of linens cradled against the chest — parented to the body so it rides
+    // ONLY the quiet breath; the LEFT hand crooks over its top rim, the RIGHT steadies below
+    const bundle = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.155, 0.135, 0.30, 14),
+      new THREE.MeshStandardMaterial({ color: 0xcdbf9a, roughness: 0.95, metalness: 0 }),
+    );
+    bundle.position.set(0, 1.15, 0.52); // body-local: bracketed by the cradle hand (upper rim) and the steady hand (lower)
+    bundle.castShadow = false;
+    fig.body.add(bundle);
+    // a folded cloth cap over the top so the bundle reads as wrapped linen, not a barrel
+    const fold = new THREE.Mesh(
+      new THREE.BoxGeometry(0.30, 0.06, 0.26),
+      new THREE.MeshStandardMaterial({ color: 0xb7a988, roughness: 0.95, metalness: 0 }),
+    );
+    fold.position.set(0, 1.31, 0.52);
+    fold.castShadow = false;
+    fig.body.add(fold);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(cx, 0.02, cz); // a grounding shadow under the planted feet
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like
