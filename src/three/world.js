@@ -3662,6 +3662,57 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // ── A crumb-scatterer feeding the flock (spr-072): the harbour's FIRST figure to relate to a
+  // LIVING animal rather than the rail, a tub, a brazier or the water — the warmer (spr-070)
+  // bound a body to a static prop; this binds one to a moving flock. A fishwife folded DEEP at
+  // the hips over a knot of pigeons at her boots, one hand flicking crumbs across the cobbles,
+  // the other cupping the feed low at her lap, head bowed on the birds (`scattering:true` early-
+  // returns to the deepest bow in the harbour in player.js). She REUSES buildPigeon — a fresh
+  // 3-bird flock seeded in her bow-cone — no new geometry, the brazier-warmer's prop-reuse idiom
+  // turned on a creature. Placed on the OPEN central-south deck at (−0.5,−3): a live occupancy
+  // sweep of every contact-shadow blob found this the most open patch on the quay (≈4.8 m clear
+  // of every figure, named local and ground prop), 19 m south of the spawn (−3,16) and BETWEEN
+  // the patrol lanes (nearest walker passes ≥1.4 m). She faces ~north (yaw +0.12π) toward the
+  // player approaching from the spawn, so they read a three-quarter FRONT-stoop with the birds
+  // between. A propless Washerwoman; a contact blob carries her shadow, a softer one the flock.
+  {
+    const wx = -0.5, wz = -3.0, yaw = Math.PI * 0.12;  // faces ~north, three-quartered toward the approach
+    const seed = (((wx * 8.9 + wz * 3.7) % 1) + 1) % 1;
+    const fig = createFigure("Washerwoman", { castShadow: false, seed, scattering: true });
+    fig.root.position.set(wx, 0, wz);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(wx + 0.1, 0.02, wz + 0.2);       // weight a touch toward the birds
+    blob.renderOrder = -1;
+    scene.add(blob);
+    // a FRESH 3-bird flock in her bow-cone (just north/east of her stoop) — REUSE buildPigeon,
+    // pushed to critters[] for the per-frame peck clock; distinct phases so they never lockstep.
+    const cx = wx + 0.25, cz = wz + 0.6;
+    const flock = [
+      [0.30, 0.20, 2.2, 0, 0.4],
+      [-0.25, 0.35, -0.8, 1, 1.9],
+      [0.15, -0.30, 1.3, 2, 3.1],
+    ]; // [dx, dz, facing, morph, phase]
+    for (const [dx, dz, facing, morph, phase] of flock) {
+      const pigeon = buildPigeon(cx + dx, cz + dz, facing, morph, phase);
+      scene.add(pigeon.root);
+      critters.push(pigeon);
+    }
+    const flockBlob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 18),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.38 }),
+    );
+    flockBlob.rotation.x = -Math.PI / 2;
+    flockBlob.position.set(cx, 0.02, cz);
+    flockBlob.renderOrder = -1;
+    scene.add(flockBlob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like

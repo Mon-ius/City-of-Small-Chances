@@ -441,6 +441,7 @@ export function createFigure(look = "player", opts = {}) {
   const scrubbing = opts.scrubbing === true; // standing, bent over a washtub, scrubbing cloth on a board (spr-069)
   const warming = opts.warming === true; // stood at the brazier, hands held forward over the coals (spr-070)
   const hailing = opts.hailing === true; // at the sea-wall, one arm flung up hailing a boat (spr-071)
+  const scattering = opts.scattering === true; // folded deep at the hips, flicking crumbs to the flock (spr-072)
   const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
@@ -515,6 +516,7 @@ export function createFigure(look = "player", opts = {}) {
     _scrubbing: scrubbing,              // standing, bent over a washtub, scrubbing cloth on a board (spr-069)
     _warming: warming,                  // stood at the brazier, hands held forward over the coals (spr-070)
     _hailing: hailing,                  // at the sea-wall, one arm flung up hailing a boat (spr-071)
+    _scattering: scattering,            // folded deep at the hips, flicking crumbs to the flock (spr-072)
     _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
     _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
     update(dt, speed = 0) {
@@ -687,6 +689,29 @@ export function createFigure(look = "player", opts = {}) {
         armL.rotation.x = -0.12; armL.rotation.z = 0.18;          // the other arm low, a counterweight
         this.headPivot.rotation.x = -0.18;                        // chin up, eyeline out to the boat
         this.headPivot.rotation.y = 0.16 + Math.sin(k * 0.4) * 0.06; // turned to where the hand points
+        return;
+      }
+      // Crumb-scatterer (spr-072) — the harbour's FIRST figure to feed the living flock: folded
+      // deep at the hips over a knot of pigeons at the boots, one hand flicking crumbs across the
+      // cobbles while the other cups the feed low at the lap, head bowed on the birds. The deep
+      // hip-fold (no knee joint — the WHOLE body tips at the feet over near-straight legs) is the
+      // deepest bow in the harbour, deeper than the scrubber's tub-fold. The player is never
+      // scattering, so this branch is dead code for the hero and its gait stays byte-for-byte
+      // unchanged. Returns early — no stride, lean or weight-shift.
+      if (this._scattering) {
+        const k = this._phase;
+        const scatter = Math.sin(k * 1.5);                         // the rhythmic casting/flicking stroke
+        body.rotation.x = 0.64 + scatter * 0.05;                   // a deep hip-fold forward over the birds...
+        body.rotation.z = -0.05;                                   // ...weight a touch onto the scattering side
+        body.position.y = Math.sin(k) * 0.006;                     // an easy stooped breath
+        legL.rotation.x = -0.06; legL.rotation.z = -0.06;          // legs near-straight, raked a hair back to counter the fold
+        legR.rotation.x = -0.06; legR.rotation.z = 0.06;
+        armR.rotation.x = -1.10 + scatter * 0.40;                  // the scattering hand reaches FORWARD-and-down...
+        armR.rotation.z = -0.25 + scatter * 0.34;                  // ...casting the crumbs ahead with a shoulder flick
+        armL.rotation.x = -0.50;                                   // the other forearm low...
+        armL.rotation.z = 0.34;                                    // ...cupping the feed across the lap
+        this.headPivot.rotation.x = 0.30;                          // head bowed, eyes down-forward on the birds
+        this.headPivot.rotation.y = Math.sin(k * 0.6) * 0.18;      // a small follow, tracking which bird she feeds
         return;
       }
       // Stride heft (spr-017) — a broad, heavy-set frame plants a deeper, more laboured
