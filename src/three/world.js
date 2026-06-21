@@ -4330,6 +4330,48 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  {
+    // Resting on a planted broom (spr-092) — an innkeeper taking a breather mid-sweep on the
+    // Chandlery pavement (its door is at z=−7.5), leaned a touch forward with both hands settled
+    // atop a planted yard-broom. yaw = Math.PI - 0.5 faces SSW so the lean + the clasped hands
+    // read three-quarter-front to a player coming up the quay from the south. The synth's first
+    // pick (6.3,−3) was rejected — only 2.21m from Jun's parked delivery bike (world ≈6.35,−5.21:
+    // the bg group at 5,−6 rotated −0.4, bike local 1.55,0,0.2) and crowding the notice-board
+    // plaza. Relocated here and cleared by a full-roster scan: nearest figure is Rafiq (4.7,−12)
+    // 3.35m, then Jun (3,−7) 3.77m and the crowd DockWorker (2,−11) 4.65m; the parked bike sits
+    // 3.80m off, the notice board (5,−6) 3.23m, the scooter (3.5,−4.4) 5.33m; 2.2m off the x=4
+    // lane and 0.3m inside the x=6.5 east clamp — east of and south of the board, so it never
+    // blocks the board approach (the player reads it from the west/south-west).
+    const cx = 6.2, cz = -9.0, yaw = Math.PI - 0.5;
+    const seed = (((cx * 5.9 + cz * 7.3) % 1) + 1) % 1;
+    const fig = createFigure("Innkeeper", { castShadow: false, seed, resting: true });
+    fig.root.position.set(cx, 0, cz);
+    // the broom — a vertical handle planted on the deck with both hands clasped at its top, plus a
+    // bristle head at the foot. Parented to fig.body so the handle + the hands rock together on the
+    // breath and the grip never slides (the reading-letter idiom). Centred (x=0) so build-independent.
+    const broomMat = new THREE.MeshStandardMaterial({ color: 0x6b4f2e, roughness: 0.9, metalness: 0 });
+    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.03, 1.136, 10), broomMat);
+    handle.position.set(0, 0.568, 0.427); // centre of a near-vertical shaft from the deck up to the clasped hands
+    handle.rotation.x = 0.048;            // POSITIVE: leans the TOP forward to z≈0.454 to meet the hands, foot back to z≈0.40 on the deck (a negative tilt would float the top 5.4cm behind the grip)
+    handle.castShadow = false;
+    fig.body.add(handle);
+    const bristleMat = new THREE.MeshStandardMaterial({ color: 0x3a2c1a, roughness: 1.0, metalness: 0 });
+    const bristles = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.10, 0.16), bristleMat);
+    bristles.position.set(0, 0.06, 0.40); // splayed flat on the deck at the handle foot
+    bristles.castShadow = false;
+    fig.body.add(bristles);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(cx, 0.02, cz); // a grounding shadow under the easy stance
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like

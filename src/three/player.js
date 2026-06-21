@@ -461,6 +461,7 @@ export function createFigure(look = "player", opts = {}) {
   const reaching = opts.reaching === true; // a dockworker dipped a touch forward, ONE arm angled down-and-out to a low thing beside his boot (a crate handle, a stray dog), the other slack — the FIRST single-arm down-reach to a ground-level target (spr-089)
   const propleaning = opts.propleaning === true; // a sailor at ease, weight tipped SIDEWAYS onto a short mooring-post, one flat hand laid on its top while the other hangs slack — an upright single-arm PROP-LEAN, the FIRST pose led by a sideways weight-tip, not a wall-loaf (spr-090)
   const heaving = opts.heaving === true; // a dockworker braced BACK on his heels hauling a mooring line in a slow two-hand heave — the trunk RECLINED to take the strain (body.rotation.x NEGATIVE, the inverse of every forward-fold), both fists forward-low at ONE height gripping a body-parented line, drawing IN on a coupled pull — the FIRST pose led by a backward body brace under active rope work (spr-091)
+  const resting = opts.resting === true;  // an innkeeper taking a breather mid-sweep, leaned a touch FORWARD with BOTH hands settled together atop a planted vertical yard-broom — the hands meeting at ONE clasp point on the handle top (not two stacked grips), broom + bristles body-parented and riding only the slow breath — the FIRST pose to rest the weight onto a held UPRIGHT tool, the calm inverse of heaving's active haul (spr-092)
   const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
@@ -555,6 +556,7 @@ export function createFigure(look = "player", opts = {}) {
     _reaching: reaching,                   // a dockworker halted and dipped a MODERATE stoop forward (body.rotation.x≈0.22, still well under scattering's 0.64 / scrubbing's 0.6 so it never reads as a deep fold) with his RIGHT arm angled DOWN-and-forward and OUT to a low target at thigh/knee height in front of his boot (hand y≈0.93, z≈0.31) on a slow reach-and-settle, while the LEFT arm hangs FULLY slack at the hip (hand y≈0.84); head dipped to converge with the reaching hand — the FIRST single-arm DOWN-AND-OUT reach to a low/ground-level thing, distinct from scattering's both-hands deep fold, offering's chest-high NEAR present, pointing's level-FAR empty arm + head-away, catching's thigh-braced head-UP; propless, the reach reads on its own with zero snap surface (spr-089)
     _propleaning: propleaning,             // a sailor at rest with his weight tipped SIDEWAYS (body.rotation.z=−0.07, leaning toward the +x post — the FIRST pose to make a sideways weight-tip the MAIN tell) onto a short body-parented mooring-post at his right hand, that arm laid FLAT and weight-bearing on the post top (hand y≈1.36, x≈0.461, z≈0.58) while the LEFT arm hangs FULLY slack at the hip (y≈0.84); upright (no hip-fold), head easy and level, gaze drifting off down the quay — the FIRST single-arm WEIGHT-BEARING lean on an upright body, distinct from leaning (whole BACK tipped flat onto a wall, arms slack) and gazing (tipped FORWARD over a rail, forearms on the coping); the post parents to fig.body so the laid hand can never float off it and the body holds near-still, so zero snap/reverse-snap (spr-090)
     _heaving: heaving,                     // a stevedore braced BACK hauling a mooring line — the trunk reclines (body.rotation.x≈−0.12, NEGATIVE = tipped back, the inverse of scattering/bowing's forward fold) on a slow heave-and-recover, legs SPLAYED and staggered (lead foot forward, rear foot back) for a dug-in tug-base, BOTH arms forward-low at ONE height (hand y≈1.16, z≈0.53, ±0.164 apart) gripping a body-parented hemp bar side-by-side (no stacked grip), both fists drawing IN together on a coupled in-phase pull (the rope coming in — distinct from warming/mending's antiphase swing); head a hair down on the line, level; the bar parents to fig.body (the reading-letter idiom, centred x=0 so build-independent) and rides ONLY the breath + the small symmetric recline, so it can never world-anchor and cannot snap — the FIRST pose led by a backward body brace under active weight-bearing rope work, distinct from casting (tilted rod, line over water), propleaning (upright sideways weight-tip) and every upright two-hand-forward pose (warming/reading/counting) (spr-091)
+    _resting: resting,                     // an innkeeper at rest mid-sweep, leaned a touch FORWARD onto a planted vertical broom — BOTH hands converged at ONE clasp point atop the handle (armL.z=+0.45 / armR.z=−0.45 → hand x≈∓0.027, y≈1.135, z≈0.454, a 0.054m meet, NOT two stacked grips), legs easy and lightly splayed, weight settled onto the tool through a slow breath-rock; the broom (handle tilted rotation.x=+0.048 so its top meets the hands and its bristle foot plants on the deck) + bristles parent to fig.body and ride ONLY the breath, the hands and handle moving as one unit so the grip never slides — the FIRST pose to rest weight DOWN onto a held UPRIGHT tool (the calm static inverse of heaving's active backward haul), distinct from propleaning (sideways tip onto a side post, one arm), gazing (forward over a rail) and every two-hand-forward work pose (the hands here meet ON a vertical shaft, not out in front) (spr-092)
     _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
     _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
     update(dt, speed = 0) {
@@ -1235,6 +1237,34 @@ export function createFigure(look = "player", opts = {}) {
         this.headPivot.rotation.x = 0.06 + haul * 0.02;            // a hair down, eyes on the line/cleat — never the deep up/down of craning or bowing; bobs faintly WITH the pull
         this.headPivot.rotation.y = haul * 0.04;                   // the head bobs to the haul cadence, locked to the pull, not a wandering gaze
         this.headPivot.rotation.z = 0;                             // no head-roll (listening's branch leaves this canted — reset it here)
+        return;
+      }
+      // Resting on a planted broom (spr-092) — the harbour's FIRST pose to rest the body's
+      // weight DOWN onto a held UPRIGHT tool: the calm static inverse of heaving's active
+      // backward haul. The trunk leans a TOUCH forward (body.rotation.x≈+0.05, far under any
+      // fold pose) to settle weight onto the broom, and BOTH hands converge at ONE clasp
+      // point atop the handle — armL.z=+0.45 / armR.z=−0.45 bring the fists in to meet near
+      // centre (hand x≈∓0.027, y≈1.135, z≈0.454, a 0.054m meet — a single grip, NOT two
+      // stacked hands). legL/legR/armL/armR are children of `body`, so the whole frame and
+      // the body-parented broom rock together on a slow breath: the hands and the handle move
+      // as one unit and the grip never slides. The broom (handle + bristles) parents to
+      // fig.body, centred x=0 (build-independent, the reading-letter idiom), riding ONLY the
+      // breath, so it can never world-anchor and cannot snap. The player never rests on a
+      // broom, so this is dead code for the hero — its gait stays byte-for-byte unchanged.
+      // Returns early — no stride or weight-shift.
+      if (this._resting) {
+        const k = this._phase;
+        const settle = Math.sin(k * 0.4 + this._swayPhase);        // a slow lean-and-ease — the weight rocking gently onto and off the broom, the tell that reads ALIVE at rest, not a frozen prop
+        body.rotation.x = 0.05 + settle * 0.02;                    // leaned a TOUCH forward onto the tool (POSITIVE, but far under any fold); the small swing is the weight easing on and off
+        body.rotation.z = Math.sin(k * 0.3) * 0.008;               // a sub-1° side-settle, keeping the stance breathing
+        body.position.y = Math.sin(k) * 0.005;                     // a quiet even breath — the broom rides this + the lean and ONLY these, so it never floats off
+        legL.rotation.x = 0.03;  legL.rotation.z = -0.08;          // legs easy and lightly splayed — a relaxed resting base, no brace
+        legR.rotation.x = 0.03;  legR.rotation.z = 0.08;           // mirror splay, weight even across both feet
+        armL.rotation.x = -0.95;                  armL.rotation.z = 0.45;   // LEFT hand up onto the handle top, rolled IN to meet its partner (hand x≈−0.027 y≈1.135 z≈0.454)
+        armR.rotation.x = -0.95 + settle * 0.01;  armR.rotation.z = -0.45;  // RIGHT hand meeting it at the SAME clasp point (hand x≈+0.027, 0.054m apart — one grip, not stacked); a hair of breath-drift so it reads alive
+        this.headPivot.rotation.x = 0.04;                         // gaze level-low, easy — resting eyes, not the deep down/up of bowing or craning
+        this.headPivot.rotation.y = Math.sin(k * 0.22 + this._gazePhase) * 0.24;  // a slow idle gaze drifting along the quay — the one wandering tell of a body at rest
+        this.headPivot.rotation.z = 0;                            // no head-roll (listening's branch leaves this canted — reset it here)
         return;
       }
       // Stride heft (spr-017) — a broad, heavy-set frame plants a deeper, more laboured
