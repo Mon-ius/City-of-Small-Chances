@@ -4224,12 +4224,14 @@ export function buildWorld(scene) {
   // head dipped to follow. Propless (DockWorker has no ROLE_PROP) and no world crate touched — the
   // reach reads on its own with zero snap surface, so nothing can float off or reverse-snap. Faces
   // SSE (yaw π−0.5) so the reaching (right) side turns toward a player coming up the quay from the
-  // south, reading three-quarter-front. Set at (3,−22) in the open south-centre: ≥1.0m off the x=2
-  // and x=4 lanes (no walker reaches z≈−22 on either — the Constable's x=4 beat is z 15..21, far
-  // north), and >5.5m from the nearest static figures (portering DockWorker −4,−20; reading
-  // Dockmaster −1.25,−16; counting Merchant 5.8,−14), clear of lamps, trees and bollards.
+  // south, reading three-quarter-front. Set at (3.7,−17) in the open south-centre: the x=4 lane is
+  // walker-free here (the Constable's only x=4 beat is z 15..21, far north) and it sits 1.7m off the
+  // x=2 Porter lane, ≥3.5m from the nearest static figures (counting Merchant 5.8,−14 at 3.66m,
+  // Ferryman 6,−20 at 3.78m, the crowd Merchant 3,−22 at 5.05m), clear of lamps, trees and bollards.
+  // (Relocated from the original (3,−22) in spr-090: that spot exactly overlapped the crowd Merchant
+  // at (3,−22) — a figure-on-figure clash the spr-089 clearance note had missed.)
   {
-    const rx = 3.0, rz = -22.0, yaw = Math.PI - 0.5; // face SSE — the reaching hand turns toward a player coming up the quay from the south
+    const rx = 3.7, rz = -17.0, yaw = Math.PI - 0.5; // face SSE — the reaching hand turns toward a player coming up the quay from the south
     const seed = (((rx * 5.9 + rz * 7.3) % 1) + 1) % 1;
     const fig = createFigure("DockWorker", { castShadow: false, seed, reaching: true });
     fig.root.position.set(rx, 0, rz);
@@ -4241,6 +4243,52 @@ export function buildWorld(scene) {
     );
     blob.rotation.x = -Math.PI / 2;
     blob.position.set(rx, 0.02, rz); // a grounding shadow under the planted feet
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
+  // A sailor off-watch, loafing with his weight tipped SIDEWAYS onto a quayside mooring-post,
+  // one flat hand laid on its top while the other hangs slack (spr-090) — the harbour's FIRST
+  // single-arm WEIGHT-BEARING lean on an UPRIGHT body, and the first pose led by a sideways
+  // weight-tip (body.rotation.z) rather than a fold or a head angle. The post parents to fig.body
+  // (the offering-apple idiom) so the laid hand can NEVER float off it: it rides only the breath +
+  // the tiny lean-settle, the body holds near-still, so zero snap/reverse-snap. The post is
+  // OFF-CENTER, so its x matches Sailor's build (1.06 → spread 1.027 → arm pivot 0.2773; armR.z=+0.30
+  // lands the hand at x=0.461, so the post-top centres at body-local 0.461). Faces SE (yaw π−0.8) so
+  // the lean + post (+x) side turns toward a player coming up the quay from the south, reading
+  // three-quarter-front. Set at (5.5,22) in the open north-centre-east: nearest figures are
+  // Baker(4.5,18) 4.12m, Priest(2.5,25) 4.24m, listening Widow(5.8,27) 5.01m — all >2.5m; 1.5m off
+  // the x=4 lane (the Constable's beat tops out at z=21, so no walker reaches z=22 there) and 3.5m
+  // off x=2; clear of lamps, trees and the east building front (x≈8.45).
+  {
+    const cx = 5.5, cz = 22.0, yaw = Math.PI - 0.8; // face SE — the lean + post side turns toward a player coming up the quay from the south
+    const seed = (((cx * 5.9 + cz * 7.3) % 1) + 1) % 1;
+    const fig = createFigure("Sailor", { castShadow: false, seed, propleaning: true });
+    fig.root.position.set(cx, 0, cz);
+    // a short quayside mooring-post under the laid (right) hand — parented to fig.body so it rides
+    // only the breath + lean-settle and the hand never floats off (offering-apple idiom). Off-center,
+    // so x matches Sailor's build (1.06 → arm pivot 0.2773, armR.z=+0.30 → hand x=0.461).
+    const postMat = new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.85, metalness: 0.05 });
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.115, 1.24, 14), postMat);
+    post.position.set(0.461, 0.62, 0.58); // base at deck level (y≈0), rising to a top at y≈1.24 under the laid hand
+    post.castShadow = false;
+    fig.body.add(post);
+    const postCap = new THREE.Mesh(
+      new THREE.SphereGeometry(0.115, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.6),
+      postMat,
+    );
+    postCap.scale.set(1, 0.55, 1);
+    postCap.position.set(0.461, 1.24, 0.58); // a rounded bollard cap; crown ≈1.30, right under the laid hand (y≈1.36)
+    postCap.castShadow = false;
+    fig.body.add(postCap);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(cx, 0.02, cz); // a grounding shadow under the planted feet
     blob.renderOrder = -1;
     scene.add(blob);
   }

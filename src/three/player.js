@@ -459,6 +459,7 @@ export function createFigure(look = "player", opts = {}) {
   const cradling = opts.cradling === true; // ONE arm crooked HIGH across the chest cradling a bundle while the OTHER steadies it LOW from below — an over-and-under asymmetric two-hand carry, the bundle body-parented and rising only on the breath (spr-087)
   const offering = opts.offering === true; // a young vendor halted near-upright, ONE arm held forward at chest height presenting a small apple to someone close while the other hangs slack — a near handover (NOT pointing's far empty indication), the apple body-parented and riding only the breath (spr-088)
   const reaching = opts.reaching === true; // a dockworker dipped a touch forward, ONE arm angled down-and-out to a low thing beside his boot (a crate handle, a stray dog), the other slack — the FIRST single-arm down-reach to a ground-level target (spr-089)
+  const propleaning = opts.propleaning === true; // a sailor at ease, weight tipped SIDEWAYS onto a short mooring-post, one flat hand laid on its top while the other hangs slack — an upright single-arm PROP-LEAN, the FIRST pose led by a sideways weight-tip, not a wall-loaf (spr-090)
   const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
@@ -551,6 +552,7 @@ export function createFigure(look = "player", opts = {}) {
     _cradling: cradling,                  // a market woman carrying a bundle against the chest — the LEFT arm cradles HIGH and inboard over a body-parented bundle while the RIGHT steadies it LOW from below, two hands at two heights bracketing the load (0.21m apart, never stacked), head dipped to the bundle — the FIRST one-arm-over/one-arm-under asymmetric CARRY, distinct from portering's symmetric crown-load and reading's side-by-side flat document; bundle rides only the breath so it cannot snap (spr-087)
     _offering: offering,                   // a young vendor halted near-upright presenting a small apple in one forward hand to someone close — the RIGHT arm extended chest-high and INBOARD (hand y≈1.30, z≈0.58) with a slow present-and-settle so the gift eases out and back, the LEFT arm fully slack at the hip (hand y≈0.84), head dipped and turned to the receiver; the FIRST true ONE-arm NEAR offer/handover — distinct from pointing's far level empty arm + head-away, and from reading/counting/cradling's two-handed forward work; the apple parents to fig.body and rides ONLY the breath so it cannot snap (spr-088)
     _reaching: reaching,                   // a dockworker halted and dipped a MODERATE stoop forward (body.rotation.x≈0.22, still well under scattering's 0.64 / scrubbing's 0.6 so it never reads as a deep fold) with his RIGHT arm angled DOWN-and-forward and OUT to a low target at thigh/knee height in front of his boot (hand y≈0.93, z≈0.31) on a slow reach-and-settle, while the LEFT arm hangs FULLY slack at the hip (hand y≈0.84); head dipped to converge with the reaching hand — the FIRST single-arm DOWN-AND-OUT reach to a low/ground-level thing, distinct from scattering's both-hands deep fold, offering's chest-high NEAR present, pointing's level-FAR empty arm + head-away, catching's thigh-braced head-UP; propless, the reach reads on its own with zero snap surface (spr-089)
+    _propleaning: propleaning,             // a sailor at rest with his weight tipped SIDEWAYS (body.rotation.z=−0.07, leaning toward the +x post — the FIRST pose to make a sideways weight-tip the MAIN tell) onto a short body-parented mooring-post at his right hand, that arm laid FLAT and weight-bearing on the post top (hand y≈1.36, x≈0.461, z≈0.58) while the LEFT arm hangs FULLY slack at the hip (y≈0.84); upright (no hip-fold), head easy and level, gaze drifting off down the quay — the FIRST single-arm WEIGHT-BEARING lean on an upright body, distinct from leaning (whole BACK tipped flat onto a wall, arms slack) and gazing (tipped FORWARD over a rail, forearms on the coping); the post parents to fig.body so the laid hand can never float off it and the body holds near-still, so zero snap/reverse-snap (spr-090)
     _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
     _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
     update(dt, speed = 0) {
@@ -1173,6 +1175,35 @@ export function createFigure(look = "player", opts = {}) {
         this.headPivot.rotation.x = 0.30 + reach * 0.04;          // head dipped down to the low target, the gaze converging with the reaching hand on the spot at the boot — the head/hand agreement that reads "reaching FOR it"
         this.headPivot.rotation.y = Math.sin(k * 0.5 + this._gazePhase) * 0.05; // a small follow of the reaching hand
         this.headPivot.rotation.z = 0;                             // no head-roll (listening's branch leaves this canted — reset it here)
+        return;
+      }
+      // Prop-leaning at rest on a mooring-post (spr-090) — the harbour's FIRST pose to make
+      // body.rotation.z (a SIDEWAYS weight-tip) the main tell, and the first single-arm
+      // WEIGHT-BEARING lean on an UPRIGHT body. The trunk tips toward the supporting (+x) post
+      // side — NEGATIVE body.rotation.z tips the upper body toward +x (calibrated against
+      // glancing/scattering, whose ±0.05 drop a NAMED shoulder) — so the weight visibly settles
+      // onto the post. legL/legR/armL/armR are children of `body`, so the whole frame leans
+      // from the feet (a real weight-shift, not a torso-only bend); the splayed stance plants a
+      // wide brace under it. The RIGHT arm lays flat on the body-parented post top (armR.x=−1.40
+      // armR.z=+0.30 → hand x≈0.461 y≈1.36 z≈0.58) with a sub-1cm live drift so it isn't frozen
+      // yet never leaves the post; the LEFT arm hangs FULLY slack at the hip (y≈0.84). Head easy
+      // and level, gaze drifting off down the quay (NO new head angle — leads with body+arm).
+      // Distinct from leaning (whole back tipped BACK onto a wall) and gazing (tipped FORWARD
+      // over a rail). The player never prop-leans, so this is dead code for the hero and its gait
+      // stays byte-for-byte unchanged. Returns early — no stride or weight-shift.
+      if (this._propleaning) {
+        const k = this._phase;
+        const settle = Math.sin(k * 0.4 + this._swayPhase);          // a slow live settle on the lean — the weight easing onto the post and back, the tell that reads at-rest, ALIVE not a frozen prop
+        body.rotation.x = 0;                                          // UPRIGHT — no hip-fold (distinct from gazing's forward tip and bowing's deep fold); keeps the body near-still so the post never floats off the hand
+        body.rotation.z = -0.07 + settle * 0.012;                    // THE TELL: trunk tips toward the supporting (+x) post side (NEGATIVE = toward +x); a sub-1° live settle keeps it breathing
+        body.position.y = Math.sin(k) * 0.005;                       // a quiet, even breath — the post rides this + the tiny lean-settle and ONLY these
+        legL.rotation.x = -0.03; legL.rotation.z = -0.09;            // the trailing (−x) leg splays out — a planted WIDE brace so the sideways lean reads braced, not listing
+        legR.rotation.x = 0;     legR.rotation.z = 0.10;             // the weight-bearing (+x) leg plants out under the tip, the foot wide beneath the lean, standing the body up against it
+        armL.rotation.x = -0.05 + this._armBias; armL.rotation.z = 0.06; // LEFT arm FULLY SLACK — hangs dead-straight at the hip (hand y≈0.84), doing nothing
+        armR.rotation.x = -1.40 + settle * 0.01; armR.rotation.z = 0.30; // RIGHT arm laid FLAT on the post top, bearing the weight (hand x≈0.461 y≈1.36 z≈0.58); a sub-1cm live drift so the hand isn't frozen yet never leaves the post
+        this.headPivot.rotation.x = 0.02;                            // a hair down, relaxed
+        this.headPivot.rotation.y = Math.sin(k * 0.22 + this._gazePhase) * 0.26; // a slow easy gaze drifting off along the quay, away from the post — the loafing-at-rest read
+        this.headPivot.rotation.z = 0;                               // no head-roll (listening's branch leaves this canted — reset it here)
         return;
       }
       // Stride heft (spr-017) — a broad, heavy-set frame plants a deeper, more laboured
