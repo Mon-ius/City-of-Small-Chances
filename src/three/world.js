@@ -4177,6 +4177,46 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // A young vendor halted near-upright on the open EAST mid-quay, presenting a small apple in
+  // one forward hand to someone close (spr-088) — the RIGHT arm extended chest-high, the LEFT
+  // slack at the hip. Faces ESE (yaw π−0.6) so the offering (right) side turns toward a player
+  // coming up the quay from the south, reading three-quarter-front. The apple is parented to
+  // fig.body and rides only the breath — the body holds near-still, so it never world-anchors
+  // and cannot snap. Youth is propless (no ROLE_PROP) and build 0.92, so the offered hand sits
+  // at body-local x≈0.113 (0.27·spread + 0.62·sin(−0.24), spread=0.964) — the apple matches it.
+  {
+    const cx = 5.5, cz = 2.0, yaw = Math.PI - 0.6; // face ESE — the offering hand turns toward a player coming up the quay from the south
+    const seed = (((cx * 5.9 + cz * 7.3) % 1) + 1) % 1;
+    const fig = createFigure("Youth", { castShadow: false, seed, offering: true });
+    fig.root.position.set(cx, 0, cz);
+    // a small apple cupped in the offered (right) hand — parented to the body so it rides only
+    // the quiet breath; x matched to Youth's build (0.92 → arm pivot 0.27·0.964) so it sits in-hand
+    const apple = new THREE.Mesh(
+      new THREE.SphereGeometry(0.05, 12, 10),
+      new THREE.MeshStandardMaterial({ color: 0xb23a2e, roughness: 0.55, metalness: 0 }),
+    );
+    apple.position.set(0.113, 1.299, 0.58);
+    apple.castShadow = false;
+    fig.body.add(apple);
+    const stalk = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.006, 0.006, 0.04, 6),
+      new THREE.MeshStandardMaterial({ color: 0x4a3a22, roughness: 0.9, metalness: 0 }),
+    );
+    stalk.position.set(0.113, 1.355, 0.58);
+    stalk.castShadow = false;
+    fig.body.add(stalk);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(cx, 0.02, cz); // a grounding shadow under the planted feet
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like
