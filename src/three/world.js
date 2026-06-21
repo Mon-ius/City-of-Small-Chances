@@ -4217,6 +4217,34 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  // A dockworker halted in the open south-centre cobbles, dipped a shallow lean forward with one
+  // arm angled DOWN-and-out to a low thing beside his boot — a crate handle, a stray dog (spr-089).
+  // The harbour's FIRST single-arm down-reach to a low/ground-level target: the RIGHT arm angles
+  // down-forward and out (hand y≈0.93, z≈0.31) on a slow reach-and-settle, the LEFT slack at the hip, the
+  // head dipped to follow. Propless (DockWorker has no ROLE_PROP) and no world crate touched — the
+  // reach reads on its own with zero snap surface, so nothing can float off or reverse-snap. Faces
+  // SSE (yaw π−0.5) so the reaching (right) side turns toward a player coming up the quay from the
+  // south, reading three-quarter-front. Set at (3,−22) in the open south-centre: ≥1.0m off the x=2
+  // and x=4 lanes (no walker reaches z≈−22 on either — the Constable's x=4 beat is z 15..21, far
+  // north), and >5.5m from the nearest static figures (portering DockWorker −4,−20; reading
+  // Dockmaster −1.25,−16; counting Merchant 5.8,−14), clear of lamps, trees and bollards.
+  {
+    const rx = 3.0, rz = -22.0, yaw = Math.PI - 0.5; // face SSE — the reaching hand turns toward a player coming up the quay from the south
+    const seed = (((rx * 5.9 + rz * 7.3) % 1) + 1) % 1;
+    const fig = createFigure("DockWorker", { castShadow: false, seed, reaching: true });
+    fig.root.position.set(rx, 0, rz);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(rx, 0.02, rz); // a grounding shadow under the planted feet
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like

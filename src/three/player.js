@@ -458,6 +458,7 @@ export function createFigure(look = "player", opts = {}) {
   const reading = opts.reading === true; // a dockmaster halted on the quay reading a manifest held flat between both forward hands at chest height, head bowed to the page (spr-086)
   const cradling = opts.cradling === true; // ONE arm crooked HIGH across the chest cradling a bundle while the OTHER steadies it LOW from below — an over-and-under asymmetric two-hand carry, the bundle body-parented and rising only on the breath (spr-087)
   const offering = opts.offering === true; // a young vendor halted near-upright, ONE arm held forward at chest height presenting a small apple to someone close while the other hangs slack — a near handover (NOT pointing's far empty indication), the apple body-parented and riding only the breath (spr-088)
+  const reaching = opts.reaching === true; // a dockworker dipped a touch forward, ONE arm angled down-and-out to a low thing beside his boot (a crate handle, a stray dog), the other slack — the FIRST single-arm down-reach to a ground-level target (spr-089)
   const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
@@ -549,6 +550,7 @@ export function createFigure(look = "player", opts = {}) {
     _reading: reading,                    // a dockmaster halted on the quay reading a manifest held flat between both forward hands at chest height, head dipped to the page — the FIRST flat document held between two STEADY hands and the FIRST fully-static two-handed idle (spr-086)
     _cradling: cradling,                  // a market woman carrying a bundle against the chest — the LEFT arm cradles HIGH and inboard over a body-parented bundle while the RIGHT steadies it LOW from below, two hands at two heights bracketing the load (0.21m apart, never stacked), head dipped to the bundle — the FIRST one-arm-over/one-arm-under asymmetric CARRY, distinct from portering's symmetric crown-load and reading's side-by-side flat document; bundle rides only the breath so it cannot snap (spr-087)
     _offering: offering,                   // a young vendor halted near-upright presenting a small apple in one forward hand to someone close — the RIGHT arm extended chest-high and INBOARD (hand y≈1.30, z≈0.58) with a slow present-and-settle so the gift eases out and back, the LEFT arm fully slack at the hip (hand y≈0.84), head dipped and turned to the receiver; the FIRST true ONE-arm NEAR offer/handover — distinct from pointing's far level empty arm + head-away, and from reading/counting/cradling's two-handed forward work; the apple parents to fig.body and rides ONLY the breath so it cannot snap (spr-088)
+    _reaching: reaching,                   // a dockworker halted and dipped a MODERATE stoop forward (body.rotation.x≈0.22, still well under scattering's 0.64 / scrubbing's 0.6 so it never reads as a deep fold) with his RIGHT arm angled DOWN-and-forward and OUT to a low target at thigh/knee height in front of his boot (hand y≈0.93, z≈0.31) on a slow reach-and-settle, while the LEFT arm hangs FULLY slack at the hip (hand y≈0.84); head dipped to converge with the reaching hand — the FIRST single-arm DOWN-AND-OUT reach to a low/ground-level thing, distinct from scattering's both-hands deep fold, offering's chest-high NEAR present, pointing's level-FAR empty arm + head-away, catching's thigh-braced head-UP; propless, the reach reads on its own with zero snap surface (spr-089)
     _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
     _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
     update(dt, speed = 0) {
@@ -1144,6 +1146,32 @@ export function createFigure(look = "player", opts = {}) {
         armR.rotation.x = -1.30 + present * 0.03; armR.rotation.z = -0.24; // RIGHT arm extended forward and INBOARD presenting the apple at chest height (hand y≈1.30, z≈0.58), the slow present-and-settle easing the gift out and back
         this.headPivot.rotation.x = 0.10;                          // head dipped a touch to the close handover — aimed at the receiver's hand, shallower than reading's +0.22 (not the floor)
         this.headPivot.rotation.y = 0.16 + present * 0.04;         // turned to the receiver on the offering (right) side, locked to the present cadence so head and hand agree
+        this.headPivot.rotation.z = 0;                             // no head-roll (listening's branch leaves this canted — reset it here)
+        return;
+      }
+      // Reaching down to a low thing in front of the boot (spr-089) — the harbour's FIRST single-arm
+      // DOWN-AND-OUT reach to a low/knee-height target (a crate handle, a stray dog's head). The
+      // RIGHT arm angles down-forward and OUT (armR.x=-0.55, a touch inboard z=-0.10) to a hand at
+      // y≈0.93, z≈0.31 on a slow reach-and-settle (±0.05 rad) so it eases toward the thing and back —
+      // reads picking up / reaching for it, not a frozen point. The LEFT arm hangs FULLY slack at
+      // the hip (y≈0.84). The body dips a MODERATE ~13° forward (rotation.x=0.22), still well under
+      // scattering's 0.64 / scrubbing's 0.6, so it never reads as a deep bow or fold; the head dips
+      // to converge with the hand. Elbowless and propless — no world object touched, zero snap. Distinct from
+      // scattering (BOTH hands, deep fold), offering (chest-high NEAR present), pointing (level-FAR
+      // empty arm, head away), catching (thigh-braced, head UP). The player never reaches like this,
+      // so this is dead code for the hero — byte-clean, its gait stays byte-for-byte unchanged.
+      if (this._reaching) {
+        const k = this._phase;
+        const reach = Math.sin(k * 0.5);                            // a slow reach-and-settle on the down-reaching hand — eased toward the low thing and back, the tell that reads an ACTIVE reach not a frozen point
+        body.rotation.x = 0.22 + Math.sin(k * 0.5) * 0.025;       // a MODERATE living dip down-forward over the low thing (~13°) — pronounced enough to read "stooping to it" yet far under scattering's 0.64 / scrubbing's 0.6, so never a deep fold; ONE arm reaching keeps it clear of bowing's both-slack
+        body.rotation.z = Math.sin(k * 0.4 + this._swayPhase) * 0.015; // a sub-1° weight settle on the feet
+        body.position.y = Math.sin(k) * 0.005;                      // a quiet, even breath
+        legL.rotation.x = -0.04; legL.rotation.z = -0.06;          // feet near-straight, braced a touch toward the reach
+        legR.rotation.x = -0.04; legR.rotation.z = 0.06;
+        armL.rotation.x = -0.05 + this._armBias; armL.rotation.z = 0.09;  // LEFT arm FULLY SLACK — hangs dead-straight at the hip (hand y≈0.84), a slight inboard tuck so it clears the thigh, doing nothing
+        armR.rotation.x = -0.55 + reach * 0.05; armR.rotation.z = -0.10; // RIGHT arm reaching DOWN-and-forward and OUT to the low target (extended forward to z≈0.31 so the reach reads past the boot, not a tuck), the slow reach-and-settle easing the hand out toward the thing and back
+        this.headPivot.rotation.x = 0.30 + reach * 0.04;          // head dipped down to the low target, the gaze converging with the reaching hand on the spot at the boot — the head/hand agreement that reads "reaching FOR it"
+        this.headPivot.rotation.y = Math.sin(k * 0.5 + this._gazePhase) * 0.05; // a small follow of the reaching hand
         this.headPivot.rotation.z = 0;                             // no head-roll (listening's branch leaves this canted — reset it here)
         return;
       }
