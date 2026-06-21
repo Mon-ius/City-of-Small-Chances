@@ -4372,6 +4372,55 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  {
+    // Leaning on a planted cane (spr-094) — an old woman resting her weight on a walking cane
+    // in the open central quay, stooped a touch onto it. The FIRST figure to bear weight DOWN
+    // through a cane to the deck (every other held tool is carried, never leaned upon — see the
+    // ambient-walker note "never a ground cane"). Uses the propless-by-default `OldWoman` look
+    // with { noProp:true } so her usual hand-held cane is suppressed and replaced by this
+    // ground-planted one she actually leans on. Placed at (−0.4,−3.6) — a full-roster scan puts
+    // the nearest figure 5.63m off (TownCrier −4,−8 / Lamplighter −6,−3 / Urchin 1.5,4), well
+    // clear of the vendor (−5,4), board (5,−6) and spawn (−3,16). yaw faces her three-quarter
+    // toward a player coming down the quay from the north so the stoop + the cane read on
+    // approach. The cane is a body-parented shaft + knob built at her exact right-hand grip
+    // (body-local 0.197,0.975,0.349), so the grip is locked and the whole thing rocks together
+    // on her slow weary breath — it can never world-anchor and snap.
+    const cx = -0.4, cz = -3.6, yaw = 0.35;
+    const seed = (((cx * 5.9 + cz * 7.3) % 1) + 1) % 1;
+    const fig = createFigure("OldWoman", { castShadow: false, seed, caning: true, noProp: true });
+    fig.root.position.set(cx, 0, cz);
+    // the cane — a near-vertical wooden shaft from the deck up to the gripping hand, its foot
+    // planted a touch FORWARD of the grip (the body's +0.10 forward stoop tilts hand AND cane
+    // as one, so the foot lands ahead and the lean reads). Built in body-local and parented to
+    // fig.body so the grip never slides off the knob.
+    const caneMat = new THREE.MeshStandardMaterial({ color: 0x5a4326, roughness: 0.9, metalness: 0 });
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.019, 0.97, 9), caneMat);
+    shaft.position.set(0.197, 0.498, 0.434); // midpoint of the grip→foot shaft
+    shaft.rotation.x = -0.1775;              // aims the shaft from the deck foot (z≈0.52) up to the knob at the hand (z≈0.349)
+    shaft.castShadow = false;
+    fig.body.add(shaft);
+    const knob = new THREE.Mesh(new THREE.SphereGeometry(0.037, 12, 10), caneMat);
+    knob.position.set(0.197, 0.975, 0.349);  // the rounded grip-knob, exactly at the right hand
+    knob.scale.set(1.0, 0.82, 1.0);
+    knob.castShadow = false;
+    fig.body.add(knob);
+    const ferrule = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.02, 0.05, 8), new THREE.MeshStandardMaterial({ color: 0x2a2620, roughness: 0.8, metalness: 0.1 }));
+    ferrule.position.set(0.197, 0.045, 0.515); // a dark rubber/iron tip at the planted foot
+    ferrule.rotation.x = -0.1775;
+    ferrule.castShadow = false;
+    fig.body.add(ferrule);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(cx, 0.02, cz); // a grounding shadow under the easy stance
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like

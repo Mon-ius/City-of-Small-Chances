@@ -477,7 +477,10 @@ export function createFigure(look = "player", opts = {}) {
   // A worked tool (one with a userData.grip) hangs from a pivot at the grip so it can be
   // stirred or cranked about the hand without the whole tool swinging from the feet (spr-019).
   let propPivot = null, propAnim = null, propLeaf = null;
-  if (p.prop) {
+  // `opts.noProp` suppresses the role's default held prop so a pose can supply its own
+  // (e.g. caning replaces the OldWoman's hand-held cane with a ground-planted one she leans
+  // her weight onto — without doubling up the cane). (spr-094)
+  if (p.prop && !opts.noProp) {
     const prop = buildProp(p.prop);
     if (prop) {
       prop.name = "prop:" + p.prop;
@@ -539,6 +542,7 @@ export function createFigure(look = "player", opts = {}) {
   const propleaning = opts.propleaning === true; // a sailor at ease, weight tipped SIDEWAYS onto a short mooring-post, one flat hand laid on its top while the other hangs slack — an upright single-arm PROP-LEAN, the FIRST pose led by a sideways weight-tip, not a wall-loaf (spr-090)
   const heaving = opts.heaving === true; // a dockworker braced BACK on his heels hauling a mooring line in a slow two-hand heave — the trunk RECLINED to take the strain (body.rotation.x NEGATIVE, the inverse of every forward-fold), both fists forward-low at ONE height gripping a body-parented line, drawing IN on a coupled pull — the FIRST pose led by a backward body brace under active rope work (spr-091)
   const resting = opts.resting === true;  // an innkeeper taking a breather mid-sweep, leaned a touch FORWARD with BOTH hands settled together atop a planted vertical yard-broom — the hands meeting at ONE clasp point on the handle top (not two stacked grips), broom + bristles body-parented and riding only the slow breath — the FIRST pose to rest the weight onto a held UPRIGHT tool, the calm inverse of heaving's active haul (spr-092)
+  const caning = opts.caning === true;   // an old woman taking her weight on a ground-planted walking cane: ONE hand wrapped low (hip height) on the cane's knob while she stoops a touch FORWARD onto it, the other arm hanging slack — the FIRST pose to bear weight DOWN through a cane to the deck (distinct from resting's two-hands-HIGH on an upright broom, and propleaning's sideways tip onto a side post); cane body-parented so the grip never slides and the foot rides only the breath (spr-094)
   const talk = opts.talk === true;       // standing in conversation, gesturing in turn (spr-032)
   const idler = seed > 0;
   let stance = idler ? Math.floor((((seed * 3.7) % 1) + 1) % 1 * 3) : 0;
@@ -632,6 +636,7 @@ export function createFigure(look = "player", opts = {}) {
     _reaching: reaching,                   // a dockworker halted and dipped a MODERATE stoop forward (body.rotation.x≈0.22, still well under scattering's 0.64 / scrubbing's 0.6 so it never reads as a deep fold) with his RIGHT arm angled DOWN-and-forward and OUT to a low target at thigh/knee height in front of his boot (hand y≈0.93, z≈0.31) on a slow reach-and-settle, while the LEFT arm hangs FULLY slack at the hip (hand y≈0.84); head dipped to converge with the reaching hand — the FIRST single-arm DOWN-AND-OUT reach to a low/ground-level thing, distinct from scattering's both-hands deep fold, offering's chest-high NEAR present, pointing's level-FAR empty arm + head-away, catching's thigh-braced head-UP; propless, the reach reads on its own with zero snap surface (spr-089)
     _propleaning: propleaning,             // a sailor at rest with his weight tipped SIDEWAYS (body.rotation.z=−0.07, leaning toward the +x post — the FIRST pose to make a sideways weight-tip the MAIN tell) onto a short body-parented mooring-post at his right hand, that arm laid FLAT and weight-bearing on the post top (hand y≈1.36, x≈0.461, z≈0.58) while the LEFT arm hangs FULLY slack at the hip (y≈0.84); upright (no hip-fold), head easy and level, gaze drifting off down the quay — the FIRST single-arm WEIGHT-BEARING lean on an upright body, distinct from leaning (whole BACK tipped flat onto a wall, arms slack) and gazing (tipped FORWARD over a rail, forearms on the coping); the post parents to fig.body so the laid hand can never float off it and the body holds near-still, so zero snap/reverse-snap (spr-090)
     _heaving: heaving,                     // a stevedore braced BACK hauling a mooring line — the trunk reclines (body.rotation.x≈−0.12, NEGATIVE = tipped back, the inverse of scattering/bowing's forward fold) on a slow heave-and-recover, legs SPLAYED and staggered (lead foot forward, rear foot back) for a dug-in tug-base, BOTH arms forward-low at ONE height (hand y≈1.16, z≈0.53, ±0.164 apart) gripping a body-parented hemp bar side-by-side (no stacked grip), both fists drawing IN together on a coupled in-phase pull (the rope coming in — distinct from warming/mending's antiphase swing); head a hair down on the line, level; the bar parents to fig.body (the reading-letter idiom, centred x=0 so build-independent) and rides ONLY the breath + the small symmetric recline, so it can never world-anchor and cannot snap — the FIRST pose led by a backward body brace under active weight-bearing rope work, distinct from casting (tilted rod, line over water), propleaning (upright sideways weight-tip) and every upright two-hand-forward pose (warming/reading/counting) (spr-091)
+    _caning: caning,                       // an old woman bearing her weight on a ground-planted cane, stooped a touch onto it, the off arm slack (spr-094)
     _resting: resting,                     // an innkeeper at rest mid-sweep, leaned a touch FORWARD onto a planted vertical broom — BOTH hands converged at ONE clasp point atop the handle (armL.z=+0.45 / armR.z=−0.45 → hand x≈∓0.027, y≈1.135, z≈0.454, a 0.054m meet, NOT two stacked grips), legs easy and lightly splayed, weight settled onto the tool through a slow breath-rock; the broom (handle tilted rotation.x=+0.048 so its top meets the hands and its bristle foot plants on the deck) + bristles parent to fig.body and ride ONLY the breath, the hands and handle moving as one unit so the grip never slides — the FIRST pose to rest weight DOWN onto a held UPRIGHT tool (the calm static inverse of heaving's active backward haul), distinct from propleaning (sideways tip onto a side post, one arm), gazing (forward over a rail) and every two-hand-forward work pose (the hands here meet ON a vertical shaft, not out in front) (spr-092)
     _talk: talk,                        // standing in conversation, gesturing in turn (spr-032)
     _talkPhase: opts.talkPhase ?? 0,    // turn-taking clock; set antiphase between the pair
@@ -1341,6 +1346,35 @@ export function createFigure(look = "player", opts = {}) {
         this.headPivot.rotation.x = 0.04;                         // gaze level-low, easy — resting eyes, not the deep down/up of bowing or craning
         this.headPivot.rotation.y = Math.sin(k * 0.22 + this._gazePhase) * 0.24;  // a slow idle gaze drifting along the quay — the one wandering tell of a body at rest
         this.headPivot.rotation.z = 0;                            // no head-roll (listening's branch leaves this canted — reset it here)
+        return;
+      }
+      // Leaning on a ground-planted cane (spr-094) — the harbour's FIRST pose to bear the
+      // body's weight DOWN through a cane to the deck. An old woman stoops a TOUCH forward
+      // (body.rotation.x≈+0.10, an aged settle, under any true fold) onto a cane gripped LOW
+      // in ONE hand at hip height, the off arm hanging slack — distinct from resting (BOTH
+      // hands HIGH on an upright broom top) and propleaning (sideways tip onto a side post).
+      // The RIGHT hand wraps the cane knob forward-low (armR.x=-0.62 armR.z=-0.12 → hand
+      // x≈0.20 y≈0.975 z≈0.349); the cane is a vertical shaft body-parented at that exact
+      // body-local grip, so the grip is held CONSTANT (no breath term on armR) and ALL the
+      // life comes from body.rotation.x — the stoop+rock tilts hand AND cane together as one
+      // unit (planting the foot forward of the grip, a real leaned cane) so the grip can never
+      // slide. The LEFT arm hangs slack (hand ~y0.86), a clear counterweight. legL/legR/armL/
+      // armR are children of body, so the whole frame and the cane rock together on the slow
+      // weary breath. The player never canes, so this is dead code for the hero and its gait
+      // stays byte-for-byte unchanged. Returns early — no stride or weight-shift.
+      if (this._caning) {
+        const k = this._phase;
+        const settle = Math.sin(k * 0.4 + this._swayPhase);         // a slow weary lean-and-ease — weight rocking onto and off the cane
+        body.rotation.x = 0.10 + settle * 0.025;                    // an aged forward stoop onto the stick (POSITIVE = forward, far under any fold); this rock moves hand AND cane as one
+        body.rotation.z = Math.sin(k * 0.28) * 0.01;               // a faint side-settle, keeping the stance breathing
+        body.position.y = Math.sin(k) * 0.006;                     // a quiet tired breath — the cane rides this + the stoop and ONLY these, so it never floats
+        legL.rotation.x = -0.02; legL.rotation.z = -0.06;          // legs near-straight, planted a touch apart...
+        legR.rotation.x = -0.04; legR.rotation.z = 0.07;           // ...the off leg a hair more set, taking some weight off the cane side
+        armR.rotation.x = -0.62;                  armR.rotation.z = -0.12;  // RIGHT hand wrapped LOW on the cane knob — held CONSTANT so the grip never slides (the body rock does the living)
+        armL.rotation.x = -0.05 + this._armBias;  armL.rotation.z = -0.05;  // LEFT arm hanging slack at the side, a clear counterweight (hand ~y0.86)
+        this.headPivot.rotation.x = 0.14;                         // head dipped a touch, a weary low gaze (positive = down)
+        this.headPivot.rotation.y = Math.sin(k * 0.2 + this._gazePhase) * 0.2; // a slow, small tired look along the quay
+        this.headPivot.rotation.z = 0;                            // no head-roll (reset listening's cant)
         return;
       }
       // Stride heft (spr-017) — a broad, heavy-set frame plants a deeper, more laboured
