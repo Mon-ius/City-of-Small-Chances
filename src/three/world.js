@@ -4293,6 +4293,43 @@ export function buildWorld(scene) {
     scene.add(blob);
   }
 
+  {
+    // Heaving a mooring line (spr-091) — a stevedore in the working south end, braced BACK
+    // hauling a hawser in. yaw = Math.PI - 0.5 faces SE so the reclined chest + the two-hand
+    // pull read three-quarter-front to a player coming up the quay from the south. Cleared by a
+    // full-roster scan: nearest figure is the static Commuter (1,-28) at 4.72m, then craning
+    // (5.5,-29) 7.62m and casting (-10.3,-31) 8.86m; 1.5m off the x=-3 lane, 8.9m off the nearest
+    // lamp, 2m off the south bound — a roomy open pocket among the south-end dock activity.
+    const cx = -1.5, cz = -32.0, yaw = Math.PI - 0.5;
+    const seed = (((cx * 5.9 + cz * 7.3) % 1) + 1) % 1;
+    const fig = createFigure("DockWorker", { castShadow: false, seed, heaving: true });
+    fig.root.position.set(cx, 0, cz);
+    // a short length of hawser laid across both palms — parented to fig.body so it rides only the
+    // breath + the symmetric heave-recline and can never world-anchor (the reading-letter idiom).
+    // Centred (x=0) so it is build-independent; the hands sit at ±0.164 either side of it.
+    const ropeMat = new THREE.MeshStandardMaterial({ color: 0x8a7c5c, roughness: 0.95, metalness: 0 });
+    const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.52, 12), ropeMat);
+    bar.position.set(0, 1.158, 0.527); // across both palms at the verified grip y/z
+    bar.rotation.z = Math.PI / 2;      // lie horizontal along x, a little overhang past each hand
+    bar.castShadow = false;
+    fig.body.add(bar);
+    const coil = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.028, 8, 16), ropeMat);
+    coil.position.set(0, 1.1, 0.7);    // a flaked loop hanging just forward-below the grip, the line running out
+    coil.rotation.x = Math.PI / 2;
+    coil.castShadow = false;
+    fig.body.add(coil);
+    scene.add(fig.root);
+    citizens.push(makeStanding(fig, yaw));
+    const blob = new THREE.Mesh(
+      new THREE.CircleGeometry(0.5, 16),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.5 }),
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(cx, 0.02, cz); // a grounding shadow under the staggered feet
+    blob.renderOrder = -1;
+    scene.add(blob);
+  }
+
   // ── Bespoke harbour signage (Batch 9): painted hanging shop signs and pasted
   // posters on the building façades (which front the quay, facing −x), plus a
   // small wall-tag on the quay wall (facing +x). All are alpha cutouts lit like
