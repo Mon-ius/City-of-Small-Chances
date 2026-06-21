@@ -198,14 +198,83 @@ function mesh(geo, material) {
   return m;
 }
 
-// A single rounded limb (capsule) hung from a joint pivot at its top, swinging the
-// whole limb when the pivot rotates. `total` is joint-to-tip length; the capsule's
-// rounded ends read as shoulder/hip and wrist/ankle without extra geometry.
-function capsuleLimb(total, radius, material) {
-  const len = Math.max(0.02, total - 2 * radius);
-  const m = mesh(new THREE.CapsuleGeometry(radius, len, 6, 14), material);
-  m.position.y = -total / 2; // top of the capsule sits at the pivot (y=0)
-  return m;
+// A tapered, two-segment limb (a thicker upper, an elbow/knee bulge, a slimmer lower),
+// hung from a joint pivot at its top. SAME contract as the old single capsule — rounded
+// top at y=0, rounded tip at y=-total — so every pose's hand/foot math is byte-for-byte
+// unchanged; only the silhouette gains an upper-arm/forearm (or thigh/calf) taper and a
+// joint, so a limb reads anatomical rather than as a uniform sausage. (spr-093: real body)
+function taperedLimb(total, rTop, rTip, material) {
+  const g = new THREE.Group();
+  const jointAt = total * 0.47;                          // elbow/knee a touch above mid-limb
+  const rMid = Math.max(rTop, rTip) * 0.92;
+  const upLen = Math.max(0.02, jointAt - 2 * rTop);      // upper capsule spans y=0 → y=-jointAt
+  const up = mesh(new THREE.CapsuleGeometry(rTop, upLen, 5, 12), material);
+  up.position.y = -jointAt / 2;
+  g.add(up);
+  g.add(at(mesh(new THREE.SphereGeometry(rMid, 12, 10), material), 0, -jointAt, 0)); // joint bulge
+  const lowLen = Math.max(0.02, (total - jointAt) - 2 * rTip); // lower capsule → rounded tip at y=-total
+  const low = mesh(new THREE.CapsuleGeometry(rTip, lowLen, 5, 12), material);
+  low.position.y = -(jointAt + (total - jointAt) / 2);
+  g.add(low);
+  return g;
+}
+
+// A modeled hand: a flattened palm, a finger block and a thumb, replacing the old plain
+// sphere. Built around its own origin so the caller can drop it at the wrist (y=-0.6) and
+// every prop-grip / hand-position pose value still lands on it. (spr-093)
+function buildHand(r, material) {
+  const g = new THREE.Group();
+  const palm = mesh(new THREE.SphereGeometry(r * 1.2, 12, 10), material);
+  palm.scale.set(1.0, 1.15, 0.6);
+  g.add(palm);
+  const fingers = mesh(new THREE.CapsuleGeometry(r * 0.82, r * 1.0, 4, 8), material);
+  fingers.scale.set(1.35, 1.0, 0.55);
+  g.add(at(fingers, 0, -r * 1.55, 0.0));
+  const thumb = mesh(new THREE.CapsuleGeometry(r * 0.42, r * 0.6, 4, 8), material);
+  thumb.rotation.z = 1.0;
+  g.add(at(thumb, r * 1.0, -r * 0.55, 0.05));
+  return g;
+}
+
+// A modeled shoe: a low rounded body with a tapered toe-cap and a heel, replacing the old
+// box boot. Same ~0.27 m footprint along +z and the same placement so the gait/contact is
+// unchanged; only the brick becomes a shoe. `build` widens it with the frame. (spr-093)
+function buildShoe(build, material) {
+  const g = new THREE.Group();
+  const w = 0.13 * build;
+  g.add(at(mesh(new THREE.BoxGeometry(w, 0.07, 0.16), material), 0, 0.01, 0.0));
+  const toe = mesh(new THREE.SphereGeometry(0.07, 12, 10), material);
+  toe.scale.set(w / 0.14, 0.55, 0.95);
+  g.add(at(toe, 0, -0.006, 0.13));
+  const heel = mesh(new THREE.SphereGeometry(0.055, 10, 8), material);
+  heel.scale.set(w / 0.14, 0.85, 0.7);
+  g.add(at(heel, 0, 0.006, -0.085));
+  return g;
+}
+
+// Facial features hung on the head pivot around the head centre (pivot-local y = `cy`),
+// turning a bare sphere into a readable face: a nose, a small brow line, two eyes, two
+// ears and a jaw/chin. `skinMat` dresses the flesh; `darkMat` the eyes. (spr-093)
+function addFace(headPivot, skinMat, darkMat, cy) {
+  const fwd = 0.145;                                     // the front of the face (head z-radius)
+  // Features ride the visible skin band BELOW the hairline (eyes a touch under head-centre,
+  // as on a real face); the nose protrudes, the eyes sit recessed in their sockets.
+  const nose = mesh(new THREE.ConeGeometry(0.026, 0.07, 8), skinMat);
+  nose.rotation.x = Math.PI * 0.5;                       // apex points +z (out of the face)
+  headPivot.add(at(nose, 0, cy - 0.045, fwd - 0.02));
+  for (const ex of [-1, 1]) {
+    const brow = mesh(new THREE.BoxGeometry(0.05, 0.013, 0.02), darkMat);
+    headPivot.add(at(brow, ex * 0.05, cy + 0.02, fwd - 0.04));
+    const eye = mesh(new THREE.SphereGeometry(0.021, 10, 8), darkMat);
+    eye.scale.set(1.15, 0.85, 0.6);
+    headPivot.add(at(eye, ex * 0.052, cy - 0.005, fwd - 0.018));
+    const ear = mesh(new THREE.SphereGeometry(0.032, 8, 8), skinMat);
+    ear.scale.set(0.4, 1.0, 0.75);
+    headPivot.add(at(ear, ex * 0.142, cy - 0.005, -0.01));
+  }
+  const jaw = mesh(new THREE.SphereGeometry(0.082, 14, 12), skinMat);
+  jaw.scale.set(0.9, 0.7, 0.85);
+  headPivot.add(at(jaw, 0, cy - 0.105, 0.015));
 }
 
 // Skeleton heights (metres) — preserved from the original figure so world placement,
@@ -358,10 +427,13 @@ export function createFigure(look = "player", opts = {}) {
   pelvis.position.y = HIP_Y + 0.05;
   body.add(pelvis);
 
-  // Rounded shoulders smooth the arm-to-torso join.
-  for (const sx of [-0.24, 0.24]) {
-    const sh = mesh(new THREE.SphereGeometry(0.1 * build, 14, 12), coatMat);
-    sh.position.set(sx * spread, SHOULDER_Y, 0);
+  // Deltoid caps over each arm pivot — flattened ellipsoids (not round balls) that smooth
+  // the arm-to-torso join and cover the rotating shoulder joint as the arm swings, without
+  // the old boxing-glove bulge (spr-093).
+  for (const sx of [-0.26, 0.26]) {
+    const sh = mesh(new THREE.SphereGeometry(0.085 * build, 14, 12), coatMat);
+    sh.scale.set(1.0, 0.86, 0.74);
+    sh.position.set(sx * spread, SHOULDER_Y + 0.02, 0);
     body.add(sh);
   }
 
@@ -382,12 +454,17 @@ export function createFigure(look = "player", opts = {}) {
   headPivot.add(head);
 
   const hair = mesh(
-    new THREE.SphereGeometry(0.153, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.6),
+    new THREE.SphereGeometry(0.153, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.46),
     hairMat,
   );
   hair.scale.set(0.97, 1.05, 1.02);
   hair.position.y = SHOULDER_Y + 0.31 - headBaseY;
   headPivot.add(hair);
+
+  // A face on the head pivot — nose, brow, eyes, ears, jaw — so a head reads as a head and
+  // turns with the gaze, not a blank ball. cy is the head centre in pivot-local space; the
+  // dark material dresses the eyes/brow (spr-093).
+  addFace(headPivot, skinMat, flatMat(0x2a2622, 0.6), SHOULDER_Y + 0.3 - headBaseY);
 
   // Headwear — the clearest role tell now that every body shares one silhouette
   // (spr-005). Rides the head pivot so it turns with the gaze. Player stays bare-headed.
@@ -470,26 +547,25 @@ export function createFigure(look = "player", opts = {}) {
   const armZL = stance === 1 ? -0.3 : 0.09;   // the clasped pose rolls the shoulders inward
   const armZR = stance === 1 ? 0.3 : -0.09;   // so the two hands meet in front of the body
 
-  // Legs — capsules from the hip, each ending in a boot toed forward.
+  // Legs — a tapered thigh→calf from the hip (knee bulge), each ending in a modeled shoe
+  // toed forward. The limb still rounds off at y=-0.78 and the shoe still seats at -0.76,
+  // so every gait/contact value is unchanged (spr-093).
   function makeLeg(x) {
     const pivot = new THREE.Object3D();
     pivot.position.set(x, HIP_Y, 0);
-    pivot.add(capsuleLimb(0.78, legR0, trouserMat));
-    const boot = mesh(new THREE.BoxGeometry(0.13 * build, 0.085, 0.27), shoeMat);
-    boot.position.set(0, -0.76, 0.05);
-    pivot.add(boot);
+    pivot.add(taperedLimb(0.78, legR0, legR0 * 0.7, trouserMat));
+    pivot.add(at(buildShoe(build, shoeMat), 0, -0.76, 0.05));
     return pivot;
   }
-  // Arms — slimmer capsules from the shoulder, each ending in a hand; the shoulder roll
-  // (rz) angles them out for a normal hang or inward for the clasped stance.
+  // Arms — a tapered upper-arm→forearm from the shoulder (elbow bulge), each ending in a
+  // modeled hand at the wrist (y=-0.6, the old hand centre); the shoulder roll (rz) angles
+  // them out for a normal hang or inward for the clasped stance (spr-093).
   function makeArm(x, rz) {
     const pivot = new THREE.Object3D();
     pivot.position.set(x, SHOULDER_Y, 0);
     pivot.rotation.z = rz;
-    pivot.add(capsuleLimb(0.62, armR0, coatMat));
-    const hand = mesh(new THREE.SphereGeometry(0.055 * build, 12, 10), skinMat);
-    hand.position.y = -0.6;
-    pivot.add(hand);
+    pivot.add(taperedLimb(0.62, armR0, armR0 * 0.72, coatMat));
+    pivot.add(at(buildHand(0.055 * build, skinMat), 0, -0.6, 0));
     return pivot;
   }
 
